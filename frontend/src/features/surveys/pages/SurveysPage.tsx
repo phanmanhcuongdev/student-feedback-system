@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SurveyHero from "../components/SurveyHero";
 import SurveyFilterTabs from "../components/SurveyFilterTabs";
 import MainHeader from "../../../components/layout/MainHeader";
@@ -9,11 +9,13 @@ import { getAllSurveys } from "../../../api/surveyApi";
 import type { Survey } from "../../../types/survey";
 import Footer from "../../../components/layout/MainFooter";
 
+type SurveyFilter = "ALL" | "OPEN" | "CLOSED";
 
 export default function SurveysPage() {
     const [surveys, setSurveys] = useState<Survey[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [filter, setFilter] = useState<SurveyFilter>("ALL");
 
     useEffect(() => {
         const fetchSurveys = async () => {
@@ -34,6 +36,11 @@ export default function SurveysPage() {
         fetchSurveys();
     }, []);
 
+    const filteredSurveys = useMemo(() => {
+        if (filter === "ALL") return surveys;
+        return surveys.filter((survey) => survey.status === filter);
+    }, [surveys, filter]);
+
     return (
         <>
             <MainHeader />
@@ -43,7 +50,7 @@ export default function SurveysPage() {
                     <SurveyHero />
 
                     <div className="flex items-center gap-3">
-                        <SurveyFilterTabs />
+                        <SurveyFilterTabs value={filter} onChange={setFilter}/>
                     </div>
                 </div>
 
@@ -56,10 +63,10 @@ export default function SurveysPage() {
                 <div className="mt-10">
                     {loading ? (
                         <SurveyCardSkeleton />
-                    ) : surveys.length === 0 ? (
+                    ) : filteredSurveys.length === 0 ? (
                         <SurveyEmptyState />
                     ) : (
-                        <SurveyGrid surveys={surveys} />
+                        <SurveyGrid surveys={filteredSurveys} />
                     )}
                 </div>
             </main>
