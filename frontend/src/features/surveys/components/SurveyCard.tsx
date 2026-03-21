@@ -1,4 +1,5 @@
 import type { Survey } from "../../../types/survey";
+import { useNavigate } from "react-router-dom";
 
 type SurveyCardProps = {
     survey: Survey;
@@ -35,6 +36,12 @@ export default function SurveyCard({survey}: SurveyCardProps) {
             : survey.status === "CLOSED"
                 ? "bg-red-500"
                 : "bg-slate-400";
+
+    const navigate = useNavigate();
+
+    function handleStartSurvey(id: number) {
+        navigate(`/surveys/${id}`);
+    }
 
     return (
         <div className="bg-white rounded-xl p-6 transition-all hover:shadow-lg hover:-translate-y-1 flex flex-col h-full border border-slate-200">
@@ -86,7 +93,7 @@ export default function SurveyCard({survey}: SurveyCardProps) {
                 </div>
 
                 {/* Button */}
-                <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 group hover:bg-blue-700">
+                <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 group hover:bg-blue-700" onClick={() => handleStartSurvey(survey.id)}>
                     Start Survey
                     <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">
             arrow_forward
