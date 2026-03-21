@@ -1,7 +1,8 @@
-package com.ttcs.backend.entity;
+package com.ttcs.backend.adapter.out.persistence;
 
 import java.time.LocalDateTime;
 
+import lombok.Getter;
 import org.hibernate.annotations.Nationalized;
 
 import jakarta.persistence.Column;
@@ -20,9 +21,10 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "Survey")
 @Data
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Survey {
+public class SurveyEntity {
     @Id
     @Column(name = "survey_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,6 +45,6 @@ public class Survey {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
-    private Admin createdBy;
+    private AdminEntity createdBy;
 
 }

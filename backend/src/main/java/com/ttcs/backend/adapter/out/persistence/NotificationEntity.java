@@ -1,4 +1,4 @@
-package com.ttcs.backend.entity;
+package com.ttcs.backend.adapter.out.persistence;
 
 import org.hibernate.annotations.Nationalized;
 
@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Notification {
+public class NotificationEntity {
     @Id
     @Column(name = "noti_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)

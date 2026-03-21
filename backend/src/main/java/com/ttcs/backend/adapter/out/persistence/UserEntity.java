@@ -1,4 +1,4 @@
-package com.ttcs.backend.entity;
+package com.ttcs.backend.adapter.out.persistence;
 
 import org.hibernate.annotations.Nationalized;
 
@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class User {
+public class UserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer user_id;
@@ -33,7 +33,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role;
+    private RoleEntity role;
 
     @Column(nullable = false)
     private Boolean verify = false;

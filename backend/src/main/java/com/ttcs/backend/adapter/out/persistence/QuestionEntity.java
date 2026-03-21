@@ -1,4 +1,4 @@
-package com.ttcs.backend.entity;
+package com.ttcs.backend.adapter.out.persistence;
 
 
 import org.hibernate.annotations.Nationalized;
@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Question {
+public class QuestionEntity {
     
     @Id
     @Column(name = "question_id")
@@ -30,7 +30,7 @@ public class Question {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "survey_id", nullable = false)
-    private Survey survey;
+    private SurveyEntity survey;
 
     @Column(columnDefinition = "NVARCHAR(MAX)")
     @Nationalized
