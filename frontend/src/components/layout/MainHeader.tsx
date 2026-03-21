@@ -1,4 +1,7 @@
+import { Link } from "react-router-dom";
+
 export default function MainHeader() {
+
     return (
         <header className="bg-white dark:bg-blue-950/80 backdrop-blur-md shadow-sm dark:shadow-none docked full-width top-0 sticky z-50">
             <nav className="flex justify-between items-center px-6 py-4 w-full max-w-screen-2xl mx-auto">
@@ -7,8 +10,12 @@ export default function MainHeader() {
                     <div className="hidden md:flex gap-6 font-manrope text-sm font-medium">
                         <a className="text-slate-500 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 transition-colors px-2 py-1 rounded"
                            href="#">Dashboard</a>
-                        <a className="text-blue-700 dark:text-blue-300 border-b-2 border-blue-600 px-2 py-1" href="#">Active
-                            Surveys</a>
+                        <Link
+                            to="/surveys"
+                            className="text-blue-700 dark:text-blue-300 border-b-2 border-blue-600 px-2 py-1"
+                        >
+                            Surveys
+                        </Link>
                         <a className="text-slate-500 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 transition-colors px-2 py-1 rounded"
                            href="#">History</a>
                     </div>
