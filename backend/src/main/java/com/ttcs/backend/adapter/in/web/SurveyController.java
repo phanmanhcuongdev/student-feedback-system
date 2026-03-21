@@ -1,6 +1,8 @@
 package com.ttcs.backend.adapter.in.web;
 
+import com.ttcs.backend.adapter.in.web.dto.SurveyDetailResponse;
 import com.ttcs.backend.adapter.in.web.dto.SurveyResponse;
+import com.ttcs.backend.application.port.in.GetSurveyDetailUseCase;
 import com.ttcs.backend.application.port.in.GetSurveyUseCase;
 import com.ttcs.backend.common.WebAdapter;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import java.util.List;
 public class SurveyController {
 
     private final GetSurveyUseCase getSurveyUseCase;
+    private final GetSurveyDetailUseCase getSurveyDetailUseCase;
 
     @GetMapping("/{id}")
     public ResponseEntity<SurveyResponse> getSurveyById(@PathVariable("id") Integer surveyId) {
@@ -29,4 +32,11 @@ public class SurveyController {
     public ResponseEntity<List<SurveyResponse>> getAllSurveys() {
         return ResponseEntity.ok(getSurveyUseCase.getAllSurveys());
     }
+
+    @GetMapping("/{id}/detail")
+    public ResponseEntity<SurveyDetailResponse> getSurveyDetail(@PathVariable("id") Integer surveyId) {
+        return ResponseEntity.ok(getSurveyDetailUseCase.getSurveyDetail(surveyId));
+    }
+
+
 }

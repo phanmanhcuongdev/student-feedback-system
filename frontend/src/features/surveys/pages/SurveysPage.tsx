@@ -7,6 +7,7 @@ import SurveyCardSkeleton from "../components/SurveyCardSkeleton";
 import SurveyEmptyState from "../components/SurveyEmptyState";
 import { getAllSurveys } from "../../../api/surveyApi";
 import type { Survey } from "../../../types/survey";
+import Footer from "../../../components/layout/MainFooter";
 
 
 export default function SurveysPage() {
@@ -62,6 +63,8 @@ export default function SurveysPage() {
                     )}
                 </div>
             </main>
+
+            <Footer/>
         </>
     );
 }
