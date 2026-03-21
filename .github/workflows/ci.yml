@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  docker:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
+
+      - name: Build backend image
+        run: |
+          docker build \
+            -t $REGISTRY/$IMAGE_NAME/backend:latest \
+            -t $REGISTRY/$IMAGE_NAME/backend:${{ github.sha }} \
+            ./backend
+
+      - name: Build frontend image
+        run: |
+          docker build \
+            -t $REGISTRY/$IMAGE_NAME/frontend:latest \
+            -t $REGISTRY/$IMAGE_NAME/frontend:${{ github.sha }} \
+            ./frontend
+
+      - name: Push backend image
+        run: |
+          docker push $REGISTRY/$IMAGE_NAME/backend:latest
+          docker push $REGISTRY/$IMAGE_NAME/backend:${{ github.sha }}
+
+      - name: Push frontend image
+        run: |
+          docker push $REGISTRY/$IMAGE_NAME/frontend:latest
+          docker push $REGISTRY/$IMAGE_NAME/frontend:${{ github.sha }}
