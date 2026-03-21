@@ -1,4 +1,4 @@
-package com.ttcs.backend.entity;
+package com.ttcs.backend.adapter.out.persistence;
 
 import org.hibernate.annotations.Nationalized;
 
@@ -20,12 +20,12 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Teacher {
+public class TeacherEntity {
     @Id
     @MapsId
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id")
-    private User user;    
+    private UserEntity user;
 
 
     @Column(nullable = false)
@@ -37,5 +37,5 @@ public class Teacher {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dept_id", nullable = false)
-    private Department department;
+    private DepartmentEntity department;
 }

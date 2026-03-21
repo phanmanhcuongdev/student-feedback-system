@@ -1,4 +1,4 @@
-package com.ttcs.backend.entity;
+package com.ttcs.backend.adapter.out.persistence;
 
 import org.hibernate.annotations.Nationalized;
 
@@ -24,7 +24,7 @@ public class SurveyAssignment {
     @MapsId
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "survey_id")
-    private Survey survey;     
+    private SurveyEntity survey;
 
     @Column(name = "evaluator_type", nullable = false)
     @Nationalized

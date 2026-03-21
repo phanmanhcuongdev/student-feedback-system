@@ -1,4 +1,4 @@
-package com.ttcs.backend.entity;
+package com.ttcs.backend.adapter.out.persistence;
 
 import java.time.LocalDateTime;
 
@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SurveyResponse {
+public class SurveyResponseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "response_id")
@@ -28,15 +28,15 @@ public class SurveyResponse {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id")
-    private Student student;
+    private StudentEntity student;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id")
-    private Teacher teacher;
+    private TeacherEntity teacher;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "survey_id", nullable = false)
-    private Survey survey;
+    private SurveyEntity survey;
 
     @Column(name = "submitted_at", nullable = false, updatable = false)
     @org.hibernate.annotations.CreationTimestamp // tu dong dien thoi gian he thong
