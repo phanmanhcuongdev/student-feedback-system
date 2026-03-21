@@ -5,6 +5,7 @@ import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.common.PersistenceAdapter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.List;
 import java.util.Optional;
 
 @PersistenceAdapter
@@ -16,5 +17,13 @@ public class SurveyPersistenceAdapter implements LoadSurveyPort {
     public Optional<Survey> loadById(Integer surveyId) {
         return surveyRepository.findById(surveyId)
                 .map(SurveyMapper::toDomain);
+    }
+
+    @Override
+    public List<Survey> loadAll(){
+        return surveyRepository.findAll()
+                .stream()
+                .map(SurveyMapper::toDomain)
+                .toList();
     }
 }

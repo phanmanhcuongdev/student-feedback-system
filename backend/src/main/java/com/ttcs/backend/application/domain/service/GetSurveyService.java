@@ -7,6 +7,8 @@ import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 
+import java.util.List;
+
 @RequiredArgsConstructor
 @UseCase
 public class GetSurveyService implements GetSurveyUseCase {
@@ -36,6 +38,33 @@ public class GetSurveyService implements GetSurveyUseCase {
                 survey.getCreatedBy(),
                 status
         );
+    }
+
+    @Override
+    public List<SurveyResponse> getAllSurveys() {
+        return loadSurveyPort.loadAll()
+                .stream()
+                .map(survey -> {
+                    String status;
+                    if (survey.isNotStarted()) {
+                        status = "NOT_OPEN";
+                    } else if (survey.isClosed()) {
+                        status = "CLOSED";
+                    } else {
+                        status = "OPEN";
+                    }
+
+                    return new SurveyResponse(
+                            survey.getId(),
+                            survey.getTitle(),
+                            survey.getDescription(),
+                            survey.getStartDate(),
+                            survey.getEndDate(),
+                            survey.getCreatedBy(),
+                            status
+                    );
+                })
+                .toList();
     }
 
 }
