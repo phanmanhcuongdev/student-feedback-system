@@ -1,13 +1,22 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import SurveyDetailMain from "../components/SurveyDetailMain";
 import Footer from "../../../components/layout/MainFooter";
 import MainHeader from "../../../components/layout/MainHeader";
+import SubmissionResultModal from "../popup/SubmissionResultModal";
 import type { AnswersState, SurveyDetail } from "../../../types/surveyDetail";
 import {getSurveyDetail, submitSurvey} from "../../../api/surveyApi";
 
+type SubmitModalState = {
+    isOpen: boolean;
+    success: boolean;
+    message: string;
+};
+
+
 export default function SurveyDetailPage() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const surveyId = Number(id);
 
     const [survey, setSurvey] = useState<SurveyDetail | null>(null);
@@ -15,6 +24,12 @@ export default function SurveyDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
+
+    const [submitModal, setSubmitModal] = useState<SubmitModalState>({
+        isOpen: false,
+        success: false,
+        message: "",
+    });
 
     useEffect(() => {
         async function fetchSurveyDetail() {
@@ -84,15 +99,36 @@ export default function SurveyDetailPage() {
             };
 
             const result = await submitSurvey(payload);
-            console.log("submit success", result);
+
+            setSubmitModal({
+                isOpen: true,
+                success: result.success,
+                message: result.message,
+            });
 
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to submit survey");
+            setSubmitModal({
+                isOpen: true,
+                success: false,
+                message: err instanceof Error ? err.message : "Failed to submit survey",
+            });
         } finally {
             setSubmitting(false);
         }
 
 
+    }
+
+    function handleModalOk() {
+        if (submitModal.success) {
+            navigate("/");
+            return;
+        }
+
+        setSubmitModal((prev) => ({
+            ...prev,
+            isOpen: false,
+        }));
     }
 
     return (
@@ -125,7 +161,12 @@ export default function SurveyDetailPage() {
                     />
                 )}
             </div>
-
+            <SubmissionResultModal
+                isOpen={submitModal.isOpen}
+                success={submitModal.success}
+                message={submitModal.message}
+                onOk={handleModalOk}
+            />
             <Footer />
         </>
     );
