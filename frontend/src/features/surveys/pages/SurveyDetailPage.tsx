@@ -4,7 +4,7 @@ import SurveyDetailMain from "../components/SurveyDetailMain";
 import Footer from "../../../components/layout/MainFooter";
 import MainHeader from "../../../components/layout/MainHeader";
 import type { AnswersState, SurveyDetail } from "../../../types/surveyDetail";
-import { getSurveyDetail } from "../../../api/surveyApi";
+import {getSurveyDetail, submitSurvey} from "../../../api/surveyApi";
 
 export default function SurveyDetailPage() {
     const { id } = useParams();
@@ -14,6 +14,7 @@ export default function SurveyDetailPage() {
     const [answers, setAnswers] = useState<AnswersState>({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         async function fetchSurveyDetail() {
@@ -52,31 +53,46 @@ export default function SurveyDetailPage() {
         }));
     }
 
-    function handleSubmit() {
-        if (!survey) return;
+    async function handleSubmit() {
+        if (!survey || submitting) return;
 
-        const payload = {
-            studentId: 1,
-            answers: survey.questions.map((question) => {
-                const value = answers[question.id];
+        try
+        {
+            setSubmitting(true);
+            setError(null);
 
-                if (question.type === "RATING") {
+            const payload = {
+                studentId: 6,
+                surveyId: survey.id,
+                answers: survey.questions.map((question) => {
+                    const value = answers[question.id];
+
+                    if (question.type === "RATING") {
+                        return {
+                            questionId: question.id,
+                            rating: typeof value === "number" ? value : null,
+                            comment: null
+                        };
+                    }
+
                     return {
                         questionId: question.id,
-                        rating: typeof value === "number" ? value : null,
-                        comment: null,
+                        rating: null,
+                        comment: typeof value === "string" ? value : null,
                     };
-                }
+                }),
+            };
 
-                return {
-                    questionId: question.id,
-                    rating: null,
-                    comment: typeof value === "string" ? value : null,
-                };
-            }),
-        };
+            const result = await submitSurvey(payload);
+            console.log("submit success", result);
 
-        console.log("submit payload", payload);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to submit survey");
+        } finally {
+            setSubmitting(false);
+        }
+
+
     }
 
     return (
@@ -105,6 +121,7 @@ export default function SurveyDetailPage() {
                         onRatingChange={handleRatingChange}
                         onTextChange={handleTextChange}
                         onSubmit={handleSubmit}
+                        submitting={submitting}
                     />
                 )}
             </div>

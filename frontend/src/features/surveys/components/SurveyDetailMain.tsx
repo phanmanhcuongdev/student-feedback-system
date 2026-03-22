@@ -6,6 +6,7 @@ type SurveyDetailMainProps = {
     onRatingChange: (questionId: number, value: number) => void;
     onTextChange: (questionId: number, value: string) => void;
     onSubmit: () => void;
+    submitting: boolean;
 };
 
 function getStatusBadgeClasses(status: SurveyDetail["status"]) {
@@ -35,6 +36,7 @@ export default function SurveyDetailMain({
                                              onRatingChange,
                                              onTextChange,
                                              onSubmit,
+                                             submitting,
                                          }: SurveyDetailMainProps) {
     const answeredCount = survey.questions.filter((q) => {
         const value = answers[q.id];
@@ -46,7 +48,7 @@ export default function SurveyDetailMain({
         ? Math.round((answeredCount / survey.questions.length) * 100)
         : 0;
 
-    const canSubmit = answeredCount === survey.questions.length && survey.status === "OPEN";
+    const canSubmit = answeredCount === survey.questions.length && survey.status === "OPEN" && !submitting;
 
     const ratingLabels: Record<number, string> = {
         1: "Very Unsatisfied",
@@ -176,7 +178,7 @@ export default function SurveyDetailMain({
                                     : "cursor-not-allowed bg-slate-300 text-slate-500",
                             ].join(" ")}
                         >
-                            <span>Submit Survey</span>
+                            <span>{submitting ? "Submitting..." : "Submit Survey"}</span>
                             <span>➤</span>
                         </button>
                     </div>

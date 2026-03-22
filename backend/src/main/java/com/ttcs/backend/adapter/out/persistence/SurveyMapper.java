@@ -18,7 +18,25 @@ public final class SurveyMapper {
                 entity.getDescription(),
                 entity.getStartDate(),
                 entity.getEndDate(),
-                entity.getCreatedBy().getUser().getId()
+                entity.getCreatedBy() != null ? entity.getCreatedBy().getId() : null
         );
+    }
+
+    public static SurveyEntity toEntity(Survey domain) {
+        if (domain == null) return null;
+
+        SurveyEntity entity = new SurveyEntity();
+        entity.setId(domain.getId());
+        entity.setTitle(domain.getTitle());
+        entity.setDescription(domain.getDescription());
+        entity.setStartDate(domain.getStartDate());
+        entity.setEndDate(domain.getEndDate());
+
+        // shallow admin
+        AdminEntity admin = new AdminEntity();
+        admin.setId(domain.getCreatedBy());
+        entity.setCreatedBy(admin);
+
+        return entity;
     }
 }
