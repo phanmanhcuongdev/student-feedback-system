@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface QuestionRepository extends JpaRepository<QuestionEntity, Integer> {
     List<QuestionEntity> findBySurvey_IdOrderByIdAsc(Integer surveyId);
+    boolean existsByIdAndSurvey_Id(Integer questionId, Integer surveyId);
 }

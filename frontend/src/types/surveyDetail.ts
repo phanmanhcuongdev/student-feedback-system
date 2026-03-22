@@ -26,7 +26,14 @@ export type SubmitSurveyAnswer = {
 
 export type SubmitSurveyRequest = {
     studentId: number;
+    surveyId: number;
     answers: SubmitSurveyAnswer[];
+};
+
+export type SubmitSurveyResponse = {
+    success: boolean;
+    code: "SUBMIT_SUCCESS" | "ALREADY_SUBMITTED" | "SURVEY_CLOSED" | "INVALID_INPUT" | "SURVEY_NOT_FOUND";
+    message: string;
 };
 
 export type AnswersState = Record<number, number | string>;
