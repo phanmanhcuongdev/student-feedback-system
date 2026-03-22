@@ -2,7 +2,7 @@ package com.ttcs.backend.adapter.out.persistence;
 
 import java.time.LocalDateTime;
 
-import lombok.Getter;
+import lombok.*;
 import org.hibernate.annotations.Nationalized;
 
 import jakarta.persistence.Column;
@@ -14,13 +14,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "Survey")
-@Data
+@Setter
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -34,6 +31,7 @@ public class SurveyEntity {
     @Nationalized
     private String title;
 
+    @Nationalized
     @Column(name = "description", columnDefinition = "NVARCHAR(MAX)")
     private String description;
 

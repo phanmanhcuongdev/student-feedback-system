@@ -18,7 +18,7 @@ public final class SurveyMapper {
                 entity.getDescription(),
                 entity.getStartDate(),
                 entity.getEndDate(),
-                entity.getCreatedBy().getUser().getUser_id()
+                entity.getCreatedBy().getUser().getId()
         );
     }
 }

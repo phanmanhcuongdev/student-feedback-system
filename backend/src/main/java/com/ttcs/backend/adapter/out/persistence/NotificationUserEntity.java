@@ -8,13 +8,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Table(name = "Notification_User")
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class NotificationUserEntity {
@@ -24,7 +23,7 @@ public class NotificationUserEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "noti_id", nullable = false)
-    private NotificationEntity noti;
+    private NotificationEntity notification;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

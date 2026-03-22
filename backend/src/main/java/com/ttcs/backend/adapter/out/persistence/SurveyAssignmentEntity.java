@@ -1,29 +1,23 @@
 package com.ttcs.backend.adapter.out.persistence;
 
+import jakarta.persistence.*;
+import lombok.*;
 import org.hibernate.annotations.Nationalized;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.MapsId;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "Survey_Assignment")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SurveyAssignment {
+public class SurveyAssignmentEntity {
     @Id
-    @MapsId
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "survey_id")
+    @JoinColumn(name = "survey_id", nullable = false)
     private SurveyEntity survey;
 
     @Column(name = "evaluator_type", nullable = false)
