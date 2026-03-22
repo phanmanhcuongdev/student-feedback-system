@@ -1,5 +1,6 @@
 package com.ttcs.backend.adapter.out.persistence;
 
+import lombok.*;
 import org.hibernate.annotations.Nationalized;
 
 import jakarta.persistence.Column;
@@ -10,19 +11,18 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "[User]")
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer user_id;
+    @Column(name = "user_id")
+    private Integer id;
 
     @Column(unique = true)
     @Nationalized
@@ -35,6 +35,6 @@ public class UserEntity {
     @Column(nullable = false)
     private RoleEntity role;
 
-    @Column(nullable = false)
-    private Boolean verify = false;
+    @Column(name = "verify", nullable = false)
+    private Boolean verified = false;
 }

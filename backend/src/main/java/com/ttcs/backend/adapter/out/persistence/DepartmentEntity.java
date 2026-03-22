@@ -1,5 +1,6 @@
 package com.ttcs.backend.adapter.out.persistence;
 
+import lombok.*;
 import org.hibernate.annotations.Nationalized;
 
 import jakarta.persistence.Column;
@@ -8,20 +9,18 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "Department")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class DepartmentEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "dept_id")
-    private Integer deptId;
+    private Integer id;
     
 
     @Column(nullable = false, unique = true)

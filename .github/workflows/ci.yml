@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+      - 'release/**'
+  pull_request:
+    branches:
+      - main
 
 jobs:
   docker:
@@ -25,26 +29,49 @@ jobs:
       - name: Log in to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
 
+      - name: Set image tags
+        run: |
+          BRANCH_NAME="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          BRANCH_NAME="${BRANCH_NAME//\//-}"
+
+          if [ "${BRANCH_NAME}" = "main" ]; then
+            echo "BACKEND_TAGS=$REGISTRY/$IMAGE_NAME/backend:latest,$REGISTRY/$IMAGE_NAME/backend:${GITHUB_SHA}" >> $GITHUB_ENV
+            echo "FRONTEND_TAGS=$REGISTRY/$IMAGE_NAME/frontend:latest,$REGISTRY/$IMAGE_NAME/frontend:${GITHUB_SHA}" >> $GITHUB_ENV
+          else
+            echo "BACKEND_TAGS=$REGISTRY/$IMAGE_NAME/backend:${BRANCH_NAME},$REGISTRY/$IMAGE_NAME/backend:${GITHUB_SHA}" >> $GITHUB_ENV
+            echo "FRONTEND_TAGS=$REGISTRY/$IMAGE_NAME/frontend:${BRANCH_NAME},$REGISTRY/$IMAGE_NAME/frontend:${GITHUB_SHA}" >> $GITHUB_ENV
+          fi
+
       - name: Build backend image
         run: |
-          docker build \
-            -t $REGISTRY/$IMAGE_NAME/backend:latest \
-            -t $REGISTRY/$IMAGE_NAME/backend:${{ github.sha }} \
-            ./backend
+          IFS=',' read -ra TAGS <<< "$BACKEND_TAGS"
+          BUILD_ARGS=""
+          for tag in "${TAGS[@]}"; do
+            BUILD_ARGS="$BUILD_ARGS -t $tag"
+          done
+          docker build $BUILD_ARGS ./backend
 
       - name: Build frontend image
         run: |
-          docker build \
-            -t $REGISTRY/$IMAGE_NAME/frontend:latest \
-            -t $REGISTRY/$IMAGE_NAME/frontend:${{ github.sha }} \
-            ./frontend
+          IFS=',' read -ra TAGS <<< "$FRONTEND_TAGS"
+          BUILD_ARGS=""
+          for tag in "${TAGS[@]}"; do
+            BUILD_ARGS="$BUILD_ARGS -t $tag"
+          done
+          docker build $BUILD_ARGS ./frontend
 
       - name: Push backend image
+        if: github.event_name == 'push'
         run: |
-          docker push $REGISTRY/$IMAGE_NAME/backend:latest
-          docker push $REGISTRY/$IMAGE_NAME/backend:${{ github.sha }}
+          IFS=',' read -ra TAGS <<< "$BACKEND_TAGS"
+          for tag in "${TAGS[@]}"; do
+            docker push "$tag"
+          done
 
       - name: Push frontend image
+        if: github.event_name == 'push'
         run: |
-          docker push $REGISTRY/$IMAGE_NAME/frontend:latest
-          docker push $REGISTRY/$IMAGE_NAME/frontend:${{ github.sha }}
+          IFS=',' read -ra TAGS <<< "$FRONTEND_TAGS"
+          for tag in "${TAGS[@]}"; do
+            docker push "$tag"
+          done

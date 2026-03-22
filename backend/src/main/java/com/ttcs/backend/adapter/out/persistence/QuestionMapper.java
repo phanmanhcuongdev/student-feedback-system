@@ -2,6 +2,7 @@ package com.ttcs.backend.adapter.out.persistence;
 
 import com.ttcs.backend.application.domain.model.Question;
 import com.ttcs.backend.application.domain.model.QuestionType;
+import com.ttcs.backend.application.domain.model.QuestionTypeMapper;
 
 public class QuestionMapper {
 
@@ -12,5 +13,21 @@ public class QuestionMapper {
                 entity.getContent(),
                 QuestionType.valueOf(entity.getType())
         );
+    }
+
+    public static QuestionEntity toEntity(Question domain) {
+        if (domain == null) return null;
+
+        QuestionEntity entity = new QuestionEntity();
+        entity.setId(domain.getId());
+        entity.setContent(domain.getContent());
+        entity.setType(QuestionTypeMapper.toEntity(domain.getType()));
+
+        // shallow survey
+        SurveyEntity survey = new SurveyEntity();
+        survey.setId(domain.getSurveyId());
+        entity.setSurvey(survey);
+
+        return entity;
     }
 }

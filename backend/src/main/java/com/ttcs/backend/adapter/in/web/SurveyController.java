@@ -1,16 +1,16 @@
 package com.ttcs.backend.adapter.in.web;
 
+import com.ttcs.backend.adapter.in.web.dto.SubmitSurveyRequest;
+import com.ttcs.backend.adapter.in.web.dto.SubmitSurveyResponse;
 import com.ttcs.backend.adapter.in.web.dto.SurveyDetailResponse;
 import com.ttcs.backend.adapter.in.web.dto.SurveyResponse;
 import com.ttcs.backend.application.port.in.GetSurveyDetailUseCase;
 import com.ttcs.backend.application.port.in.GetSurveyUseCase;
+import com.ttcs.backend.application.port.in.SubmitSurveyUseCase;
 import com.ttcs.backend.common.WebAdapter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -22,6 +22,7 @@ public class SurveyController {
 
     private final GetSurveyUseCase getSurveyUseCase;
     private final GetSurveyDetailUseCase getSurveyDetailUseCase;
+    private final SubmitSurveyUseCase submitSurveyUseCase;
 
     @GetMapping("/{id}")
     public ResponseEntity<SurveyResponse> getSurveyById(@PathVariable("id") Integer surveyId) {
@@ -36,6 +37,14 @@ public class SurveyController {
     @GetMapping("/{id}/detail")
     public ResponseEntity<SurveyDetailResponse> getSurveyDetail(@PathVariable("id") Integer surveyId) {
         return ResponseEntity.ok(getSurveyDetailUseCase.getSurveyDetail(surveyId));
+    }
+
+    @PostMapping("/{surveyId}/submit")
+    public SubmitSurveyResponse submitSurvey(
+            @PathVariable Integer surveyId,
+            @RequestBody SubmitSurveyRequest request
+    ) {
+        return submitSurveyUseCase.submitSurvey(surveyId, request);
     }
 
 

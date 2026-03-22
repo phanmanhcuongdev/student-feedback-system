@@ -1,19 +1,35 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import SurveyDetailMain from "../components/SurveyDetailMain";
 import Footer from "../../../components/layout/MainFooter";
 import MainHeader from "../../../components/layout/MainHeader";
+import SubmissionResultModal from "../popup/SubmissionResultModal";
 import type { AnswersState, SurveyDetail } from "../../../types/surveyDetail";
-import { getSurveyDetail } from "../../../api/surveyApi";
+import {getSurveyDetail, submitSurvey} from "../../../api/surveyApi";
+
+type SubmitModalState = {
+    isOpen: boolean;
+    success: boolean;
+    message: string;
+};
+
 
 export default function SurveyDetailPage() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const surveyId = Number(id);
 
     const [survey, setSurvey] = useState<SurveyDetail | null>(null);
     const [answers, setAnswers] = useState<AnswersState>({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+
+    const [submitModal, setSubmitModal] = useState<SubmitModalState>({
+        isOpen: false,
+        success: false,
+        message: "",
+    });
 
     useEffect(() => {
         async function fetchSurveyDetail() {
@@ -52,31 +68,67 @@ export default function SurveyDetailPage() {
         }));
     }
 
-    function handleSubmit() {
-        if (!survey) return;
+    async function handleSubmit() {
+        if (!survey || submitting) return;
 
-        const payload = {
-            studentId: 1,
-            answers: survey.questions.map((question) => {
-                const value = answers[question.id];
+        try
+        {
+            setSubmitting(true);
+            setError(null);
 
-                if (question.type === "RATING") {
+            const payload = {
+                studentId: 6,
+                surveyId: survey.id,
+                answers: survey.questions.map((question) => {
+                    const value = answers[question.id];
+
+                    if (question.type === "RATING") {
+                        return {
+                            questionId: question.id,
+                            rating: typeof value === "number" ? value : null,
+                            comment: null
+                        };
+                    }
+
                     return {
                         questionId: question.id,
-                        rating: typeof value === "number" ? value : null,
-                        comment: null,
+                        rating: null,
+                        comment: typeof value === "string" ? value : null,
                     };
-                }
+                }),
+            };
 
-                return {
-                    questionId: question.id,
-                    rating: null,
-                    comment: typeof value === "string" ? value : null,
-                };
-            }),
-        };
+            const result = await submitSurvey(payload);
 
-        console.log("submit payload", payload);
+            setSubmitModal({
+                isOpen: true,
+                success: result.success,
+                message: result.message,
+            });
+
+        } catch (err) {
+            setSubmitModal({
+                isOpen: true,
+                success: false,
+                message: err instanceof Error ? err.message : "Failed to submit survey",
+            });
+        } finally {
+            setSubmitting(false);
+        }
+
+
+    }
+
+    function handleModalOk() {
+        if (submitModal.success) {
+            navigate("/");
+            return;
+        }
+
+        setSubmitModal((prev) => ({
+            ...prev,
+            isOpen: false,
+        }));
     }
 
     return (
@@ -105,10 +157,16 @@ export default function SurveyDetailPage() {
                         onRatingChange={handleRatingChange}
                         onTextChange={handleTextChange}
                         onSubmit={handleSubmit}
+                        submitting={submitting}
                     />
                 )}
             </div>
-
+            <SubmissionResultModal
+                isOpen={submitModal.isOpen}
+                success={submitModal.success}
+                message={submitModal.message}
+                onOk={handleModalOk}
+            />
             <Footer />
         </>
     );
