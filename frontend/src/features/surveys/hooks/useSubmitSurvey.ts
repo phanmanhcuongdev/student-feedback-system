@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getApiErrorMessage } from "../../../api/apiError";
+import { getApiErrorMessage, getApiErrorPayload } from "../../../api/apiError";
 import { submitSurvey } from "../../../api/surveyApi";
 import type { AnswersState, SurveyDetail, SubmitSurveyRequest, SubmitSurveyResponse } from "../../../types/surveyDetail";
 
@@ -33,9 +33,17 @@ export function useSubmitSurvey() {
             setSubmitting(true);
             return await submitSurvey(survey.id, toSubmitRequest(survey, answers));
         } catch (error) {
+            const payload = getApiErrorPayload(error);
+
             return {
                 success: false,
-                code: "INVALID_INPUT",
+                code: payload?.code === "ALREADY_SUBMITTED"
+                    || payload?.code === "SURVEY_CLOSED"
+                    || payload?.code === "INVALID_INPUT"
+                    || payload?.code === "SURVEY_NOT_FOUND"
+                    || payload?.code === "STUDENT_NOT_FOUND"
+                    ? payload.code
+                    : "INVALID_INPUT",
                 message: getApiErrorMessage(error, "Failed to submit survey"),
             };
         } finally {

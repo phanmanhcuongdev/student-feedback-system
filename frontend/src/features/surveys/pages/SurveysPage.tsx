@@ -3,12 +3,10 @@ import Footer from "../../../components/layout/MainFooter";
 import MainHeader from "../../../components/layout/MainHeader";
 import SurveyCardSkeleton from "../components/SurveyCardSkeleton";
 import SurveyEmptyState from "../components/SurveyEmptyState";
-import SurveyFilterTabs from "../components/SurveyFilterTabs";
+import SurveyFilterTabs, { type SurveyFilter } from "../components/SurveyFilterTabs";
 import SurveyGrid from "../components/SurveyGrid";
 import SurveyHero from "../components/SurveyHero";
 import { useSurveyList } from "../hooks/useSurveyList";
-
-type SurveyFilter = "ALL" | "OPEN" | "CLOSED";
 
 export default function SurveysPage() {
     const [filter, setFilter] = useState<SurveyFilter>("ALL");

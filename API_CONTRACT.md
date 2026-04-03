@@ -54,3 +54,12 @@ Response body:
   "message": "Submit survey successfully"
 }
 ```
+
+Business response codes currently used by the frontend:
+
+- `SUBMIT_SUCCESS`
+- `ALREADY_SUBMITTED`
+- `SURVEY_CLOSED`
+- `INVALID_INPUT`
+- `SURVEY_NOT_FOUND`
+- `STUDENT_NOT_FOUND`

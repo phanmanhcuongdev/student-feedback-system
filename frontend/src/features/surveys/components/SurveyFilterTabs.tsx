@@ -1,4 +1,4 @@
-type SurveyFilter = "ALL" | "OPEN" | "CLOSED";
+export type SurveyFilter = "ALL" | "OPEN" | "CLOSED";
 
 type SurveyFilterTabsProps = {
     value: SurveyFilter;

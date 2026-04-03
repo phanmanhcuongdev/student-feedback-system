@@ -31,13 +31,13 @@ function getDaysLeft(endDate: string) {
 }
 
 export default function SurveyDetailMain({
-                                             survey,
-                                             answers,
-                                             onRatingChange,
-                                             onTextChange,
-                                             onSubmit,
-                                             submitting,
-                                         }: SurveyDetailMainProps) {
+    survey,
+    answers,
+    onRatingChange,
+    onTextChange,
+    onSubmit,
+    submitting,
+}: SurveyDetailMainProps) {
     const answeredCount = survey.questions.filter((q) => {
         const value = answers[q.id];
         if (q.type === "RATING") return typeof value === "number";
@@ -179,7 +179,7 @@ export default function SurveyDetailMain({
                             ].join(" ")}
                         >
                             <span>{submitting ? "Submitting..." : "Submit Survey"}</span>
-                            <span>➤</span>
+                            <span className="material-symbols-outlined text-sm">arrow_forward</span>
                         </button>
                     </div>
                 </div>

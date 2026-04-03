@@ -1,5 +1,5 @@
-import type { Survey } from "../../../types/survey";
 import { useNavigate } from "react-router-dom";
+import type { Survey } from "../../../types/survey";
 
 type SurveyCardProps = {
     survey: Survey;
@@ -7,16 +7,16 @@ type SurveyCardProps = {
 
 export default function SurveyCard({ survey }: SurveyCardProps) {
     const navigate = useNavigate();
-
     const isDisabled = survey.status !== "OPEN";
 
     function getRemainingTime(endDate: string) {
         const now = new Date();
         const end = new Date(endDate);
-
         const diff = end.getTime() - now.getTime();
 
-        if (diff <= 0) return null;
+        if (diff <= 0) {
+            return null;
+        }
 
         const minutes = Math.floor(diff / (1000 * 60));
         const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -55,7 +55,10 @@ export default function SurveyCard({ survey }: SurveyCardProps) {
                 : "bg-slate-400";
 
     function handleStartSurvey(id: number) {
-        if (isDisabled) return;
+        if (isDisabled) {
+            return;
+        }
+
         navigate(`/surveys/${id}`);
     }
 
@@ -88,7 +91,7 @@ export default function SurveyCard({ survey }: SurveyCardProps) {
             </p>
 
             <div className="space-y-4 pt-6 border-t border-slate-200">
-                <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+                <div className="flex items-center text-xs text-slate-500 font-medium">
                     <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-sm">calendar_today</span>
                         <span>
@@ -96,15 +99,6 @@ export default function SurveyCard({ survey }: SurveyCardProps) {
                             {new Date(survey.endDate).toLocaleDateString("vi-VN")}
                         </span>
                     </div>
-
-                    <div className="flex items-center gap-1">
-                        <span className="text-blue-600">65%</span>
-                        <span>capacity</span>
-                    </div>
-                </div>
-
-                <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-600 w-[65%]"></div>
                 </div>
 
                 <button

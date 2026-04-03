@@ -8,7 +8,7 @@ spring:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
   jpa:
-    hibernate:  
+    hibernate:
       ddl-auto: validate
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
@@ -21,3 +21,5 @@ spring:
 app:
   auth:
     mock-student-id: ${APP_AUTH_MOCK_STUDENT_ID:6}
+  web:
+    allowed-origins: ${APP_WEB_ALLOWED_ORIGINS:http://localhost:5173}
