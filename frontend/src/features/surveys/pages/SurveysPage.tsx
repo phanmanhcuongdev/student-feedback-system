@@ -1,40 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import SurveyHero from "../components/SurveyHero";
-import SurveyFilterTabs from "../components/SurveyFilterTabs";
+import { useMemo, useState } from "react";
+import Footer from "../../../components/layout/MainFooter";
 import MainHeader from "../../../components/layout/MainHeader";
-import SurveyGrid from "../components/SurveyGrid";
 import SurveyCardSkeleton from "../components/SurveyCardSkeleton";
 import SurveyEmptyState from "../components/SurveyEmptyState";
-import { getAllSurveys } from "../../../api/surveyApi";
-import type { Survey } from "../../../types/survey";
-import Footer from "../../../components/layout/MainFooter";
+import SurveyFilterTabs from "../components/SurveyFilterTabs";
+import SurveyGrid from "../components/SurveyGrid";
+import SurveyHero from "../components/SurveyHero";
+import { useSurveyList } from "../hooks/useSurveyList";
 
 type SurveyFilter = "ALL" | "OPEN" | "CLOSED";
 
 export default function SurveysPage() {
-    const [surveys, setSurveys] = useState<Survey[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
     const [filter, setFilter] = useState<SurveyFilter>("ALL");
-
-    useEffect(() => {
-        const fetchSurveys = async () => {
-            try {
-                setLoading(true);
-                setError("");
-
-                const data = await getAllSurveys();
-                setSurveys(data);
-            } catch (err) {
-                console.error(err);
-                setError("Không thể tải danh sách khảo sát.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchSurveys();
-    }, []);
+    const { surveys, loading, error } = useSurveyList();
 
     const filteredSurveys = useMemo(() => {
         if (filter === "ALL") return surveys;
@@ -50,7 +28,7 @@ export default function SurveysPage() {
                     <SurveyHero />
 
                     <div className="flex items-center gap-3">
-                        <SurveyFilterTabs value={filter} onChange={setFilter}/>
+                        <SurveyFilterTabs value={filter} onChange={setFilter} />
                     </div>
                 </div>
 
@@ -71,7 +49,7 @@ export default function SurveysPage() {
                 </div>
             </main>
 
-            <Footer/>
+            <Footer />
         </>
     );
 }

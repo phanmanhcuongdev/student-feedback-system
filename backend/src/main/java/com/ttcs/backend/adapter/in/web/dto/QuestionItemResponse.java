@@ -4,4 +4,5 @@ public record QuestionItemResponse(
         Integer id,
         String content,
         String type
-) {}
+) {
+}

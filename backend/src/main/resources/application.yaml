@@ -17,3 +17,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.SQLServerDialect
         format_sql: true
+
+app:
+  auth:
+    mock-student-id: ${APP_AUTH_MOCK_STUDENT_ID:6}

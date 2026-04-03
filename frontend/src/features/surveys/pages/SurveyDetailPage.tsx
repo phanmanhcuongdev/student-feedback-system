@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import SurveyDetailMain from "../components/SurveyDetailMain";
 import Footer from "../../../components/layout/MainFooter";
 import MainHeader from "../../../components/layout/MainHeader";
+import type { AnswersState } from "../../../types/surveyDetail";
+import SurveyDetailMain from "../components/SurveyDetailMain";
+import { useSubmitSurvey } from "../hooks/useSubmitSurvey";
+import { useSurveyDetail } from "../hooks/useSurveyDetail";
 import SubmissionResultModal from "../popup/SubmissionResultModal";
-import type { AnswersState, SurveyDetail } from "../../../types/surveyDetail";
-import {getSurveyDetail, submitSurvey} from "../../../api/surveyApi";
 
 type SubmitModalState = {
     isOpen: boolean;
@@ -13,46 +14,19 @@ type SubmitModalState = {
     message: string;
 };
 
-
 export default function SurveyDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const surveyId = Number(id);
 
-    const [survey, setSurvey] = useState<SurveyDetail | null>(null);
     const [answers, setAnswers] = useState<AnswersState>({});
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [submitting, setSubmitting] = useState(false);
-
+    const { survey, loading, error } = useSurveyDetail(surveyId);
+    const { submitting, submit } = useSubmitSurvey();
     const [submitModal, setSubmitModal] = useState<SubmitModalState>({
         isOpen: false,
         success: false,
         message: "",
     });
-
-    useEffect(() => {
-        async function fetchSurveyDetail() {
-            try {
-                setLoading(true);
-                setError(null);
-
-                const data = await getSurveyDetail(surveyId);
-                setSurvey(data);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Failed to load survey detail");
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        if (!Number.isNaN(surveyId)) {
-            fetchSurveyDetail();
-        } else {
-            setLoading(false);
-            setError("Invalid survey id");
-        }
-    }, [surveyId]);
 
     function handleRatingChange(questionId: number, value: number) {
         setAnswers((prev) => ({
@@ -69,59 +43,21 @@ export default function SurveyDetailPage() {
     }
 
     async function handleSubmit() {
-        if (!survey || submitting) return;
-
-        try
-        {
-            setSubmitting(true);
-            setError(null);
-
-            const payload = {
-                studentId: 6,
-                surveyId: survey.id,
-                answers: survey.questions.map((question) => {
-                    const value = answers[question.id];
-
-                    if (question.type === "RATING") {
-                        return {
-                            questionId: question.id,
-                            rating: typeof value === "number" ? value : null,
-                            comment: null
-                        };
-                    }
-
-                    return {
-                        questionId: question.id,
-                        rating: null,
-                        comment: typeof value === "string" ? value : null,
-                    };
-                }),
-            };
-
-            const result = await submitSurvey(payload);
-
-            setSubmitModal({
-                isOpen: true,
-                success: result.success,
-                message: result.message,
-            });
-
-        } catch (err) {
-            setSubmitModal({
-                isOpen: true,
-                success: false,
-                message: err instanceof Error ? err.message : "Failed to submit survey",
-            });
-        } finally {
-            setSubmitting(false);
+        if (!survey || submitting) {
+            return;
         }
 
-
+        const result = await submit(survey, answers);
+        setSubmitModal({
+            isOpen: true,
+            success: result.success,
+            message: result.message,
+        });
     }
 
     function handleModalOk() {
         if (submitModal.success) {
-            navigate("/");
+            navigate("/surveys");
             return;
         }
 
@@ -161,6 +97,7 @@ export default function SurveyDetailPage() {
                     />
                 )}
             </div>
+
             <SubmissionResultModal
                 isOpen={submitModal.isOpen}
                 success={submitModal.success}

@@ -1,6 +1,6 @@
-package com.ttcs.backend.adapter.in.web.dto;
+package com.ttcs.backend.application.port.in.result;
 
-public enum SubmitSurveyResponseCode {
+public enum SubmitSurveyResultCode {
     SUBMIT_SUCCESS,
     ALREADY_SUBMITTED,
     SURVEY_CLOSED,
