@@ -11,4 +11,7 @@ public class Student {
     private final String name;
     private final String studentCode;
     private final Department department;
+    private final Status status;
+    private final String studentCardImageUrl;
+    private final String nationalIdImageUrl;
 }
