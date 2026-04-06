@@ -1,17 +1,22 @@
-package com.ttcs.backend.application.domain.service;
+package com.ttcs.backend.adapter.out.persistence;
 
-import org.springframework.stereotype.Service;
+import com.ttcs.backend.application.port.out.auth.StoreStudentDocumentPort;
+import com.ttcs.backend.common.PersistenceAdapter;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
-@Service
-public class StudentDocumentStorageService {
+@PersistenceAdapter
+public class LocalStudentDocumentStorageAdapter implements StoreStudentDocumentPort {
 
     private static final String ROOT_DIR = "uploads/student-docs";
 
+    @Override
     public String save(MultipartFile file, String prefix) {
         try {
             Path root = Paths.get(ROOT_DIR);
@@ -19,7 +24,8 @@ public class StudentDocumentStorageService {
                 Files.createDirectories(root);
             }
 
-            String safeName = UUID.randomUUID() + "-" + file.getOriginalFilename();
+            String original = file.getOriginalFilename() == null ? "file" : file.getOriginalFilename();
+            String safeName = UUID.randomUUID() + "-" + original;
             Path target = root.resolve(prefix + "-" + safeName);
             Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
 
