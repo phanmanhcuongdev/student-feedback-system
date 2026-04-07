@@ -1,5 +1,6 @@
 package com.ttcs.backend.adapter.out.persistence;
 
+import com.ttcs.backend.adapter.out.persistence.student.StudentEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

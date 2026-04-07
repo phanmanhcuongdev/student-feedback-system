@@ -1,5 +1,11 @@
 package com.ttcs.backend.adapter.out.persistence;
 
+import com.ttcs.backend.adapter.out.persistence.department.DepartmentMapper;
+import com.ttcs.backend.adapter.out.persistence.student.StudentEntity;
+import com.ttcs.backend.adapter.out.persistence.student.StudentMapper;
+import com.ttcs.backend.adapter.out.persistence.student.StudentRepository;
+import com.ttcs.backend.adapter.out.persistence.user.UserEntity;
+import com.ttcs.backend.adapter.out.persistence.user.UserMapper;
 import com.ttcs.backend.application.domain.model.Department;
 import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.domain.model.StudentToken;

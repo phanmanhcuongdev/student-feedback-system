@@ -4,19 +4,32 @@ import com.ttcs.backend.application.port.out.auth.SendVerifyEmailPort;
 import com.ttcs.backend.common.PersistenceAdapter;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+
+import java.util.Optional;
 
 @PersistenceAdapter
 @RequiredArgsConstructor
 public class SmtpVerifyEmailAdapter implements SendVerifyEmailPort {
 
-    private final JavaMailSender mailSender;
+    private static final Logger log = LoggerFactory.getLogger(SmtpVerifyEmailAdapter.class);
+
+    private final Optional<JavaMailSender> mailSender;
 
     @Override
     public void sendVerifyEmail(String toEmail, String verifyUrl) {
+        if (mailSender.isEmpty()) {
+            log.warn("Skipping verification email because JavaMailSender is not configured. toEmail={}, verifyUrl={}",
+                    toEmail,
+                    verifyUrl);
+            return;
+        }
+
         try {
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessage mimeMessage = mailSender.get().createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "UTF-8");
 
             helper.setTo(toEmail);
@@ -32,7 +45,7 @@ public class SmtpVerifyEmailAdapter implements SendVerifyEmailPort {
                     """.formatted(verifyUrl);
 
             helper.setText(html, true);
-            mailSender.send(mimeMessage);
+            mailSender.get().send(mimeMessage);
         } catch (Exception ex) {
             throw new RuntimeException("Khong gui duoc email xac nhan", ex);
         }

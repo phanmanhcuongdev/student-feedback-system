@@ -10,7 +10,7 @@ public record LoginResult(
         String accessToken
 ) {
     public static LoginResult ok(Integer userId, String role, String studentStatus, String accessToken) {
-        return new LoginResult(true, "LOGIN_SUCCESS", "Đăng nhập thành công", userId, role, studentStatus, accessToken);
+        return new LoginResult(true, "LOGIN_SUCCESS", "Dang nhap thanh cong", userId, role, studentStatus, accessToken);
     }
 
     public static LoginResult fail(String code, String message) {

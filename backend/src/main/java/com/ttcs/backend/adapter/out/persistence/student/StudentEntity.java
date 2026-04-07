@@ -1,5 +1,8 @@
-package com.ttcs.backend.adapter.out.persistence;
+package com.ttcs.backend.adapter.out.persistence.student;
 
+import com.ttcs.backend.adapter.out.persistence.StatusEntity;
+import com.ttcs.backend.adapter.out.persistence.department.DepartmentEntity;
+import com.ttcs.backend.adapter.out.persistence.user.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Nationalized;

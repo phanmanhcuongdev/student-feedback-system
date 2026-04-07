@@ -1,5 +1,6 @@
 package com.ttcs.backend.adapter.out.persistence.student;
 
+import com.ttcs.backend.adapter.out.persistence.StatusMapper;
 import com.ttcs.backend.adapter.out.persistence.department.DepartmentMapper;
 import com.ttcs.backend.adapter.out.persistence.user.UserMapper;
 import com.ttcs.backend.application.domain.model.Student;
