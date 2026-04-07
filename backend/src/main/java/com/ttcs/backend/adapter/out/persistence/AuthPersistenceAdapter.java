@@ -1,6 +1,7 @@
 package com.ttcs.backend.adapter.out.persistence;
 
 import com.ttcs.backend.adapter.out.persistence.department.DepartmentMapper;
+import com.ttcs.backend.adapter.out.persistence.StatusEntity;
 import com.ttcs.backend.adapter.out.persistence.student.StudentEntity;
 import com.ttcs.backend.adapter.out.persistence.student.StudentMapper;
 import com.ttcs.backend.adapter.out.persistence.student.StudentRepository;
@@ -17,9 +18,11 @@ import com.ttcs.backend.application.port.out.auth.LoadUserByEmailPort;
 import com.ttcs.backend.application.port.out.auth.SaveStudentPort;
 import com.ttcs.backend.application.port.out.auth.SaveStudentTokenPort;
 import com.ttcs.backend.application.port.out.auth.SaveUserPort;
+import com.ttcs.backend.application.port.out.admin.LoadPendingStudentsPort;
 import com.ttcs.backend.common.PersistenceAdapter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.List;
 import java.util.Optional;
 
 @PersistenceAdapter
@@ -31,7 +34,8 @@ public class AuthPersistenceAdapter implements
         SaveStudentPort,
         LoadStudentTokenPort,
         SaveStudentTokenPort,
-        LoadDepartmentPort {
+        LoadDepartmentPort,
+        LoadPendingStudentsPort {
 
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
@@ -91,6 +95,13 @@ public class AuthPersistenceAdapter implements
     @Override
     public Optional<Department> loadByName(String departmentName) {
         return departmentRepository.findByName(departmentName).map(DepartmentMapper::toDomain);
+    }
+
+    @Override
+    public List<Student> loadPendingStudents() {
+        return studentRepository.findByStatusOrderByIdAsc(StatusEntity.PENDING).stream()
+                .map(StudentMapper::toDomain)
+                .toList();
     }
 
     private StudentToken toDomainToken(StudentTokenEntity entity) {

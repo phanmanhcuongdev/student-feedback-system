@@ -5,6 +5,8 @@ public interface JwtTokenPort {
 
     boolean isTokenValid(String token);
 
+    Integer extractUserId(String token);
+
     String extractEmail(String token);
 
     String extractRole(String token);

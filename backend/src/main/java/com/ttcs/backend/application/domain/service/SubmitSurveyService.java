@@ -66,6 +66,12 @@ public class SubmitSurveyService implements SubmitSurveyUseCase {
                     "Student not found"
             );
         }
+        if (student.getStatus() != Status.ACTIVE) {
+            return SubmitSurveyResult.fail(
+                    SubmitSurveyResultCode.INVALID_INPUT,
+                    "Student account is not active"
+            );
+        }
 
         boolean alreadySubmitted =
                 loadSurveyResponsePort.existsBySurveyIdAndStudentId(command.surveyId(), command.studentId());
