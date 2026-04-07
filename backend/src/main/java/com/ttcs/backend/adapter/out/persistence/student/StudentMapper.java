@@ -1,5 +1,6 @@
 package com.ttcs.backend.adapter.out.persistence.student;
 
+import com.ttcs.backend.adapter.out.persistence.StatusMapper;
 import com.ttcs.backend.adapter.out.persistence.department.DepartmentMapper;
 import com.ttcs.backend.adapter.out.persistence.user.UserMapper;
 import com.ttcs.backend.application.domain.model.Student;
@@ -14,7 +15,10 @@ public class StudentMapper {
                 UserMapper.toDomain(entity.getUser()),
                 entity.getName(),
                 entity.getStudentCode(),
-                DepartmentMapper.toDomain(entity.getDepartment())
+                DepartmentMapper.toDomain(entity.getDepartment()),
+                StatusMapper.toDomain(entity.getStatus()),
+                entity.getStudentCardImageUrl(),
+                entity.getNationalIdImageUrl()
         );
     }
 
@@ -27,6 +31,9 @@ public class StudentMapper {
         entity.setName(domain.getName());
         entity.setStudentCode(domain.getStudentCode());
         entity.setDepartment(DepartmentMapper.toEntity(domain.getDepartment()));
+        entity.setStatus(StatusMapper.toEntity(domain.getStatus()));
+        entity.setNationalIdImageUrl(domain.getNationalIdImageUrl());
+        entity.setStudentCardImageUrl(domain.getStudentCardImageUrl());
 
         return entity;
     }

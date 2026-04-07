@@ -5,6 +5,7 @@ import com.ttcs.backend.application.domain.model.Question;
 import com.ttcs.backend.application.domain.model.QuestionType;
 import com.ttcs.backend.application.domain.model.ResponseDetail;
 import com.ttcs.backend.application.domain.model.Role;
+import com.ttcs.backend.application.domain.model.Status;
 import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.domain.model.Survey;
 import com.ttcs.backend.application.domain.model.SurveyResponse;
@@ -161,7 +162,10 @@ class SubmitSurveyServiceTest {
                 new User(6, "student@example.com", "hashed", Role.STUDENT, true),
                 "Student MVP",
                 "S0006",
-                new Department(1, "Computer Science")
+                new Department(1, "Computer Science"),
+                Status.ACTIVE,
+                null,
+                null
         );
     }
 

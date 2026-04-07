@@ -19,7 +19,7 @@ import jakarta.persistence.Table;
 public class DepartmentEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "dept_id")
+    @Column(name = "dept_id", nullable = false)
     private Integer id;
     
 
