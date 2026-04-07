@@ -19,12 +19,10 @@ spring:
         format_sql: true
 
 app:
-  auth:
-    mock-student-id: ${APP_AUTH_MOCK_STUDENT_ID:6}
   jwt:
     secret: ${APP_JWT_SECRET:change-me-local-dev-secret-key-32b}
     access-token-expiration-ms: ${APP_JWT_ACCESS_TOKEN_EXPIRATION_MS:86400000}
   verify:
-    base-url: ${APP_VERIFY_BASE_URL:http://localhost:8080}
+    base-url: ${APP_VERIFY_BASE_URL:http://localhost:5173}
   web:
     allowed-origins: ${APP_WEB_ALLOWED_ORIGINS:http://localhost:5173}

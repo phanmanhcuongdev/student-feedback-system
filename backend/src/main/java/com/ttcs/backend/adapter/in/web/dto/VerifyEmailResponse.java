@@ -9,4 +9,6 @@ public class VerifyEmailResponse {
     private boolean success;
     private String code;
     private String message;
+    private Integer studentId;
+    private String studentStatus;
 }

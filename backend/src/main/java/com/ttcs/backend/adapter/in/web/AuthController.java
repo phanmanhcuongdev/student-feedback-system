@@ -51,7 +51,8 @@ public class AuthController {
         return ResponseEntity.ok(new RegisterStudentResponse(
                 result.success(),
                 result.code(),
-                result.message()
+                result.message(),
+                result.verificationUrl()
         ));
     }
 
@@ -62,7 +63,9 @@ public class AuthController {
         return ResponseEntity.ok(new VerifyEmailResponse(
                 result.success(),
                 result.code(),
-                result.message()
+                result.message(),
+                result.studentId(),
+                result.studentStatus()
         ));
     }
 

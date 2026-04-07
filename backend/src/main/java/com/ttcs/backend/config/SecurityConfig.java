@@ -38,10 +38,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/survey-results/**").hasAnyRole("ADMIN", "TEACHER")
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register-student",
-                                "/api/v1/surveys/**"
+                                "/api/auth/upload-docs"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/verify-email", "/api/auth/verify-email/**").permitAll()
                         .requestMatchers(

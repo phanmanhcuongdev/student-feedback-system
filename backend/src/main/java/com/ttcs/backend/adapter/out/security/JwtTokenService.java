@@ -47,6 +47,11 @@ public class JwtTokenService implements JwtTokenPort {
     }
 
     @Override
+    public Integer extractUserId(String token) {
+        return parseClaims(token).get("userId", Integer.class);
+    }
+
+    @Override
     public String extractEmail(String token) {
         return parseClaims(token).getSubject();
     }

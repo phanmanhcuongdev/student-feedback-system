@@ -53,7 +53,7 @@ public class AuthUseCaseService implements
 
     private final JwtTokenPort jwtTokenPort;
 
-    @Value("${app.verify.base-url:http://localhost:8080}")
+    @Value("${app.verify.base-url:http://localhost:5173}")
     private String verifyBaseUrl;
 
     @Override
@@ -112,10 +112,10 @@ public class AuthUseCaseService implements
         );
         StudentToken savedToken = saveStudentTokenPort.save(token);
 
-        String verifyUrl = verifyBaseUrl + "/api/auth/verify-email?token=" + savedToken.getToken();
+        String verifyUrl = verifyBaseUrl + "/verify-email?token=" + savedToken.getToken();
         sendVerifyEmailPort.sendVerifyEmail(savedUser.getEmail(), verifyUrl);
 
-        return RegisterStudentResult.ok();
+        return RegisterStudentResult.ok(verifyUrl);
     }
 
     @Override
@@ -135,6 +135,15 @@ public class AuthUseCaseService implements
             Student student = loadStudentByIdPort.loadByUserId(user.getId()).orElse(null);
             if (student == null) {
                 return LoginResult.fail("STUDENT_PROFILE_NOT_FOUND", "Khong tim thay thong tin sinh vien");
+            }
+            if (student.getStatus() == Status.EMAIL_UNVERIFIED) {
+                return LoginResult.fail("EMAIL_NOT_VERIFIED", "Vui long xac nhan email truoc khi dang nhap");
+            }
+            if (student.getStatus() == Status.PENDING) {
+                return LoginResult.fail("WAITING_APPROVAL", "Tai khoan dang cho duyet. Vui long quay lai sau");
+            }
+            if (student.getStatus() == Status.REJECTED) {
+                return LoginResult.fail("ACCOUNT_REJECTED", "Tai khoan da bi tu choi. Vui long lien he quan tri vien");
             }
             studentStatus = student.getStatus().name();
         }
@@ -185,6 +194,17 @@ public class AuthUseCaseService implements
                     student.getNationalIdImageUrl()
             );
             saveStudentPort.save(updatedStudent);
+            if (student.getUser() != null) {
+                User updatedUser = new User(
+                        student.getUser().getId(),
+                        student.getUser().getEmail(),
+                        student.getUser().getPassword(),
+                        student.getUser().getRole(),
+                        true
+                );
+                saveUserPort.save(updatedUser);
+            }
+            student = updatedStudent;
         } else if (student.getStatus() == Status.ACTIVE || student.getStatus() == Status.PENDING) {
             StudentToken usedToken = new StudentToken(
                     token.getId(),
@@ -208,7 +228,7 @@ public class AuthUseCaseService implements
         );
         saveStudentTokenPort.save(usedToken);
 
-        return VerifyEmailResult.ok();
+        return VerifyEmailResult.ok(student.getId(), student.getStatus().name());
     }
 
     @Override
