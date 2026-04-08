@@ -1,11 +1,16 @@
 export default function SurveyHero() {
     return (
-        <div className="max-w-xl">
-            <span className="text-primary font-label font-bold uppercase tracking-widest text-[10px] mb-2 block">Student Portal</span>
-            <h1 className="font-headline text-4xl md:text-5xl font-extrabold tracking-tight text-on-surface">Available
-                Surveys</h1>
-            <p className="mt-4 text-on-surface-variant font-body leading-relaxed">Shape your academic experience by
-                providing feedback on current courses, facilities, and campus life initiatives.</p>
+        <div className="max-w-2xl">
+            <span className="mb-3 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-blue-700">
+                Student Workspace
+            </span>
+            <h1 className="text-4xl font-extrabold tracking-tight text-slate-950 md:text-5xl">
+                Available surveys
+            </h1>
+            <p className="mt-4 max-w-xl text-base leading-7 text-slate-500">
+                Review the surveys assigned to your account, track their current status, and complete open forms
+                through a single authenticated workflow.
+            </p>
         </div>
     );
 }
