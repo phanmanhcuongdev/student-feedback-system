@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { login as loginRequest } from "../../api/authApi";
-import type { AuthSession } from "../../types/auth";
+import type { AuthSession, LoginResponse } from "../../types/auth";
 import { clearStoredSession, readStoredSession, storeSession } from "./authStorage";
 import { AuthContext, type AuthContextValue, type LoginInput } from "./auth-context";
 
