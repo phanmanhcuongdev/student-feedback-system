@@ -1,12 +1,20 @@
 package com.ttcs.backend.adapter.in.web;
 
+import com.ttcs.backend.adapter.in.web.dto.QuestionItemResponse;
 import com.ttcs.backend.adapter.in.web.dto.SubmitSurveyRequest;
 import com.ttcs.backend.adapter.in.web.dto.SubmitSurveyResponse;
+import com.ttcs.backend.adapter.in.web.dto.SubmitSurveyResponseCode;
 import com.ttcs.backend.adapter.in.web.dto.SurveyDetailResponse;
 import com.ttcs.backend.adapter.in.web.dto.SurveyResponse;
 import com.ttcs.backend.application.port.in.GetSurveyDetailUseCase;
 import com.ttcs.backend.application.port.in.GetSurveyUseCase;
 import com.ttcs.backend.application.port.in.SubmitSurveyUseCase;
+import com.ttcs.backend.application.port.in.command.SubmitSurveyAnswerCommand;
+import com.ttcs.backend.application.port.in.command.SubmitSurveyCommand;
+import com.ttcs.backend.application.port.in.result.QuestionItemResult;
+import com.ttcs.backend.application.port.in.result.SubmitSurveyResult;
+import com.ttcs.backend.application.port.in.result.SurveyDetailResult;
+import com.ttcs.backend.application.port.in.result.SurveySummaryResult;
 import com.ttcs.backend.common.WebAdapter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,35 +25,92 @@ import java.util.List;
 @WebAdapter
 @RequestMapping("/api/v1/surveys")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class SurveyController {
 
     private final GetSurveyUseCase getSurveyUseCase;
     private final GetSurveyDetailUseCase getSurveyDetailUseCase;
     private final SubmitSurveyUseCase submitSurveyUseCase;
+    private final CurrentStudentProvider currentStudentProvider;
 
     @GetMapping("/{id}")
     public ResponseEntity<SurveyResponse> getSurveyById(@PathVariable("id") Integer surveyId) {
-        return ResponseEntity.ok(getSurveyUseCase.getSurveyById(surveyId));
+        return ResponseEntity.ok(toSurveyResponse(getSurveyUseCase.getSurveyById(surveyId)));
     }
 
     @GetMapping
     public ResponseEntity<List<SurveyResponse>> getAllSurveys() {
-        return ResponseEntity.ok(getSurveyUseCase.getAllSurveys());
+        return ResponseEntity.ok(getSurveyUseCase.getAllSurveys().stream()
+                .map(this::toSurveyResponse)
+                .toList());
     }
 
     @GetMapping("/{id}/detail")
     public ResponseEntity<SurveyDetailResponse> getSurveyDetail(@PathVariable("id") Integer surveyId) {
-        return ResponseEntity.ok(getSurveyDetailUseCase.getSurveyDetail(surveyId));
+        return ResponseEntity.ok(toSurveyDetailResponse(getSurveyDetailUseCase.getSurveyDetail(surveyId)));
     }
 
     @PostMapping("/{surveyId}/submit")
-    public SubmitSurveyResponse submitSurvey(
+    public ResponseEntity<SubmitSurveyResponse> submitSurvey(
             @PathVariable Integer surveyId,
             @RequestBody SubmitSurveyRequest request
     ) {
-        return submitSurveyUseCase.submitSurvey(surveyId, request);
+        SubmitSurveyCommand command = new SubmitSurveyCommand(
+                surveyId,
+                currentStudentProvider.currentStudentId(),
+                request == null || request.answers() == null
+                        ? List.of()
+                        : request.answers().stream()
+                        .map(answer -> new SubmitSurveyAnswerCommand(
+                                answer.questionId(),
+                                answer.rating(),
+                                answer.comment()
+                        ))
+                        .toList()
+        );
+
+        SubmitSurveyResult result = submitSurveyUseCase.submitSurvey(command);
+        return ResponseEntity.ok(toSubmitSurveyResponse(result));
     }
 
+    private SurveyResponse toSurveyResponse(SurveySummaryResult result) {
+        return new SurveyResponse(
+                result.id(),
+                result.title(),
+                result.description(),
+                result.startDate(),
+                result.endDate(),
+                result.createdBy(),
+                result.status().name()
+        );
+    }
 
+    private SurveyDetailResponse toSurveyDetailResponse(SurveyDetailResult result) {
+        return new SurveyDetailResponse(
+                result.id(),
+                result.title(),
+                result.description(),
+                result.startDate(),
+                result.endDate(),
+                result.status().name(),
+                result.questions().stream()
+                        .map(this::toQuestionItemResponse)
+                        .toList()
+        );
+    }
+
+    private QuestionItemResponse toQuestionItemResponse(QuestionItemResult result) {
+        return new QuestionItemResponse(
+                result.id(),
+                result.content(),
+                result.type().name()
+        );
+    }
+
+    private SubmitSurveyResponse toSubmitSurveyResponse(SubmitSurveyResult result) {
+        return new SubmitSurveyResponse(
+                result.success(),
+                SubmitSurveyResponseCode.valueOf(result.code().name()),
+                result.message()
+        );
+    }
 }

@@ -1,10 +1,10 @@
 package com.ttcs.backend.application.port.in;
 
-import com.ttcs.backend.adapter.in.web.dto.SurveyResponse;
+import com.ttcs.backend.application.port.in.result.SurveySummaryResult;
 
 import java.util.List;
 
 public interface GetSurveyUseCase {
-    SurveyResponse getSurveyById(Integer surveyId);
-    List<SurveyResponse> getAllSurveys();
+    SurveySummaryResult getSurveyById(Integer surveyId);
+    List<SurveySummaryResult> getAllSurveys();
 }

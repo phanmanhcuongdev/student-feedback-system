@@ -1,26 +1,23 @@
 export default function MainFooter() {
     return (
-        <footer className="w-full border-t border-slate-100 bg-slate-50 py-12">
-            <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 lg:flex-row lg:px-12">
+        <footer className="w-full border-t border-slate-200 bg-slate-950 py-10 text-slate-300">
+            <div className="mx-auto flex max-w-screen-xl flex-col items-center justify-between gap-6 px-6 lg:flex-row">
                 <div className="flex flex-col items-center gap-2 lg:items-start">
-          <span className="font-manrope text-lg font-bold tracking-tighter text-slate-400">
-            Insight Observatory
-          </span>
+                    <span className="text-lg font-bold tracking-tight text-white">
+                        Insight Observatory
+                    </span>
                     <p className="text-sm text-slate-400">
-                        © 2024 Insight Observatory. All rights reserved.
+                        Student onboarding and survey portal for authenticated participation.
                     </p>
                 </div>
 
                 <div className="flex items-center gap-8">
-                    <a href="#" className="text-sm font-medium text-slate-400 transition-colors hover:text-blue-500">
-                        Privacy Policy
-                    </a>
-                    <a href="#" className="text-sm font-medium text-slate-400 transition-colors hover:text-blue-500">
-                        Terms of Service
-                    </a>
-                    <a href="#" className="text-sm font-medium text-slate-400 transition-colors hover:text-blue-500">
-                        Help Center
-                    </a>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
+                        Authenticated Survey Access
+                    </span>
+                    <span className="text-sm text-slate-500">
+                        Copyright 2026
+                    </span>
                 </div>
             </div>
         </footer>

@@ -17,21 +17,30 @@ public class Survey {
     private final Integer createdBy;
 
     public boolean isNotStarted() {
-        LocalDateTime now = LocalDateTime.now();
-        return startDate != null && now.isBefore(startDate);
+        return status() == SurveyStatus.NOT_OPEN;
     }
 
     public boolean isClosed() {
-        LocalDateTime now = LocalDateTime.now();
-        return endDate != null && now.isAfter(endDate);
+        return status() == SurveyStatus.CLOSED;
     }
 
     public boolean isOpen() {
-        LocalDateTime now = LocalDateTime.now();
+        return status() == SurveyStatus.OPEN;
+    }
 
-        boolean started = (startDate == null) || !now.isBefore(startDate);
-        boolean notEnded = (endDate == null) || !now.isAfter(endDate);
+    public SurveyStatus status() {
+        return statusAt(LocalDateTime.now());
+    }
 
-        return started && notEnded;
+    public SurveyStatus statusAt(LocalDateTime now) {
+        if (startDate != null && now.isBefore(startDate)) {
+            return SurveyStatus.NOT_OPEN;
+        }
+
+        if (endDate != null && now.isAfter(endDate)) {
+            return SurveyStatus.CLOSED;
+        }
+
+        return SurveyStatus.OPEN;
     }
 }

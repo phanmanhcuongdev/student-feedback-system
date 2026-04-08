@@ -1,0 +1,62 @@
+package com.ttcs.backend.adapter.in.security;
+
+import com.ttcs.backend.application.port.out.auth.JwtTokenPort;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.List;
+
+@Component
+@RequiredArgsConstructor
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private final JwtTokenPort jwtTokenPort;
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+        String token = resolveToken(request);
+
+        if (token != null
+                && SecurityContextHolder.getContext().getAuthentication() == null
+                && jwtTokenPort.isTokenValid(token)) {
+
+            Integer userId = jwtTokenPort.extractUserId(token);
+            String email = jwtTokenPort.extractEmail(token);
+            String role = jwtTokenPort.extractRole(token);
+
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            userId,
+                            null,
+                            List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                    );
+
+            authentication.setDetails(email);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
+
+        filterChain.doFilter(request, response);
+    }
+
+    private String resolveToken(HttpServletRequest request) {
+        String bearer = request.getHeader("Authorization");
+        if (bearer == null || !bearer.startsWith("Bearer ")) {
+            return null;
+        }
+        return bearer.substring(7);
+    }
+}

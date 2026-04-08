@@ -1,8 +1,9 @@
 package com.ttcs.backend.application.domain.service;
 
-import com.ttcs.backend.adapter.in.web.dto.SurveyResponse;
+import com.ttcs.backend.application.domain.exception.SurveyNotFoundException;
 import com.ttcs.backend.application.domain.model.Survey;
 import com.ttcs.backend.application.port.in.GetSurveyUseCase;
+import com.ttcs.backend.application.port.in.result.SurveySummaryResult;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
@@ -16,55 +17,34 @@ public class GetSurveyService implements GetSurveyUseCase {
     private final LoadSurveyPort loadSurveyPort;
 
     @Override
-    public SurveyResponse getSurveyById(Integer surveyId) {
+    public SurveySummaryResult getSurveyById(Integer surveyId) {
         Survey survey = loadSurveyPort.loadById(surveyId)
-                .orElseThrow(() -> new RuntimeException("Survey not found"));
+                .orElseThrow(() -> new SurveyNotFoundException(surveyId));
 
-        String status;
-        if (survey.isNotStarted()) {
-            status = "NOT_OPEN";
-        } else if (survey.isClosed()) {
-            status = "CLOSED";
-        } else {
-            status = "OPEN";
-        }
-
-        return new SurveyResponse(
+        return new SurveySummaryResult(
                 survey.getId(),
                 survey.getTitle(),
                 survey.getDescription(),
                 survey.getStartDate(),
                 survey.getEndDate(),
                 survey.getCreatedBy(),
-                status
+                survey.status()
         );
     }
 
     @Override
-    public List<SurveyResponse> getAllSurveys() {
+    public List<SurveySummaryResult> getAllSurveys() {
         return loadSurveyPort.loadAll()
                 .stream()
-                .map(survey -> {
-                    String status;
-                    if (survey.isNotStarted()) {
-                        status = "NOT_OPEN";
-                    } else if (survey.isClosed()) {
-                        status = "CLOSED";
-                    } else {
-                        status = "OPEN";
-                    }
-
-                    return new SurveyResponse(
-                            survey.getId(),
-                            survey.getTitle(),
-                            survey.getDescription(),
-                            survey.getStartDate(),
-                            survey.getEndDate(),
-                            survey.getCreatedBy(),
-                            status
-                    );
-                })
+                .map(survey -> new SurveySummaryResult(
+                        survey.getId(),
+                        survey.getTitle(),
+                        survey.getDescription(),
+                        survey.getStartDate(),
+                        survey.getEndDate(),
+                        survey.getCreatedBy(),
+                        survey.status()
+                ))
                 .toList();
     }
-
 }

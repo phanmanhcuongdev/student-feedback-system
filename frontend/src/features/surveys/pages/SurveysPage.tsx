@@ -1,40 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
-import SurveyHero from "../components/SurveyHero";
-import SurveyFilterTabs from "../components/SurveyFilterTabs";
+import { useMemo, useState } from "react";
+import Footer from "../../../components/layout/MainFooter";
 import MainHeader from "../../../components/layout/MainHeader";
-import SurveyGrid from "../components/SurveyGrid";
 import SurveyCardSkeleton from "../components/SurveyCardSkeleton";
 import SurveyEmptyState from "../components/SurveyEmptyState";
-import { getAllSurveys } from "../../../api/surveyApi";
-import type { Survey } from "../../../types/survey";
-import Footer from "../../../components/layout/MainFooter";
-
-type SurveyFilter = "ALL" | "OPEN" | "CLOSED";
+import SurveyFilterTabs, { type SurveyFilter } from "../components/SurveyFilterTabs";
+import SurveyGrid from "../components/SurveyGrid";
+import SurveyHero from "../components/SurveyHero";
+import { useSurveyList } from "../hooks/useSurveyList";
 
 export default function SurveysPage() {
-    const [surveys, setSurveys] = useState<Survey[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
     const [filter, setFilter] = useState<SurveyFilter>("ALL");
-
-    useEffect(() => {
-        const fetchSurveys = async () => {
-            try {
-                setLoading(true);
-                setError("");
-
-                const data = await getAllSurveys();
-                setSurveys(data);
-            } catch (err) {
-                console.error(err);
-                setError("Không thể tải danh sách khảo sát.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchSurveys();
-    }, []);
+    const { surveys, loading, error } = useSurveyList();
 
     const filteredSurveys = useMemo(() => {
         if (filter === "ALL") return surveys;
@@ -45,17 +21,18 @@ export default function SurveysPage() {
         <>
             <MainHeader />
 
-            <main className="max-w-screen-xl mx-auto px-6 py-10">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+            <main className="min-h-screen bg-[linear-gradient(180deg,#f4f8ff_0%,#eef3f8_44%,#f7fafc_100%)]">
+                <div className="mx-auto max-w-screen-xl px-6 py-10">
+                <div className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
                     <SurveyHero />
 
                     <div className="flex items-center gap-3">
-                        <SurveyFilterTabs value={filter} onChange={setFilter}/>
+                        <SurveyFilterTabs value={filter} onChange={setFilter} />
                     </div>
                 </div>
 
                 {error && (
-                    <p className="mb-6 text-sm font-medium text-red-500">
+                    <p className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
                         {error}
                     </p>
                 )}
@@ -69,9 +46,10 @@ export default function SurveysPage() {
                         <SurveyGrid surveys={filteredSurveys} />
                     )}
                 </div>
+                </div>
             </main>
 
-            <Footer/>
+            <Footer />
         </>
     );
 }

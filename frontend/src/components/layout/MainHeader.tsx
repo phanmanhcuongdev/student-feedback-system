@@ -1,48 +1,97 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../features/auth/useAuth";
+
+function toStatusLabel(status: string | null) {
+    if (!status) {
+        return "";
+    }
+
+    return status.replace(/_/g, " ").toLowerCase().replace(/^\w/, (letter) => letter.toUpperCase());
+}
 
 export default function MainHeader() {
+    const navigate = useNavigate();
+    const { session, logout } = useAuth();
+    const isStudent = session?.role === "STUDENT";
+    const canViewResults = session?.role === "ADMIN" || session?.role === "TEACHER";
+
+    function handleLogout() {
+        logout();
+        navigate("/login", { replace: true });
+    }
 
     return (
-        <header className="bg-white dark:bg-blue-950/80 backdrop-blur-md shadow-sm dark:shadow-none docked full-width top-0 sticky z-50">
-            <nav className="flex justify-between items-center px-6 py-4 w-full max-w-screen-2xl mx-auto">
+        <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/88 shadow-[0_12px_32px_rgba(15,23,42,0.05)] backdrop-blur-xl">
+            <nav className="mx-auto flex w-full max-w-screen-xl items-center justify-between gap-4 px-6 py-4">
                 <div className="flex items-center gap-8">
-                    <span className="text-xl font-bold tracking-tight text-blue-900 dark:text-blue-50 font-manrope">Insight Observatory</span>
-                    <div className="hidden md:flex gap-6 font-manrope text-sm font-medium">
-                        <a className="text-slate-500 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 transition-colors px-2 py-1 rounded"
-                           href="#">Dashboard</a>
-                        <Link
-                            to="/surveys"
-                            className="text-blue-700 dark:text-blue-300 border-b-2 border-blue-600 px-2 py-1"
-                        >
-                            Surveys
-                        </Link>
-                        <a className="text-slate-500 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 transition-colors px-2 py-1 rounded"
-                           href="#">History</a>
-                    </div>
-                </div>
-                <div className="flex items-center gap-4">
-                    <div className="relative hidden sm:block">
-                        <span
-                            className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-                        <input
-                            className="pl-10 pr-4 py-2 bg-blue-50/50 dark:bg-blue-900/20 border-none rounded-full text-sm focus:ring-2 focus:ring-primary w-64 transition-all"
-                            placeholder="Search surveys..." type="text"/>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            className="p-2 text-slate-500 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-full transition-colors active:scale-95 duration-200" type="button">
-                            <span className="material-symbols-outlined">notifications</span>
-                        </button>
-                        <button
-                            className="p-2 text-slate-500 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-full transition-colors active:scale-95 duration-200" type="button">
-                            <span className="material-symbols-outlined">help</span>
-                        </button>
-                        <div className="w-8 h-8 rounded-full overflow-hidden ml-2 border border-blue-100">
-                            <img alt="User profile avatar" className="w-full h-full object-cover"
-                                 data-alt="Portrait of a male student smiling"
-                                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuClyDgxYr73ec6i08yvDcwnCcnGGdncojdaX75oDrzVRBLhMDJakTr2f4i9cbJDI28A72WElXkwrpr32Jhp3h5Q13-_SNdZVnlpfotrDn5aVW26HsmmD-mU484HtMypbwDWwC01-n1nz1ChluKk1bcboWZ7yjAW6thWchskfEMj9A8b_GJRdO7VHDZZ5D-cgi_HnapaHW-PWhd1Fcqy57HxRQG_aIZmNGGUbFHEw2xnDP7sgXD8Yp4BZgaCiS7SURBjdWeCpk2z_NY"/>
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0b1c30_0%,#1d78ec_100%)] text-white shadow-[0_16px_36px_rgba(14,66,140,0.24)]">
+                            <span className="material-symbols-outlined text-[22px]">insights</span>
+                        </div>
+                        <div>
+                            <span className="block text-base font-extrabold tracking-tight text-slate-950">
+                                Insight Observatory
+                            </span>
+                            <span className="block text-xs font-medium uppercase tracking-[0.22em] text-slate-400">
+                                Student Feedback Portal
+                            </span>
                         </div>
                     </div>
+
+                    <div className="hidden gap-6 text-sm font-semibold text-slate-500 md:flex">
+                        {isStudent ? (
+                            <Link
+                                to="/surveys"
+                                className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-blue-700 transition hover:border-blue-300 hover:bg-blue-100"
+                            >
+                                Surveys
+                            </Link>
+                        ) : null}
+                        {canViewResults ? (
+                            <Link
+                                to="/survey-results"
+                                className="rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sky-700 transition hover:border-sky-300 hover:bg-sky-100"
+                            >
+                                Survey Results
+                            </Link>
+                        ) : null}
+                        {session?.role === "ADMIN" ? (
+                            <Link
+                                to="/admin/students/pending"
+                                className="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-amber-700 transition hover:border-amber-300 hover:bg-amber-100"
+                            >
+                                Pending Students
+                            </Link>
+                        ) : null}
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    {session && (
+                        <div className="hidden items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 md:flex">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">
+                                {session.email.slice(0, 1).toUpperCase()}
+                            </div>
+                            <div className="text-right">
+                                <p className="max-w-[220px] truncate text-sm font-bold text-slate-900">
+                                    {session.email}
+                                </p>
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                    {session.role}
+                                    {session.role === "STUDENT" && session.studentStatus ? ` | ${toStatusLabel(session.studentStatus)}` : ""}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">logout</span>
+                        <span>Logout</span>
+                    </button>
                 </div>
             </nav>
         </header>

@@ -5,5 +5,6 @@ public enum SubmitSurveyResponseCode {
     ALREADY_SUBMITTED,
     SURVEY_CLOSED,
     INVALID_INPUT,
-    SURVEY_NOT_FOUND
+    SURVEY_NOT_FOUND,
+    STUDENT_NOT_FOUND
 }

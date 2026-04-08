@@ -1,5 +1,5 @@
-import type { Survey } from "../../../types/survey";
 import { useNavigate } from "react-router-dom";
+import type { Survey } from "../../../types/survey";
 
 type SurveyCardProps = {
     survey: Survey;
@@ -7,16 +7,16 @@ type SurveyCardProps = {
 
 export default function SurveyCard({ survey }: SurveyCardProps) {
     const navigate = useNavigate();
-
     const isDisabled = survey.status !== "OPEN";
 
     function getRemainingTime(endDate: string) {
         const now = new Date();
         const end = new Date(endDate);
-
         const diff = end.getTime() - now.getTime();
 
-        if (diff <= 0) return null;
+        if (diff <= 0) {
+            return null;
+        }
 
         const minutes = Math.floor(diff / (1000 * 60));
         const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -55,15 +55,18 @@ export default function SurveyCard({ survey }: SurveyCardProps) {
                 : "bg-slate-400";
 
     function handleStartSurvey(id: number) {
-        if (isDisabled) return;
+        if (isDisabled) {
+            return;
+        }
+
         navigate(`/surveys/${id}`);
     }
 
     return (
         <div
             className={[
-                "bg-white rounded-xl p-6 flex flex-col h-full border border-slate-200 transition-all",
-                isDisabled ? "" : "hover:shadow-lg hover:-translate-y-1",
+                "flex h-full flex-col rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_18px_40px_rgba(15,23,42,0.05)] transition-all",
+                isDisabled ? "" : "hover:-translate-y-1 hover:shadow-[0_24px_50px_rgba(15,23,42,0.08)]",
             ].join(" ")}
         >
             <div className="flex justify-between items-start mb-4">
@@ -79,16 +82,16 @@ export default function SurveyCard({ survey }: SurveyCardProps) {
                 </span>
             </div>
 
-            <h3 className="text-xl font-bold text-slate-900 mb-2">
+            <h3 className="mb-2 text-xl font-bold text-slate-900">
                 {survey.title}
             </h3>
 
-            <p className="text-slate-500 text-sm mb-6 flex-grow">
+            <p className="mb-6 flex-grow text-sm leading-6 text-slate-500">
                 {survey.description}
             </p>
 
-            <div className="space-y-4 pt-6 border-t border-slate-200">
-                <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+            <div className="space-y-4 border-t border-slate-200 pt-6">
+                <div className="flex items-center text-xs text-slate-500 font-medium">
                     <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-sm">calendar_today</span>
                         <span>
@@ -96,15 +99,6 @@ export default function SurveyCard({ survey }: SurveyCardProps) {
                             {new Date(survey.endDate).toLocaleDateString("vi-VN")}
                         </span>
                     </div>
-
-                    <div className="flex items-center gap-1">
-                        <span className="text-blue-600">65%</span>
-                        <span>capacity</span>
-                    </div>
-                </div>
-
-                <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-600 w-[65%]"></div>
                 </div>
 
                 <button
@@ -112,10 +106,10 @@ export default function SurveyCard({ survey }: SurveyCardProps) {
                     disabled={isDisabled}
                     onClick={() => handleStartSurvey(survey.id)}
                     className={[
-                        "w-full py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2",
+                        "flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all",
                         isDisabled
                             ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
-                            : "bg-blue-600 text-white shadow-md active:scale-95 hover:bg-blue-700 group",
+                            : "group bg-[linear-gradient(135deg,#0f5bcf_0%,#1d78ec_100%)] text-white shadow-[0_16px_36px_rgba(29,120,236,0.22)] active:scale-95 hover:shadow-[0_18px_40px_rgba(29,120,236,0.28)]",
                     ].join(" ")}
                 >
                     {getButtonText(survey.status)}
