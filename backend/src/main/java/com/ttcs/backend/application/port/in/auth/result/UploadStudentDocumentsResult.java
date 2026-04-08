@@ -15,11 +15,14 @@ public class UploadStudentDocumentsResult {
     }
 
     public static UploadStudentDocumentsResult ok() {
-        return new UploadStudentDocumentsResult(true, "UPLOAD_DOCS_SUCCESS", "Gửi minh chứng thành công.");
+        return new UploadStudentDocumentsResult(
+                true,
+                "UPLOAD_DOCS_SUCCESS",
+                "Gui minh chung thanh cong. Tai khoan cua ban dang cho phe duyet."
+        );
     }
 
     public static UploadStudentDocumentsResult fail(String code, String message) {
         return new UploadStudentDocumentsResult(false, code, message);
     }
-
 }

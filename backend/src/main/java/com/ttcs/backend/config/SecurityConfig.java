@@ -42,8 +42,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/survey-results/**").hasAnyRole("ADMIN", "TEACHER")
                         .requestMatchers(
                                 "/api/auth/login",
-                                "/api/auth/register-student",
-                                "/api/auth/upload-docs"
+                                "/api/auth/register-student"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/verify-email", "/api/auth/verify-email/**").permitAll()
                         .requestMatchers(

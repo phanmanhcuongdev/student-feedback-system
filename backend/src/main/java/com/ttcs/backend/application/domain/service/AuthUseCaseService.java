@@ -6,6 +6,7 @@ import com.ttcs.backend.application.domain.model.Status;
 import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.domain.model.StudentToken;
 import com.ttcs.backend.application.domain.model.User;
+import com.ttcs.backend.application.domain.exception.VerifyEmailDeliveryException;
 import com.ttcs.backend.application.port.in.auth.LoginUseCase;
 import com.ttcs.backend.application.port.in.auth.RegisterStudentUseCase;
 import com.ttcs.backend.application.port.in.auth.UploadStudentDocumentsUseCase;
@@ -53,8 +54,8 @@ public class AuthUseCaseService implements
 
     private final JwtTokenPort jwtTokenPort;
 
-    @Value("${app.verify.base-url:http://localhost:5173}")
-    private String verifyBaseUrl;
+    @Value("${app.verify.email-url-base:http://localhost:5173}")
+    private String verifyEmailUrlBase;
 
     @Override
     @Transactional
@@ -112,10 +113,17 @@ public class AuthUseCaseService implements
         );
         StudentToken savedToken = saveStudentTokenPort.save(token);
 
-        String verifyUrl = verifyBaseUrl + "/verify-email?token=" + savedToken.getToken();
-        sendVerifyEmailPort.sendVerifyEmail(savedUser.getEmail(), verifyUrl);
+        String verifyUrl = verifyEmailUrlBase + "/verify-email?token=" + savedToken.getToken();
+        try {
+            sendVerifyEmailPort.sendVerifyEmail(savedUser.getEmail(), verifyUrl);
+        } catch (RuntimeException ex) {
+            throw new VerifyEmailDeliveryException(
+                    "Khong the gui email xac minh luc nay. Vui long thu lai sau.",
+                    ex
+            );
+        }
 
-        return RegisterStudentResult.ok(verifyUrl);
+        return RegisterStudentResult.ok();
     }
 
     @Override
@@ -137,13 +145,32 @@ public class AuthUseCaseService implements
                 return LoginResult.fail("STUDENT_PROFILE_NOT_FOUND", "Khong tim thay thong tin sinh vien");
             }
             if (student.getStatus() == Status.EMAIL_UNVERIFIED) {
-                return LoginResult.fail("EMAIL_NOT_VERIFIED", "Vui long xac nhan email truoc khi dang nhap");
+                return LoginResult.fail(
+                        "EMAIL_NOT_VERIFIED",
+                        "Tai khoan chua xac minh email. Vui long kiem tra email va bam vao lien ket xac minh."
+                );
             }
             if (student.getStatus() == Status.PENDING) {
-                return LoginResult.fail("WAITING_APPROVAL", "Tai khoan dang cho duyet. Vui long quay lai sau");
+                if (hasUploadedDocuments(student)) {
+                    return LoginResult.fail(
+                            "WAITING_APPROVAL",
+                            "Tai khoan da gui minh chung va dang cho quan tri vien phe duyet."
+                    );
+                }
+
+                studentStatus = student.getStatus().name();
+                String accessToken = jwtTokenPort.generateAccessToken(
+                        user.getId(),
+                        user.getEmail(),
+                        user.getRole().name()
+                );
+                return LoginResult.ok(user.getId(), user.getRole().name(), studentStatus, accessToken);
             }
             if (student.getStatus() == Status.REJECTED) {
-                return LoginResult.fail("ACCOUNT_REJECTED", "Tai khoan da bi tu choi. Vui long lien he quan tri vien");
+                return LoginResult.fail(
+                    "ACCOUNT_REJECTED",
+                    "Tai khoan da bi tu choi. Vui long lien he quan tri vien."
+                );
             }
             studentStatus = student.getStatus().name();
         }
@@ -205,7 +232,9 @@ public class AuthUseCaseService implements
                 saveUserPort.save(updatedUser);
             }
             student = updatedStudent;
-        } else if (student.getStatus() == Status.ACTIVE || student.getStatus() == Status.PENDING) {
+        } else if (student.getStatus() == Status.ACTIVE
+                || student.getStatus() == Status.PENDING
+                || student.getStatus() == Status.REJECTED) {
             StudentToken usedToken = new StudentToken(
                     token.getId(),
                     token.getStudent(),
@@ -215,7 +244,7 @@ public class AuthUseCaseService implements
                     1
             );
             saveStudentTokenPort.save(usedToken);
-            return VerifyEmailResult.fail("ALREADY_VERIFIED", "Email da duoc xac nhan truoc do");
+            return VerifyEmailResult.fail("ALREADY_VERIFIED", "Email nay da duoc xac minh truoc do.");
         }
 
         StudentToken usedToken = new StudentToken(
@@ -228,14 +257,13 @@ public class AuthUseCaseService implements
         );
         saveStudentTokenPort.save(usedToken);
 
-        return VerifyEmailResult.ok(student.getId(), student.getStatus().name());
+        return VerifyEmailResult.ok(student.getStatus().name());
     }
 
     @Override
     @Transactional
     public UploadStudentDocumentsResult upload(UploadStudentDocumentsCommand command) {
         if (command == null
-                || command.studentId() == null
                 || command.studentCard() == null
                 || command.nationalId() == null) {
             return UploadStudentDocumentsResult.fail("INVALID_INPUT", "Thong tin upload khong hop le");
@@ -249,7 +277,19 @@ public class AuthUseCaseService implements
         if (student.getStatus() == Status.EMAIL_UNVERIFIED) {
             return UploadStudentDocumentsResult.fail(
                     "EMAIL_NOT_VERIFIED",
-                    "Ban can xac nhan email truoc khi gui minh chung"
+                    "Ban can xac minh email truoc khi tai len minh chung."
+            );
+        }
+        if (student.getStatus() != Status.PENDING) {
+            return UploadStudentDocumentsResult.fail(
+                "INVALID_STATUS",
+                "Tai khoan khong o trang thai cho phep tai len minh chung."
+            );
+        }
+        if (hasUploadedDocuments(student)) {
+            return UploadStudentDocumentsResult.fail(
+                    "INVALID_STATUS",
+                    "Tai khoan da gui minh chung va dang cho phe duyet."
             );
         }
 
@@ -273,5 +313,9 @@ public class AuthUseCaseService implements
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private boolean hasUploadedDocuments(Student student) {
+        return !isBlank(student.getStudentCardImageUrl()) && !isBlank(student.getNationalIdImageUrl());
     }
 }

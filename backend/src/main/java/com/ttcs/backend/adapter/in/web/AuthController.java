@@ -28,13 +28,13 @@ import org.springframework.web.multipart.MultipartFile;
 @WebAdapter
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
     private final RegisterStudentUseCase registerStudentUseCase;
     private final VerifyEmailUseCase verifyEmailUseCase;
     private final UploadStudentDocumentsUseCase uploadStudentDocumentsUseCase;
     private final LoginUseCase loginUseCase;
+    private final CurrentStudentProvider currentStudentProvider;
 
     @PostMapping("/register-student")
     public ResponseEntity<RegisterStudentResponse> registerStudent(@Valid @RequestBody RegisterStudentRequest request) {
@@ -51,8 +51,7 @@ public class AuthController {
         return ResponseEntity.ok(new RegisterStudentResponse(
                 result.success(),
                 result.code(),
-                result.message(),
-                result.verificationUrl()
+                result.message()
         ));
     }
 
@@ -64,19 +63,17 @@ public class AuthController {
                 result.success(),
                 result.code(),
                 result.message(),
-                result.studentId(),
                 result.studentStatus()
         ));
     }
 
     @PostMapping("/upload-docs")
     public ResponseEntity<UploadDocumentsResponse> uploadDocs(
-            @RequestParam("studentId") Integer studentId,
             @RequestPart("studentCard") MultipartFile studentCard,
             @RequestPart("nationalId") MultipartFile nationalId
     ) {
         UploadStudentDocumentsResult result = uploadStudentDocumentsUseCase.upload(
-                new UploadStudentDocumentsCommand(studentId, studentCard, nationalId)
+                new UploadStudentDocumentsCommand(currentStudentProvider.currentStudentId(), studentCard, nationalId)
         );
 
         return ResponseEntity.ok(new UploadDocumentsResponse(

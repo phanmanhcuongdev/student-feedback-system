@@ -21,8 +21,9 @@ export default function SurveysPage() {
         <>
             <MainHeader />
 
-            <main className="max-w-screen-xl mx-auto px-6 py-10">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+            <main className="min-h-screen bg-[linear-gradient(180deg,#f4f8ff_0%,#eef3f8_44%,#f7fafc_100%)]">
+                <div className="mx-auto max-w-screen-xl px-6 py-10">
+                <div className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
                     <SurveyHero />
 
                     <div className="flex items-center gap-3">
@@ -31,7 +32,7 @@ export default function SurveysPage() {
                 </div>
 
                 {error && (
-                    <p className="mb-6 text-sm font-medium text-red-500">
+                    <p className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
                         {error}
                     </p>
                 )}
@@ -44,6 +45,7 @@ export default function SurveysPage() {
                     ) : (
                         <SurveyGrid surveys={filteredSurveys} />
                     )}
+                </div>
                 </div>
             </main>
 

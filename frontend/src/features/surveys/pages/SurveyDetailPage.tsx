@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Footer from "../../../components/layout/MainFooter";
 import MainHeader from "../../../components/layout/MainHeader";
 import type { AnswersState } from "../../../types/surveyDetail";
@@ -72,14 +72,24 @@ export default function SurveyDetailPage() {
             <MainHeader />
 
             <div className="min-h-screen bg-[#f8f9ff] text-[#0b1c30]">
+                <div className="mx-auto max-w-3xl px-6 pt-8">
+                    <Link
+                        to="/surveys"
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                        <span>Back to surveys</span>
+                    </Link>
+                </div>
+
                 {loading && (
-                    <div className="mx-auto max-w-3xl px-6 pt-28 text-lg font-medium text-slate-500">
+                    <div className="mx-auto max-w-3xl px-6 pt-12 text-lg font-medium text-slate-500">
                         Loading survey...
                     </div>
                 )}
 
                 {error && (
-                    <div className="mx-auto max-w-3xl px-6 pt-28">
+                    <div className="mx-auto max-w-3xl px-6 pt-12">
                         <div className="rounded-xl bg-red-50 p-4 text-red-600 shadow-sm">
                             {error}
                         </div>
