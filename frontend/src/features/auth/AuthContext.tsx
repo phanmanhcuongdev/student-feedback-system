@@ -1,21 +1,8 @@
-import { createContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { login as loginRequest } from "../../api/authApi";
-import type { AuthSession, LoginResponse } from "../../types/auth";
+import type { AuthSession } from "../../types/auth";
 import { clearStoredSession, readStoredSession, storeSession } from "./authStorage";
-
-type LoginInput = {
-    email: string;
-    password: string;
-};
-
-type AuthContextValue = {
-    session: AuthSession | null;
-    isAuthenticated: boolean;
-    login: (input: LoginInput) => Promise<LoginResponse>;
-    logout: () => void;
-};
-
-export const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext, type AuthContextValue, type LoginInput } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [session, setSession] = useState<AuthSession | null>(() => readStoredSession());
