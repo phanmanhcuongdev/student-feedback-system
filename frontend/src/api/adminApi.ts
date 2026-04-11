@@ -1,5 +1,6 @@
 import axios from "./axios";
 import type { AdminActionResponse, PendingStudent } from "../types/admin";
+import type { CreateSurveyData } from "../types/survey";
 
 export async function getPendingStudents(): Promise<PendingStudent[]> {
     const response = await axios.get<PendingStudent[]>("/admin/students/pending");
@@ -13,5 +14,10 @@ export async function approveStudent(studentId: number): Promise<AdminActionResp
 
 export async function rejectStudent(studentId: number): Promise<AdminActionResponse> {
     const response = await axios.post<AdminActionResponse>(`/admin/students/${studentId}/reject`);
+    return response.data;
+}
+
+export async function createSurvey(data: CreateSurveyData): Promise<AdminActionResponse> {
+    const response = await axios.post<AdminActionResponse>("/admin/surveys", data);
     return response.data;
 }

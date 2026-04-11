@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import CreateSurveyPage from "./features/admin/pages/CreateSurveyPage.tsx";
 import LoginPage from "./features/auth/pages/LoginPage.tsx";
 import AdminRoute from "./features/auth/AdminRoute.tsx";
 import ProtectedRoute from "./features/auth/ProtectedRoute.tsx";
@@ -43,6 +44,7 @@ function App() {
               </Route>
               <Route element={<AdminRoute />}>
                   <Route path="/admin/students/pending" element={<PendingStudentsPage />} />
+                  <Route path="/admin/surveys/create" element={<CreateSurveyPage />} />
               </Route>
           </Route>
           <Route path="*" element={<RootRedirect />} />
