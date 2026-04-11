@@ -15,3 +15,8 @@ export async function rejectStudent(studentId: number): Promise<AdminActionRespo
     const response = await axios.post<AdminActionResponse>(`/admin/students/${studentId}/reject`);
     return response.data;
 }
+
+export async function createSurvey(data: any): Promise<AdminActionResponse> {
+    const response = await axios.post<AdminActionResponse>("/admin/surveys", data);
+    return response.data;
+}

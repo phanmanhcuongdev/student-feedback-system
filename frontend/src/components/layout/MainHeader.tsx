@@ -56,12 +56,20 @@ export default function MainHeader() {
                             </Link>
                         ) : null}
                         {session?.role === "ADMIN" ? (
-                            <Link
-                                to="/admin/students/pending"
-                                className="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-amber-700 transition hover:border-amber-300 hover:bg-amber-100"
-                            >
-                                Pending Students
-                            </Link>
+                            <>
+                                <Link
+                                    to="/admin/students/pending"
+                                    className="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-amber-700 transition hover:border-amber-300 hover:bg-amber-100"
+                                >
+                                    Pending Students
+                                </Link>
+                                <Link
+                                    to="/admin/surveys/create"
+                                    className="rounded-full border border-indigo-200 bg-indigo-50 px-4 py-2 text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100"
+                                >
+                                    Create Survey
+                                </Link>
+                            </>
                         ) : null}
                     </div>
                 </div>
