@@ -79,13 +79,13 @@ public class AuthUseCaseService implements
     private final JwtTokenPort jwtTokenPort;
 
     @Value("${app.verify.email-url-base:http://localhost:5173}")
-    private String verifyEmailUrlBase;
+    private String verifyEmailUrlBase = "http://localhost:5173";
 
     @Value("${app.reset-password.url-base:http://localhost:5173}")
-    private String resetPasswordUrlBase;
+    private String resetPasswordUrlBase = "http://localhost:5173";
 
     @Value("${app.reset-password.expiration-minutes:30}")
-    private long resetPasswordExpirationMinutes;
+    private long resetPasswordExpirationMinutes = 30;
 
     @Override
     @Transactional
