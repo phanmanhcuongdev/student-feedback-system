@@ -21,6 +21,7 @@ public class SurveyAssignmentPersistenceAdapter implements LoadSurveyAssignmentP
     public List<SurveyAssignment> loadBySurveyId(Integer surveyId) {
         return surveyAssignmentRepository.findBySurveyIdOrderByIdAsc(surveyId).stream()
                 .map(SurveyAssignmentMapper::toDomain)
+                .filter(java.util.Objects::nonNull)
                 .toList();
     }
 

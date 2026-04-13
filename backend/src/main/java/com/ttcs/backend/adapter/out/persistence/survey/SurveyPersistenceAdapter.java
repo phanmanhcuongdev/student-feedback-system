@@ -1,5 +1,6 @@
 package com.ttcs.backend.adapter.out.persistence.survey;
 
+import com.ttcs.backend.adapter.out.persistence.admin.AdminRepository;
 import com.ttcs.backend.application.domain.model.Survey;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.common.PersistenceAdapter;
@@ -12,6 +13,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class SurveyPersistenceAdapter implements LoadSurveyPort, com.ttcs.backend.application.port.out.SaveSurveyPort {
     private final SurveyRepository surveyRepository;
+    private final AdminRepository adminRepository;
 
     @Override
     public Optional<Survey> loadById(Integer surveyId) {
@@ -30,6 +32,10 @@ public class SurveyPersistenceAdapter implements LoadSurveyPort, com.ttcs.backen
     @Override
     public Survey save(Survey survey) {
         SurveyEntity entity = SurveyMapper.toEntity(survey);
+        if (survey.getCreatedBy() == null) {
+            throw new IllegalArgumentException("Survey creator is required");
+        }
+        entity.setCreatedBy(adminRepository.getReferenceById(survey.getCreatedBy()));
         SurveyEntity saved = surveyRepository.save(entity);
         return SurveyMapper.toDomain(saved);
     }

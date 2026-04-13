@@ -1,6 +1,5 @@
 package com.ttcs.backend.adapter.out.persistence.survey;
 
-import com.ttcs.backend.adapter.out.persistence.admin.AdminEntity;
 import com.ttcs.backend.application.domain.model.Survey;
 
 public final class SurveyMapper {
@@ -34,11 +33,6 @@ public final class SurveyMapper {
         entity.setStartDate(domain.getStartDate());
         entity.setEndDate(domain.getEndDate());
         entity.setHidden(domain.isHidden());
-
-        // shallow admin
-        AdminEntity admin = new AdminEntity();
-        admin.setId(domain.getCreatedBy());
-        entity.setCreatedBy(admin);
 
         return entity;
     }

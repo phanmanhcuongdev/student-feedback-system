@@ -11,13 +11,47 @@ public final class SurveyAssignmentMapper {
     }
 
     public static SurveyAssignment toDomain(SurveyAssignmentEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+
+        EvaluatorType evaluatorType = parseEvaluatorType(entity.getEvaluatorType());
+        SubjectType subjectType = parseSubjectType(entity.getSubjectType());
+        if (evaluatorType == null || subjectType == null) {
+            return null;
+        }
+
         return new SurveyAssignment(
                 entity.getId(),
                 SurveyMapper.toDomain(entity.getSurvey()),
-                EvaluatorType.valueOf(entity.getEvaluatorType()),
+                evaluatorType,
                 entity.getEvaluatorValue(),
-                SubjectType.valueOf(entity.getSubjectType()),
+                subjectType,
                 entity.getSubjectValue()
         );
+    }
+
+    private static EvaluatorType parseEvaluatorType(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return null;
+        }
+
+        try {
+            return EvaluatorType.valueOf(rawValue.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
+    private static SubjectType parseSubjectType(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return null;
+        }
+
+        try {
+            return SubjectType.valueOf(rawValue.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
     }
 }
