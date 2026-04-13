@@ -1,8 +1,11 @@
 import axios from "./axios";
 import type {
+    ChangePasswordResponse,
+    ForgotPasswordResponse,
     LoginResponse,
     RegisterStudentRequest,
     RegisterStudentResponse,
+    ResetPasswordResponse,
     UploadDocumentsResponse,
     VerifyEmailResponse,
 } from "../types/auth";
@@ -42,5 +45,32 @@ export const uploadDocuments = async (
         },
     });
 
+    return res.data;
+};
+
+export const forgotPassword = async (email: string): Promise<ForgotPasswordResponse> => {
+    const res = await axios.post<ForgotPasswordResponse>("/auth/forgot-password", { email });
+    return res.data;
+};
+
+export const resetPassword = async (
+    token: string,
+    newPassword: string
+): Promise<ResetPasswordResponse> => {
+    const res = await axios.post<ResetPasswordResponse>("/auth/reset-password", {
+        token,
+        newPassword,
+    });
+    return res.data;
+};
+
+export const changePassword = async (
+    currentPassword: string,
+    newPassword: string
+): Promise<ChangePasswordResponse> => {
+    const res = await axios.post<ChangePasswordResponse>("/auth/change-password", {
+        currentPassword,
+        newPassword,
+    });
     return res.data;
 };

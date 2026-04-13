@@ -19,7 +19,8 @@ public final class SurveyMapper {
                 entity.getDescription(),
                 entity.getStartDate(),
                 entity.getEndDate(),
-                entity.getCreatedBy() != null ? entity.getCreatedBy().getId() : null
+                entity.getCreatedBy() != null ? entity.getCreatedBy().getId() : null,
+                entity.isHidden()
         );
     }
 
@@ -32,6 +33,7 @@ public final class SurveyMapper {
         entity.setDescription(domain.getDescription());
         entity.setStartDate(domain.getStartDate());
         entity.setEndDate(domain.getEndDate());
+        entity.setHidden(domain.isHidden());
 
         // shallow admin
         AdminEntity admin = new AdminEntity();

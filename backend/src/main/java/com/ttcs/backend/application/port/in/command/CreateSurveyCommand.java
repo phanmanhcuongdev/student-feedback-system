@@ -1,5 +1,6 @@
 package com.ttcs.backend.application.port.in.command;
 
+import com.ttcs.backend.application.domain.model.SurveyRecipientScope;
 import com.ttcs.backend.application.domain.model.QuestionType;
 import org.springframework.lang.Nullable;
 
@@ -12,6 +13,8 @@ public record CreateSurveyCommand(
         @Nullable LocalDateTime startDate,
         @Nullable LocalDateTime endDate,
         Integer createdBy,
-        List<CreateQuestionCommand> questions
+        List<CreateQuestionCommand> questions,
+        SurveyRecipientScope recipientScope,
+        @Nullable Integer recipientDepartmentId
 ) {
 }

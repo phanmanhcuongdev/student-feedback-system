@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface SaveQuestionPort {
     void saveAll(List<Question> questions);
+
+    void replaceSurveyQuestions(Integer surveyId, List<Question> questions);
 }

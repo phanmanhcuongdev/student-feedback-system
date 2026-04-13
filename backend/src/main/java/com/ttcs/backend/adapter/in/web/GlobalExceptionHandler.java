@@ -22,4 +22,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ApiErrorResponse("EMAIL_DELIVERY_FAILED", exception.getMessage()));
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiErrorResponse> handleIllegalArgument(IllegalArgumentException exception) {
+        if ("USER_NOT_FOUND".equals(exception.getMessage())) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiErrorResponse("USER_NOT_FOUND", "User was not found."));
+        }
+        if ("SURVEY_NOT_FOUND".equals(exception.getMessage())) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiErrorResponse("SURVEY_NOT_FOUND", "Survey was not found."));
+        }
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiErrorResponse("INVALID_REQUEST", exception.getMessage()));
+    }
 }

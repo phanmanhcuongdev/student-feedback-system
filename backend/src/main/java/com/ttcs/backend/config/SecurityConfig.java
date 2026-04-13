@@ -40,9 +40,13 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/survey-results/**").hasAnyRole("ADMIN", "TEACHER")
+                        .requestMatchers("/api/v1/feedback/staff", "/api/v1/feedback/staff/**").hasAnyRole("ADMIN", "TEACHER")
+                        .requestMatchers("/api/v1/feedback/*/responses").hasAnyRole("ADMIN", "TEACHER")
                         .requestMatchers(
                                 "/api/auth/login",
-                                "/api/auth/register-student"
+                                "/api/auth/register-student",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/verify-email", "/api/auth/verify-email/**").permitAll()
                         .requestMatchers(

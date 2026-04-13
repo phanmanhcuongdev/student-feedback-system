@@ -1,15 +1,15 @@
 export function getDefaultAppRoute(role: string | null | undefined, studentStatus?: string | null): string {
     if (role === "ADMIN") {
-        return "/admin/students/pending";
+        return "/dashboard/admin";
     }
 
     if (role === "TEACHER") {
-        return "/survey-results";
+        return "/dashboard/lecturer";
     }
 
     if (role === "STUDENT" && studentStatus === "EMAIL_VERIFIED") {
         return "/upload-documents";
     }
 
-    return "/surveys";
+    return "/dashboard/student";
 }

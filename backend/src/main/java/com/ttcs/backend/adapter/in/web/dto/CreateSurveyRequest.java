@@ -8,6 +8,8 @@ public record CreateSurveyRequest(
         String description,
         LocalDateTime startDate,
         LocalDateTime endDate,
-        List<CreateQuestionRequest> questions
+        List<CreateQuestionRequest> questions,
+        String recipientScope,
+        Integer recipientDepartmentId
 ) {
 }
