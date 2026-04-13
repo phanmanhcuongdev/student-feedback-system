@@ -34,18 +34,22 @@ public class SurveyController {
 
     @GetMapping("/{id}")
     public ResponseEntity<SurveyResponse> getSurveyById(@PathVariable("id") Integer surveyId) {
-        return ResponseEntity.ok(toSurveyResponse(getSurveyUseCase.getSurveyById(surveyId)));
+        currentStudentProvider.ensureActiveStudentAccount();
+        return ResponseEntity.ok(toSurveyResponse(getSurveyUseCase.getSurveyById(surveyId, currentStudentProvider.currentUserId())));
     }
 
     @GetMapping
     public ResponseEntity<List<SurveyResponse>> getAllSurveys() {
-        return ResponseEntity.ok(getSurveyUseCase.getAllSurveys().stream()
+        currentStudentProvider.ensureActiveStudentAccount();
+        return ResponseEntity.ok(getSurveyUseCase.getAllSurveys(currentStudentProvider.currentUserId()).stream()
                 .map(this::toSurveyResponse)
                 .toList());
     }
 
     @GetMapping("/{id}/detail")
     public ResponseEntity<SurveyDetailResponse> getSurveyDetail(@PathVariable("id") Integer surveyId) {
+        currentStudentProvider.ensureActiveStudentAccount();
+        getSurveyUseCase.getSurveyById(surveyId, currentStudentProvider.currentUserId());
         return ResponseEntity.ok(toSurveyDetailResponse(getSurveyDetailUseCase.getSurveyDetail(surveyId)));
     }
 
@@ -54,6 +58,8 @@ public class SurveyController {
             @PathVariable Integer surveyId,
             @RequestBody SubmitSurveyRequest request
     ) {
+        currentStudentProvider.ensureActiveStudentAccount();
+        getSurveyUseCase.getSurveyById(surveyId, currentStudentProvider.currentUserId());
         SubmitSurveyCommand command = new SubmitSurveyCommand(
                 surveyId,
                 currentStudentProvider.currentStudentId(),

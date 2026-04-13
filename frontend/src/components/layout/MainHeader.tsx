@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
+import { getDefaultAppRoute } from "../../features/auth/defaultRoute";
 import { useAuth } from "../../features/auth/useAuth";
 
 function toStatusLabel(status: string | null) {
@@ -14,6 +15,8 @@ export default function MainHeader() {
     const { session, logout } = useAuth();
     const isStudent = session?.role === "STUDENT";
     const canViewResults = session?.role === "ADMIN" || session?.role === "TEACHER";
+    const canManageFeedback = session?.role === "ADMIN" || session?.role === "TEACHER";
+    const dashboardRoute = getDefaultAppRoute(session?.role, session?.studentStatus);
 
     function handleLogout() {
         logout();
@@ -39,29 +42,79 @@ export default function MainHeader() {
                     </div>
 
                     <div className="hidden gap-6 text-sm font-semibold text-slate-500 md:flex">
+                        <Link
+                            to={dashboardRoute}
+                            className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
+                        >
+                            Dashboard
+                        </Link>
+                        <Link
+                            to="/change-password"
+                            className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
+                        >
+                            Change Password
+                        </Link>
                         {isStudent ? (
-                            <Link
-                                to="/surveys"
-                                className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-blue-700 transition hover:border-blue-300 hover:bg-blue-100"
-                            >
-                                Surveys
-                            </Link>
+                            <>
+                                <Link
+                                    to="/surveys"
+                                    className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-blue-700 transition hover:border-blue-300 hover:bg-blue-100"
+                                >
+                                    Surveys
+                                </Link>
+                                <Link
+                                    to="/notifications"
+                                    className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100"
+                                >
+                                    Notifications
+                                </Link>
+                                <Link
+                                    to="/feedback"
+                                    className="rounded-full border border-indigo-200 bg-indigo-50 px-4 py-2 text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100"
+                                >
+                                    Feedback
+                                </Link>
+                            </>
                         ) : null}
                         {canViewResults ? (
-                            <Link
-                                to="/survey-results"
-                                className="rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sky-700 transition hover:border-sky-300 hover:bg-sky-100"
-                            >
-                                Survey Results
-                            </Link>
+                            <>
+                                <Link
+                                    to="/survey-results"
+                                    className="rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sky-700 transition hover:border-sky-300 hover:bg-sky-100"
+                                >
+                                    Survey Results
+                                </Link>
+                                {canManageFeedback ? (
+                                    <Link
+                                        to="/feedback/manage"
+                                        className="rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-cyan-700 transition hover:border-cyan-300 hover:bg-cyan-100"
+                                    >
+                                        Student Feedback
+                                    </Link>
+                                ) : null}
+                            </>
                         ) : null}
                         {session?.role === "ADMIN" ? (
-                            <Link
-                                to="/admin/students/pending"
-                                className="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-amber-700 transition hover:border-amber-300 hover:bg-amber-100"
-                            >
-                                Pending Students
-                            </Link>
+                            <>
+                                <Link
+                                    to="/admin/users"
+                                    className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
+                                >
+                                    Users
+                                </Link>
+                                <Link
+                                    to="/admin/students/pending"
+                                    className="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-amber-700 transition hover:border-amber-300 hover:bg-amber-100"
+                                >
+                                    Pending Students
+                                </Link>
+                                <Link
+                                    to="/admin/surveys"
+                                    className="rounded-full border border-indigo-200 bg-indigo-50 px-4 py-2 text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100"
+                                >
+                                    Surveys
+                                </Link>
+                            </>
                         ) : null}
                     </div>
                 </div>

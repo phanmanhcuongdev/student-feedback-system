@@ -10,6 +10,19 @@ type LocationState = {
     notice?: string;
 };
 
+function getLoginErrorMessage(code: string, fallback: string): string {
+    switch (code) {
+        case "ACCOUNT_PENDING":
+            return "Your account is pending review and cannot sign in yet.";
+        case "ACCOUNT_REJECTED":
+            return "Your account was rejected. Contact an administrator for the next steps.";
+        case "ACCOUNT_INACTIVE":
+            return "Your account is inactive. Complete verification or contact an administrator.";
+        default:
+            return fallback;
+    }
+}
+
 export default function LoginPage() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -34,7 +47,7 @@ export default function LoginPage() {
             });
 
             if (!response.success) {
-                setError(response.message || "Login failed");
+                setError(getLoginErrorMessage(response.code, response.message || "Login failed"));
                 return;
             }
 
@@ -52,13 +65,22 @@ export default function LoginPage() {
             title="Welcome back"
             description="Sign in with your registered account to access the survey workspace."
             footer={
-                <p className="text-sm text-slate-500">
-                    New student?
-                    {" "}
-                    <Link className="font-semibold text-blue-700 hover:text-blue-800" to="/register">
-                        Create an account
-                    </Link>
-                </p>
+                <div className="space-y-2 text-sm text-slate-500">
+                    <p>
+                        New student?
+                        {" "}
+                        <Link className="font-semibold text-blue-700 hover:text-blue-800" to="/register">
+                            Create an account
+                        </Link>
+                    </p>
+                    <p>
+                        Forgot your password?
+                        {" "}
+                        <Link className="font-semibold text-blue-700 hover:text-blue-800" to="/forgot-password">
+                            Reset it here
+                        </Link>
+                    </p>
+                </div>
             }
         >
             <form className="space-y-5" onSubmit={handleSubmit}>

@@ -20,6 +20,11 @@ public class SurveyResponsePersistenceAdapter implements LoadSurveyResponsePort,
     }
 
     @Override
+    public long countBySurveyId(Integer surveyId) {
+        return surveyResponseRepository.countBySurvey_Id(surveyId);
+    }
+
+    @Override
     public SurveyResponse save(SurveyResponse surveyResponse) {
         SurveyResponseEntity savedEntity =
                 surveyResponseRepository.save(SurveyResponseMapper.toEntity(surveyResponse));

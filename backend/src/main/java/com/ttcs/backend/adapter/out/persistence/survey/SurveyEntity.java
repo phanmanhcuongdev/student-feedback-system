@@ -42,6 +42,9 @@ public class SurveyEntity {
     @Column(name = "end_date")
     private LocalDateTime endDate;
 
+    @Column(name = "hidden", nullable = false)
+    private boolean hidden;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private AdminEntity createdBy;

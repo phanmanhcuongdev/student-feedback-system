@@ -10,7 +10,7 @@ import java.util.Optional;
 
 @PersistenceAdapter
 @RequiredArgsConstructor
-public class SurveyPersistenceAdapter implements LoadSurveyPort {
+public class SurveyPersistenceAdapter implements LoadSurveyPort, com.ttcs.backend.application.port.out.SaveSurveyPort {
     private final SurveyRepository surveyRepository;
 
     @Override
@@ -25,5 +25,12 @@ public class SurveyPersistenceAdapter implements LoadSurveyPort {
                 .stream()
                 .map(SurveyMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public Survey save(Survey survey) {
+        SurveyEntity entity = SurveyMapper.toEntity(survey);
+        SurveyEntity saved = surveyRepository.save(entity);
+        return SurveyMapper.toDomain(saved);
     }
 }

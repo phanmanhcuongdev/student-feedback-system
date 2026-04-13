@@ -9,6 +9,29 @@ export type PendingStudent = {
     nationalIdImageUrl: string | null;
 };
 
+export type ManagedUserSummary = {
+    id: number;
+    email: string;
+    role: string;
+    name: string;
+    departmentName: string | null;
+    studentStatus: string | null;
+    active: boolean;
+};
+
+export type ManagedUserDetail = {
+    id: number;
+    email: string;
+    role: string;
+    active: boolean;
+    name: string;
+    departmentId: number | null;
+    departmentName: string | null;
+    studentCode: string | null;
+    teacherCode: string | null;
+    studentStatus: string | null;
+};
+
 export type AdminActionResponse = {
     success: boolean;
     code: string;
