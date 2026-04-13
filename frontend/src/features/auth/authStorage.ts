@@ -2,6 +2,14 @@ import type { AuthSession } from "../../types/auth";
 
 const AUTH_STORAGE_KEY = "student-feedback.auth-session";
 
+function isAllowedStudentSession(session: AuthSession): boolean {
+    if (session.role !== "STUDENT") {
+        return true;
+    }
+
+    return session.studentStatus === "ACTIVE" || session.studentStatus === "EMAIL_VERIFIED";
+}
+
 function decodeBase64Url(value: string): string | null {
     try {
         const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
@@ -44,7 +52,7 @@ export function readStoredSession(): AuthSession | null {
 
     try {
         const parsed = JSON.parse(raw) as AuthSession;
-        if (!parsed.accessToken || isTokenExpired(parsed.accessToken)) {
+        if (!parsed.accessToken || isTokenExpired(parsed.accessToken) || !isAllowedStudentSession(parsed)) {
             clearStoredSession();
             return null;
         }

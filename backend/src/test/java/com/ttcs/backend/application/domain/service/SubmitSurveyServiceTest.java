@@ -41,7 +41,7 @@ class SubmitSurveyServiceTest {
                 surveyPort(closedSurvey()),
                 studentPort(student()),
                 questionPort(List.of(ratingQuestion())),
-                (surveyId, studentId) -> false,
+                surveyResponsePort(false),
                 saveSurveyResponsePort,
                 saveResponseDetailPort
         );
@@ -66,7 +66,7 @@ class SubmitSurveyServiceTest {
                 surveyPort(openSurvey()),
                 studentPort(student()),
                 questionPort(List.of(ratingQuestion())),
-                (surveyId, studentId) -> false,
+                surveyResponsePort(false),
                 saveSurveyResponsePort,
                 saveResponseDetailPort
         );
@@ -91,7 +91,7 @@ class SubmitSurveyServiceTest {
                 surveyPort(openSurvey()),
                 studentPort(student()),
                 questionPort(List.of(ratingQuestion(), textQuestion())),
-                (surveyId, studentId) -> false,
+                surveyResponsePort(false),
                 saveSurveyResponsePort,
                 saveResponseDetailPort
         );
@@ -141,7 +141,8 @@ class SubmitSurveyServiceTest {
                 "Spring semester survey",
                 LocalDateTime.now().minusDays(1),
                 LocalDateTime.now().plusDays(1),
-                99
+                99,
+                false
         );
     }
 
@@ -152,8 +153,23 @@ class SubmitSurveyServiceTest {
                 "Spring semester survey",
                 LocalDateTime.now().minusDays(5),
                 LocalDateTime.now().minusDays(1),
-                99
+                99,
+                false
         );
+    }
+
+    private LoadSurveyResponsePort surveyResponsePort(boolean submitted) {
+        return new LoadSurveyResponsePort() {
+            @Override
+            public boolean existsBySurveyIdAndStudentId(Integer surveyId, Integer studentId) {
+                return submitted;
+            }
+
+            @Override
+            public long countBySurveyId(Integer surveyId) {
+                return 0;
+            }
+        };
     }
 
     private Student student() {

@@ -44,3 +44,21 @@ export type UploadDocumentsResponse = {
     code: string;
     message: string;
 };
+
+export type ForgotPasswordResponse = {
+    success: boolean;
+    code: string;
+    message: string;
+};
+
+export type ResetPasswordResponse = {
+    success: boolean;
+    code: string;
+    message: string;
+};
+
+export type ChangePasswordResponse = {
+    success: boolean;
+    code: string;
+    message: string;
+};

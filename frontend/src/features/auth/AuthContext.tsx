@@ -4,6 +4,14 @@ import type { AuthSession, LoginResponse } from "../../types/auth";
 import { clearStoredSession, readStoredSession, storeSession } from "./authStorage";
 import { AuthContext, type AuthContextValue, type LoginInput } from "./auth-context";
 
+function canPersistSession(role: string | null, studentStatus: string | null): boolean {
+    if (role !== "STUDENT") {
+        return true;
+    }
+
+    return studentStatus === "ACTIVE" || studentStatus === "EMAIL_VERIFIED";
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [session, setSession] = useState<AuthSession | null>(() => readStoredSession());
 
@@ -29,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             && response.userId !== null
             && response.role
             && response.accessToken
+            && canPersistSession(response.role, response.studentStatus)
         ) {
             const nextSession: AuthSession = {
                 userId: response.userId,

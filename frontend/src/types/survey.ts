@@ -19,4 +19,27 @@ export interface CreateSurveyData {
     startDate: string | null;
     endDate: string | null;
     questions: CreateQuestionData[];
+    recipientScope: "ALL_STUDENTS" | "DEPARTMENT";
+    recipientDepartmentId: number | null;
+}
+
+export interface ManagedSurveySummary {
+    id: number;
+    title: string;
+    description: string;
+    startDate: string | null;
+    endDate: string | null;
+    status: "OPEN" | "CLOSED" | "NOT_OPEN";
+    hidden: boolean;
+    recipientScope: "ALL_STUDENTS" | "DEPARTMENT";
+    recipientDepartmentId: number | null;
+    responseCount: number;
+}
+
+export interface ManagedSurveyDetail extends ManagedSurveySummary {
+    questions: Array<{
+        id: number;
+        content: string;
+        type: "RATING" | "TEXT";
+    }>;
 }

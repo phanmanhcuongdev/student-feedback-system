@@ -15,6 +15,7 @@ public class Survey {
     private final LocalDateTime startDate;
     private final LocalDateTime endDate;
     private final Integer createdBy;
+    private final boolean hidden;
 
     public boolean isNotStarted() {
         return status() == SurveyStatus.NOT_OPEN;

@@ -28,4 +28,10 @@ public class QuestionPersistenceAdapter implements LoadQuestionPort, com.ttcs.ba
                 .toList();
         questionRepository.saveAll(entities);
     }
+
+    @Override
+    public void replaceSurveyQuestions(Integer surveyId, List<Question> questions) {
+        questionRepository.deleteBySurvey_Id(surveyId);
+        saveAll(questions);
+    }
 }
