@@ -17,6 +17,23 @@ function formatDate(date: string | null) {
     }).format(new Date(date));
 }
 
+function formatRate(value: number) {
+    return `${value.toFixed(1)}%`;
+}
+
+function lifecycleTone(state: ManagedSurveySummary["lifecycleState"]) {
+    switch (state) {
+        case "DRAFT":
+            return "border-slate-200 bg-slate-100 text-slate-700";
+        case "PUBLISHED":
+            return "border-emerald-200 bg-emerald-50 text-emerald-700";
+        case "CLOSED":
+            return "border-amber-200 bg-amber-50 text-amber-700";
+        case "ARCHIVED":
+            return "border-indigo-200 bg-indigo-50 text-indigo-700";
+    }
+}
+
 export default function AdminSurveysPage() {
     const [surveys, setSurveys] = useState<ManagedSurveySummary[]>([]);
     const [loading, setLoading] = useState(true);
@@ -52,7 +69,8 @@ export default function AdminSurveysPage() {
                                 Survey management
                             </h1>
                             <p className="mt-4 text-base leading-7 text-slate-500">
-                                Review survey status, recipients, visibility, and open each survey for edits or manual close.
+                                Manage surveys as governed campaign records instead of raw forms: draft them, publish them,
+                                close them, and archive them intentionally.
                             </p>
                         </div>
                         <Link
@@ -81,8 +99,11 @@ export default function AdminSurveysPage() {
                                     <div className="mb-5 flex items-start justify-between gap-4">
                                         <div>
                                             <div className="flex flex-wrap items-center gap-2">
+                                                <span className={`rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${lifecycleTone(survey.lifecycleState)}`}>
+                                                    {survey.lifecycleState}
+                                                </span>
                                                 <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700">
-                                                    {survey.status}
+                                                    {survey.runtimeStatus}
                                                 </span>
                                                 <span className={`rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${survey.hidden ? "border-slate-200 bg-slate-100 text-slate-600" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
                                                     {survey.hidden ? "Hidden" : "Visible"}
@@ -106,8 +127,20 @@ export default function AdminSurveysPage() {
                                             </span>
                                         </div>
                                         <div className="flex items-center justify-between gap-4">
-                                            <span className="font-semibold text-slate-500">Responses</span>
-                                            <span className="font-medium text-slate-900">{survey.responseCount}</span>
+                                            <span className="font-semibold text-slate-500">Targeted</span>
+                                            <span className="font-medium text-slate-900">{survey.targetedCount}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <span className="font-semibold text-slate-500">Opened</span>
+                                            <span className="font-medium text-slate-900">{survey.openedCount}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <span className="font-semibold text-slate-500">Submitted</span>
+                                            <span className="font-medium text-slate-900">{survey.submittedCount}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <span className="font-semibold text-slate-500">Response rate</span>
+                                            <span className="font-medium text-slate-900">{formatRate(survey.responseRate)}</span>
                                         </div>
                                         <div className="flex items-center justify-between gap-4">
                                             <span className="font-semibold text-slate-500">Window</span>

@@ -128,6 +128,28 @@ CREATE TABLE [dbo].[Feedback_Response](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
     ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
     GO
+/****** Object:  Table [dbo].[Audit_Log]    Script Date: 4/14/2026 6:00:00 PM ******/
+    SET ANSI_NULLS ON
+    GO
+    SET QUOTED_IDENTIFIER ON
+    GO
+CREATE TABLE [dbo].[Audit_Log](
+    [audit_id] [int] IDENTITY(1,1) NOT NULL,
+    [actor_user_id] [int] NOT NULL,
+    [action_type] [nvarchar](50) NOT NULL,
+    [target_type] [nvarchar](30) NOT NULL,
+    [target_id] [int] NOT NULL,
+    [summary] [nvarchar](255) NOT NULL,
+    [details] [nvarchar](max) NULL,
+    [old_state] [nvarchar](255) NULL,
+    [new_state] [nvarchar](255) NULL,
+    [created_at] [datetime] NOT NULL,
+    CONSTRAINT [PK_Audit_Log] PRIMARY KEY CLUSTERED
+(
+[audit_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+    ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+    GO
 /****** Object:  Table [dbo].[Student]    Script Date: 4/13/2026 11:08:43 AM ******/
     SET ANSI_NULLS ON
     GO
@@ -203,6 +225,7 @@ CREATE TABLE [dbo].[Survey](
     [description] [nvarchar](max) NULL,
     [start_date] [datetime] NULL,
     [end_date] [datetime] NULL,
+    [lifecycle_state] [nvarchar](20) NOT NULL,
     [hidden] [bit] NOT NULL,
     [created_by] [int] NOT NULL,
     PRIMARY KEY CLUSTERED
@@ -226,6 +249,29 @@ CREATE TABLE [dbo].[Survey_Assignment](
     CONSTRAINT [PK_SurveyAssignment] PRIMARY KEY CLUSTERED
 (
 [id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+    ) ON [PRIMARY]
+    GO
+/****** Object:  Table [dbo].[Survey_Recipient]    Script Date: 4/14/2026 4:03:00 PM ******/
+    SET ANSI_NULLS ON
+    GO
+    SET QUOTED_IDENTIFIER ON
+    GO
+CREATE TABLE [dbo].[Survey_Recipient](
+    [recipient_id] [int] IDENTITY(1,1) NOT NULL,
+    [survey_id] [int] NOT NULL,
+    [student_id] [int] NOT NULL,
+    [assigned_at] [datetime] NOT NULL,
+    [opened_at] [datetime] NULL,
+    [submitted_at] [datetime] NULL,
+    CONSTRAINT [PK_Survey_Recipient] PRIMARY KEY CLUSTERED
+(
+[recipient_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+    CONSTRAINT [UQ_SurveyRecipient_SurveyStudent] UNIQUE NONCLUSTERED
+(
+[survey_id] ASC,
+[student_id] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
     ) ON [PRIMARY]
     GO
@@ -295,10 +341,21 @@ ALTER TABLE [dbo].[student_token] ADD  DEFAULT (getdate()) FOR [created_at]
     GO
 ALTER TABLE [dbo].[student_token] ADD  DEFAULT ((0)) FOR [delete_flg]
     GO
+ALTER TABLE [dbo].[Audit_Log] ADD  DEFAULT (getdate()) FOR [created_at]
+    GO
 ALTER TABLE [dbo].[Survey] ADD DEFAULT ((0)) FOR [hidden]
+    GO
+ALTER TABLE [dbo].[Survey] ADD DEFAULT ('DRAFT') FOR [lifecycle_state]
+    GO
+ALTER TABLE [dbo].[Survey_Recipient] ADD DEFAULT (getdate()) FOR [assigned_at]
     GO
 ALTER TABLE [dbo].[Admin]  WITH CHECK ADD FOREIGN KEY([user_id])
     REFERENCES [dbo].[User] ([user_id])
+    GO
+ALTER TABLE [dbo].[Audit_Log]  WITH CHECK ADD  CONSTRAINT [FK_AuditLog_ActorUser] FOREIGN KEY([actor_user_id])
+    REFERENCES [dbo].[User] ([user_id])
+    GO
+ALTER TABLE [dbo].[Audit_Log] CHECK CONSTRAINT [FK_AuditLog_ActorUser]
     GO
 ALTER TABLE [dbo].[Notification_User]  WITH CHECK ADD FOREIGN KEY([noti_id])
     REFERENCES [dbo].[Notification] ([noti_id])
@@ -349,6 +406,12 @@ ALTER TABLE [dbo].[Survey]  WITH CHECK ADD FOREIGN KEY([created_by])
 ALTER TABLE [dbo].[Survey_Assignment]  WITH CHECK ADD FOREIGN KEY([survey_id])
     REFERENCES [dbo].[Survey] ([survey_id])
     GO
+ALTER TABLE [dbo].[Survey_Recipient]  WITH CHECK ADD FOREIGN KEY([student_id])
+    REFERENCES [dbo].[Student] ([user_id])
+    GO
+ALTER TABLE [dbo].[Survey_Recipient]  WITH CHECK ADD FOREIGN KEY([survey_id])
+    REFERENCES [dbo].[Survey] ([survey_id])
+    GO
 ALTER TABLE [dbo].[Survey_Response]  WITH CHECK ADD FOREIGN KEY([student_id])
     REFERENCES [dbo].[Student] ([user_id])
     GO
@@ -379,6 +442,10 @@ ALTER TABLE [dbo].[Student] CHECK CONSTRAINT [CHK_Student_Status]
 ALTER TABLE [dbo].[Survey_Response]  WITH CHECK ADD  CONSTRAINT [CK_Response_StudentOrTeacher] CHECK  (([student_id] IS NOT NULL AND [teacher_id] IS NULL OR [student_id] IS NULL AND [teacher_id] IS NOT NULL))
     GO
 ALTER TABLE [dbo].[Survey_Response] CHECK CONSTRAINT [CK_Response_StudentOrTeacher]
+    GO
+ALTER TABLE [dbo].[Survey]  WITH CHECK ADD  CONSTRAINT [CHK_Survey_LifecycleState] CHECK  (([lifecycle_state]='ARCHIVED' OR [lifecycle_state]='CLOSED' OR [lifecycle_state]='PUBLISHED' OR [lifecycle_state]='DRAFT'))
+    GO
+ALTER TABLE [dbo].[Survey] CHECK CONSTRAINT [CHK_Survey_LifecycleState]
     GO
 ALTER TABLE [dbo].[User]  WITH CHECK ADD CHECK  (([role]='TEACHER' OR [role]='STUDENT' OR [role]='ADMIN'))
     GO

@@ -4,6 +4,7 @@ import { getApiErrorMessage } from "../../../api/apiError";
 import { getSurveyResults } from "../../../api/surveyResultApi";
 import MainFooter from "../../../components/layout/MainFooter";
 import MainHeader from "../../../components/layout/MainHeader";
+import { useAuth } from "../../auth/useAuth";
 import type { SurveyResultSummary } from "../../../types/surveyResult";
 
 function formatDateRange(startDate: string, endDate: string) {
@@ -16,7 +17,12 @@ function formatDateRange(startDate: string, endDate: string) {
     return `${formatter.format(new Date(startDate))} - ${formatter.format(new Date(endDate))}`;
 }
 
+function formatRate(value: number) {
+    return `${value.toFixed(1)}%`;
+}
+
 export default function SurveyResultsPage() {
+    const { session } = useAuth();
     const [surveys, setSurveys] = useState<SurveyResultSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -52,7 +58,7 @@ export default function SurveyResultsPage() {
                                 Survey statistics
                             </h1>
                             <p className="mt-4 text-base leading-7 text-slate-500">
-                                Review response volume, rating distributions, and qualitative comments for completed survey runs.
+                                Review denominator-based participation, response volume, and question-level feedback for survey runs.
                             </p>
                         </div>
 
@@ -78,7 +84,9 @@ export default function SurveyResultsPage() {
                             </div>
                             <h2 className="text-2xl font-bold text-slate-900">No survey results yet</h2>
                             <p className="mt-3 text-sm text-slate-500">
-                                Results will appear here after surveys start receiving student responses.
+                                {session?.role === "TEACHER"
+                                    ? "No survey results are currently visible within your department scope."
+                                    : "Results will appear here after surveys start receiving student responses."}
                             </p>
                         </div>
                     ) : (
@@ -105,8 +113,20 @@ export default function SurveyResultsPage() {
 
                                     <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                                         <div className="flex items-center justify-between gap-4">
-                                            <span className="font-semibold text-slate-500">Response count</span>
+                                            <span className="font-semibold text-slate-500">Targeted</span>
+                                            <span className="text-right text-lg font-bold text-slate-900">{survey.targetedCount}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <span className="font-semibold text-slate-500">Opened</span>
+                                            <span className="text-right font-medium text-slate-900">{survey.openedCount}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <span className="font-semibold text-slate-500">Submitted</span>
                                             <span className="text-right text-lg font-bold text-slate-900">{survey.responseCount}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <span className="font-semibold text-slate-500">Response rate</span>
+                                            <span className="text-right font-medium text-slate-900">{formatRate(survey.responseRate)}</span>
                                         </div>
                                         <div className="flex items-center justify-between gap-4">
                                             <span className="font-semibold text-slate-500">Window</span>

@@ -1,5 +1,5 @@
 package com.ttcs.backend.application.port.in.admin;
 
 public interface SetSurveyHiddenUseCase {
-    SurveyManagementActionResult setHidden(Integer surveyId, boolean hidden);
+    SurveyManagementActionResult setHidden(Integer surveyId, boolean hidden, Integer actorUserId);
 }

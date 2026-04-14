@@ -11,6 +11,10 @@ public record SurveyResultDetailResult(
         LocalDateTime endDate,
         String status,
         Long responseCount,
+        Long targetedCount,
+        Long openedCount,
+        Long submittedCount,
+        Double responseRate,
         List<QuestionStatisticsResult> questions
 ) {
 }

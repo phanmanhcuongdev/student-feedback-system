@@ -45,7 +45,7 @@ export default function LecturerDashboardPage() {
                             Results overview
                         </h1>
                         <p className="mt-4 text-base leading-7 text-slate-500">
-                            Review survey activity and jump directly into the most active result sets.
+                            Review survey activity that is visible within your department scope and jump directly into the most active result sets.
                         </p>
                     </div>
 

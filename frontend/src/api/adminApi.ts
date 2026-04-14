@@ -7,7 +7,7 @@ import type {
     PendingStudent,
     RejectStudentRequest,
 } from "../types/admin";
-import type { CreateSurveyData, ManagedSurveyDetail, ManagedSurveySummary } from "../types/survey";
+import type { CreateSurveyData, CreateSurveyResponse, ManagedSurveyDetail, ManagedSurveySummary } from "../types/survey";
 
 export async function getPendingStudents(): Promise<PendingStudent[]> {
     const response = await axios.get<PendingStudent[]>("/admin/students/pending");
@@ -30,8 +30,8 @@ export async function rejectStudent(
     return response.data;
 }
 
-export async function createSurvey(data: CreateSurveyData): Promise<AdminActionResponse> {
-    const response = await axios.post<AdminActionResponse>("/admin/surveys", data);
+export async function createSurvey(data: CreateSurveyData): Promise<CreateSurveyResponse> {
+    const response = await axios.post<CreateSurveyResponse>("/admin/surveys", data);
     return response.data;
 }
 
@@ -52,6 +52,16 @@ export async function updateSurvey(surveyId: number, data: CreateSurveyData): Pr
 
 export async function closeSurvey(surveyId: number): Promise<AdminActionResponse> {
     const response = await axios.post<AdminActionResponse>(`/admin/surveys/${surveyId}/close`);
+    return response.data;
+}
+
+export async function publishSurvey(surveyId: number): Promise<AdminActionResponse> {
+    const response = await axios.post<AdminActionResponse>(`/admin/surveys/${surveyId}/publish`);
+    return response.data;
+}
+
+export async function archiveSurvey(surveyId: number): Promise<AdminActionResponse> {
+    const response = await axios.post<AdminActionResponse>(`/admin/surveys/${surveyId}/archive`);
     return response.data;
 }
 

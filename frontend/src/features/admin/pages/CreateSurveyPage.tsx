@@ -1,13 +1,22 @@
 import { type ReactNode, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { closeSurvey, createSurvey, getManagedSurvey, setSurveyVisibility, updateSurvey } from "../../../api/adminApi";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+    archiveSurvey,
+    closeSurvey,
+    createSurvey,
+    getManagedSurvey,
+    publishSurvey,
+    setSurveyVisibility,
+    updateSurvey,
+} from "../../../api/adminApi";
 import { getApiErrorMessage } from "../../../api/apiError";
 import MainFooter from "../../../components/layout/MainFooter";
 import MainHeader from "../../../components/layout/MainHeader";
-import type { CreateQuestionData, CreateSurveyData } from "../../../types/survey";
+import type { CreateQuestionData, CreateSurveyData, SurveyLifecycleState, SurveyRuntimeStatus } from "../../../types/survey";
 
 export default function CreateSurveyPage() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { id } = useParams();
     const surveyId = id ? Number(id) : null;
     const isEditMode = Number.isFinite(surveyId);
@@ -26,8 +35,44 @@ export default function CreateSurveyPage() {
     const [recipientScope, setRecipientScope] = useState<"ALL_STUDENTS" | "DEPARTMENT">("ALL_STUDENTS");
     const [recipientDepartmentId, setRecipientDepartmentId] = useState("");
     const [hidden, setHidden] = useState(false);
-    const [status, setStatus] = useState<string | null>(null);
+    const [lifecycleState, setLifecycleState] = useState<SurveyLifecycleState | null>(null);
+    const [runtimeStatus, setRuntimeStatus] = useState<SurveyRuntimeStatus | null>(null);
     const [responseCount, setResponseCount] = useState(0);
+    const [targetedCount, setTargetedCount] = useState(0);
+    const [openedCount, setOpenedCount] = useState(0);
+    const [responseRate, setResponseRate] = useState(0);
+    const [pendingRecipients, setPendingRecipients] = useState<Array<{
+        studentId: number;
+        studentName: string;
+        studentCode: string;
+        departmentName: string | null;
+        participationStatus: "ASSIGNED" | "OPENED" | "SUBMITTED";
+        openedAt: string | null;
+        submittedAt: string | null;
+    }>>([]);
+
+    const isDraft = lifecycleState === "DRAFT";
+    const isPublished = lifecycleState === "PUBLISHED";
+    const isClosed = lifecycleState === "CLOSED";
+    const formLocked = isEditMode && !isDraft;
+    let lifecycleHelp = "Archived surveys are read-only historical records in this phase.";
+    if (!isEditMode) {
+        lifecycleHelp = "New surveys are saved as drafts first. Publish only when dates, questions, and assignments are ready.";
+    } else if (isDraft) {
+        lifecycleHelp = "Draft surveys can still be edited. Publish when the survey is ready to become visible by schedule.";
+    } else if (isPublished) {
+        lifecycleHelp = "Published surveys follow the configured schedule. Only visibility and closure actions remain available.";
+    } else if (isClosed) {
+        lifecycleHelp = "Closed surveys are locked for editing and can now be archived for record-keeping.";
+    }
+
+    useEffect(() => {
+        const navigationState = location.state as { feedback?: string } | null;
+        if (navigationState?.feedback) {
+            setFeedback(navigationState.feedback);
+            navigate(location.pathname, { replace: true, state: null });
+        }
+    }, [location.pathname, location.state, navigate]);
 
     useEffect(() => {
         async function loadSurvey() {
@@ -50,8 +95,13 @@ export default function CreateSurveyPage() {
                 setRecipientScope(survey.recipientScope);
                 setRecipientDepartmentId(survey.recipientDepartmentId != null ? String(survey.recipientDepartmentId) : "");
                 setHidden(survey.hidden);
-                setStatus(survey.status);
+                setLifecycleState(survey.lifecycleState);
+                setRuntimeStatus(survey.runtimeStatus);
                 setResponseCount(survey.responseCount);
+                setTargetedCount(survey.targetedCount);
+                setOpenedCount(survey.openedCount);
+                setResponseRate(survey.responseRate);
+                setPendingRecipients(survey.pendingRecipients);
             } catch (requestError) {
                 setError(getApiErrorMessage(requestError, "Unable to load survey."));
             } finally {
@@ -113,24 +163,57 @@ export default function CreateSurveyPage() {
 
         try {
             setLoading(true);
-            const response = isEditMode && surveyId
-                ? await updateSurvey(surveyId, payload)
-                : await createSurvey(payload);
-
-            if (!response.success) {
-                setError(response.message || "Unable to save survey.");
-                return;
-            }
-
-            if (isEditMode) {
+            if (isEditMode && surveyId) {
+                const response = await updateSurvey(surveyId, payload);
+                if (!response.success) {
+                    setError(response.message || "Unable to save survey.");
+                    return;
+                }
                 setFeedback(response.message);
             } else {
-                navigate("/admin/surveys");
+                const response = await createSurvey(payload);
+                if (!response.success) {
+                    setError(response.message || "Unable to save survey.");
+                    return;
+                }
+                navigate(`/admin/surveys/${response.surveyId}/edit`, {
+                    state: { feedback: "Survey draft created. Review it and publish when ready." },
+                });
             }
         } catch (requestError) {
             setError(getApiErrorMessage(requestError, "Unable to save survey."));
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function handlePublishSurvey() {
+        if (!surveyId) {
+            return;
+        }
+
+        try {
+            setToggling(true);
+            setError("");
+            setFeedback("");
+            const response = await publishSurvey(surveyId);
+            if (!response.success) {
+                setError(response.message || "Unable to publish survey.");
+                return;
+            }
+            const survey = await getManagedSurvey(surveyId);
+            setLifecycleState(survey.lifecycleState);
+            setRuntimeStatus(survey.runtimeStatus);
+            setTargetedCount(survey.targetedCount);
+            setOpenedCount(survey.openedCount);
+            setResponseCount(survey.responseCount);
+            setResponseRate(survey.responseRate);
+            setPendingRecipients(survey.pendingRecipients);
+            setFeedback(response.message);
+        } catch (requestError) {
+            setError(getApiErrorMessage(requestError, "Unable to publish survey."));
+        } finally {
+            setToggling(false);
         }
     }
 
@@ -149,10 +232,35 @@ export default function CreateSurveyPage() {
                 return;
             }
             setFeedback(response.message);
-            setStatus("CLOSED");
+            setLifecycleState("CLOSED");
+            setRuntimeStatus("CLOSED");
             setEndDate(toDateTimeLocal(new Date().toISOString()));
         } catch (requestError) {
             setError(getApiErrorMessage(requestError, "Unable to close survey."));
+        } finally {
+            setToggling(false);
+        }
+    }
+
+    async function handleArchiveSurvey() {
+        if (!surveyId) {
+            return;
+        }
+
+        try {
+            setToggling(true);
+            setError("");
+            setFeedback("");
+            const response = await archiveSurvey(surveyId);
+            if (!response.success) {
+                setError(response.message || "Unable to archive survey.");
+                return;
+            }
+            setLifecycleState("ARCHIVED");
+            setRuntimeStatus("CLOSED");
+            setFeedback(response.message);
+        } catch (requestError) {
+            setError(getApiErrorMessage(requestError, "Unable to archive survey."));
         } finally {
             setToggling(false);
         }
@@ -197,8 +305,8 @@ export default function CreateSurveyPage() {
                             </h1>
                             <p className="mt-4 text-base leading-7 text-slate-500">
                                 {isEditMode
-                                    ? "Update survey details, manage visibility, and keep recipient rules simple."
-                                    : "Design a new feedback survey, attach questions, define availability dates, and choose the initial recipients."}
+                                    ? "Manage explicit survey lifecycle steps instead of relying on dates alone."
+                                    : "Design a new feedback survey, save it as a draft, then publish it intentionally."}
                             </p>
                         </div>
                         <Link
@@ -230,16 +338,32 @@ export default function CreateSurveyPage() {
                             {isEditMode ? (
                                 <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
                                     <div className="grid gap-4 md:grid-cols-3">
-                                        <InfoTile label="Status" value={status || "Unknown"} />
-                                        <InfoTile label="Responses" value={String(responseCount)} />
-                                        <InfoTile label="Visibility" value={hidden ? "Hidden" : "Visible"} />
+                                        <InfoTile label="Lifecycle" value={lifecycleState || "Unknown"} />
+                                        <InfoTile label="Runtime" value={runtimeStatus || "Unknown"} />
+                                        <InfoTile label="Submitted" value={String(responseCount)} />
                                     </div>
+                                    <div className="mt-4 grid gap-4 md:grid-cols-4">
+                                        <InfoTile label="Visibility" value={hidden ? "Hidden" : "Visible"} />
+                                        <InfoTile label="Targeted" value={String(targetedCount)} />
+                                        <InfoTile label="Opened" value={String(openedCount)} />
+                                        <InfoTile label="Response Rate" value={`${responseRate.toFixed(1)}%`} />
+                                    </div>
+                                    <p className="mt-5 text-sm leading-6 text-slate-500">{lifecycleHelp}</p>
 
                                     <div className="mt-5 flex flex-col gap-3 md:flex-row">
                                         <button
                                             type="button"
+                                            onClick={handlePublishSurvey}
+                                            disabled={toggling || !isDraft}
+                                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            <span>{toggling ? "Updating..." : "Publish survey"}</span>
+                                            <span className="material-symbols-outlined text-[18px]">publish</span>
+                                        </button>
+                                        <button
+                                            type="button"
                                             onClick={handleCloseSurvey}
-                                            disabled={toggling || status === "CLOSED"}
+                                            disabled={toggling || !isPublished}
                                             className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             <span>{toggling ? "Updating..." : "Close survey"}</span>
@@ -247,8 +371,17 @@ export default function CreateSurveyPage() {
                                         </button>
                                         <button
                                             type="button"
+                                            onClick={handleArchiveSurvey}
+                                            disabled={toggling || !isClosed}
+                                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            <span>{toggling ? "Updating..." : "Archive survey"}</span>
+                                            <span className="material-symbols-outlined text-[18px]">inventory_2</span>
+                                        </button>
+                                        <button
+                                            type="button"
                                             onClick={handleToggleVisibility}
-                                            disabled={toggling}
+                                            disabled={toggling || (!isPublished && !isClosed)}
                                             className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             <span>{toggling ? "Updating..." : hidden ? "Show survey" : "Hide survey"}</span>
@@ -268,6 +401,7 @@ export default function CreateSurveyPage() {
                                             type="text"
                                             value={title}
                                             onChange={(event) => setTitle(event.target.value)}
+                                            disabled={formLocked}
                                             className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
                                         />
                                     </Field>
@@ -277,6 +411,7 @@ export default function CreateSurveyPage() {
                                             value={description}
                                             onChange={(event) => setDescription(event.target.value)}
                                             rows={3}
+                                            disabled={formLocked}
                                             className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
                                         />
                                     </Field>
@@ -287,6 +422,7 @@ export default function CreateSurveyPage() {
                                                 type="datetime-local"
                                                 value={startDate}
                                                 onChange={(event) => setStartDate(event.target.value)}
+                                                disabled={formLocked}
                                                 className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
                                             />
                                         </Field>
@@ -295,11 +431,17 @@ export default function CreateSurveyPage() {
                                                 type="datetime-local"
                                                 value={endDate}
                                                 onChange={(event) => setEndDate(event.target.value)}
+                                                disabled={formLocked}
                                                 className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
                                             />
                                         </Field>
                                     </div>
                                 </div>
+                                {formLocked ? (
+                                    <p className="mt-4 text-sm font-medium text-amber-700">
+                                        Survey details are locked after publication. Close or archive from the lifecycle actions above.
+                                    </p>
+                                ) : null}
                             </div>
 
                             <div className="rounded-[28px] border border-slate-200 bg-white p-6 md:p-8 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
@@ -312,7 +454,7 @@ export default function CreateSurveyPage() {
                                             value={recipientScope}
                                             onChange={(event) => setRecipientScope(event.target.value as "ALL_STUDENTS" | "DEPARTMENT")}
                                             className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-                                            disabled={responseCount > 0}
+                                            disabled={responseCount > 0 || formLocked}
                                         >
                                             <option value="ALL_STUDENTS">All students</option>
                                             <option value="DEPARTMENT">Department only</option>
@@ -325,14 +467,14 @@ export default function CreateSurveyPage() {
                                             value={recipientDepartmentId}
                                             onChange={(event) => setRecipientDepartmentId(event.target.value)}
                                             className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-                                            disabled={recipientScope !== "DEPARTMENT" || responseCount > 0}
+                                            disabled={recipientScope !== "DEPARTMENT" || responseCount > 0 || formLocked}
                                             placeholder="Required for department scope"
                                         />
                                     </Field>
                                 </div>
-                                {responseCount > 0 ? (
+                                {responseCount > 0 || formLocked ? (
                                     <p className="mt-4 text-sm font-medium text-amber-700">
-                                        Recipient settings are locked after responses exist.
+                                        Recipient settings are locked after publication or once responses exist.
                                     </p>
                                 ) : null}
                             </div>
@@ -346,7 +488,7 @@ export default function CreateSurveyPage() {
                                     <button
                                         type="button"
                                         onClick={addQuestion}
-                                        disabled={responseCount > 0}
+                                        disabled={responseCount > 0 || formLocked}
                                         className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         <span className="material-symbols-outlined text-[18px]">add</span>
@@ -371,7 +513,7 @@ export default function CreateSurveyPage() {
                                                             type="text"
                                                             value={question.content}
                                                             onChange={(event) => updateQuestion(index, "content", event.target.value)}
-                                                            disabled={responseCount > 0}
+                                                            disabled={responseCount > 0 || formLocked}
                                                             className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                                                         />
                                                     </div>
@@ -381,8 +523,8 @@ export default function CreateSurveyPage() {
                                                         </label>
                                                         <select
                                                             value={question.type}
-                                                            onChange={(event) => updateQuestion(index, "type", event.target.value)}
-                                                            disabled={responseCount > 0}
+                                                            onChange={(event) => updateQuestion(index, "type", event.target.value as CreateQuestionData["type"])}
+                                                            disabled={responseCount > 0 || formLocked}
                                                             className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                                                         >
                                                             <option value="RATING">Rating (1-5)</option>
@@ -393,7 +535,7 @@ export default function CreateSurveyPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => removeQuestion(index)}
-                                                    disabled={responseCount > 0}
+                                                    disabled={responseCount > 0 || formLocked}
                                                     className="absolute right-4 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-red-50 text-red-500 transition hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
                                                 >
                                                     <span className="material-symbols-outlined text-[20px]">delete</span>
@@ -402,21 +544,66 @@ export default function CreateSurveyPage() {
                                         ))}
                                     </div>
                                 )}
-                                {responseCount > 0 ? (
+                                {responseCount > 0 || formLocked ? (
                                     <p className="mt-4 text-sm font-medium text-amber-700">
-                                        Questions are locked after responses exist.
+                                        Questions are locked after publication or once responses exist.
                                     </p>
                                 ) : null}
                             </div>
 
+                            {isEditMode ? (
+                                <section className="rounded-[28px] border border-slate-200 bg-white p-6 md:p-8 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
+                                    <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                                        <div>
+                                            <h2 className="text-xl font-bold text-slate-900">Pending recipients</h2>
+                                            <p className="mt-1 text-sm text-slate-500">
+                                                Students assigned to this survey who have not submitted yet.
+                                            </p>
+                                        </div>
+                                        <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-600">
+                                            {pendingRecipients.length} pending
+                                        </div>
+                                    </div>
+
+                                    {pendingRecipients.length === 0 ? (
+                                        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">
+                                            No pending recipients yet.
+                                        </div>
+                                    ) : (
+                                        <div className="grid gap-3">
+                                            {pendingRecipients.map((recipient) => (
+                                                <div
+                                                    key={recipient.studentId}
+                                                    className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[minmax(0,1fr)_140px_180px]"
+                                                >
+                                                    <div>
+                                                        <p className="text-base font-bold text-slate-900">{recipient.studentName}</p>
+                                                        <p className="mt-1 text-sm text-slate-500">
+                                                            {recipient.studentCode}
+                                                            {recipient.departmentName ? ` | ${recipient.departmentName}` : ""}
+                                                        </p>
+                                                    </div>
+                                                    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-center text-xs font-bold uppercase tracking-[0.18em] text-slate-600">
+                                                        {recipient.participationStatus}
+                                                    </div>
+                                                    <div className="text-sm text-slate-500">
+                                                        First opened: {formatDateTime(recipient.openedAt)}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </section>
+                            ) : null}
+
                             <div className="flex justify-end pt-2">
                                 <button
                                     type="submit"
-                                    disabled={loading}
+                                    disabled={loading || formLocked}
                                     className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#4f46e5_0%,#3b82f6_100%)] px-8 py-4 text-base font-bold text-white shadow-[0_16px_36px_rgba(79,70,229,0.22)] transition hover:translate-y-[-1px] hover:shadow-[0_18px_40px_rgba(79,70,229,0.28)] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none md:w-auto"
                                 >
-                                    <span>{loading ? "Saving..." : isEditMode ? "Save changes" : "Launch survey"}</span>
-                                    <span className="material-symbols-outlined text-[20px]">{isEditMode ? "save" : "rocket_launch"}</span>
+                                    <span>{loading ? "Saving..." : isEditMode ? "Save draft changes" : "Create draft"}</span>
+                                    <span className="material-symbols-outlined text-[20px]">{isEditMode ? "save" : "draft"}</span>
                                 </button>
                             </div>
                         </form>
@@ -433,6 +620,19 @@ function toDateTimeLocal(value: string) {
     const offset = date.getTimezoneOffset();
     const local = new Date(date.getTime() - offset * 60000);
     return local.toISOString().slice(0, 16);
+}
+
+function formatDateTime(value: string | null) {
+    if (!value) {
+        return "Not yet";
+    }
+    return new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    }).format(new Date(value));
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {

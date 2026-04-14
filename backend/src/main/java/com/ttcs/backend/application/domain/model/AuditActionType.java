@@ -1,0 +1,13 @@
+package com.ttcs.backend.application.domain.model;
+
+public enum AuditActionType {
+    ONBOARDING_APPROVED,
+    ONBOARDING_REJECTED,
+    SURVEY_PUBLISHED,
+    SURVEY_CLOSED,
+    SURVEY_ARCHIVED,
+    SURVEY_VISIBILITY_CHANGED,
+    USER_PROFILE_UPDATED,
+    USER_ACTIVATED,
+    USER_DEACTIVATED
+}

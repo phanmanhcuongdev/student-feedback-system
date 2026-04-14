@@ -54,6 +54,7 @@ public class AdminUserController {
         UserManagementActionResult result = updateUserUseCase.updateUser(
                 new UpdateUserCommand(
                         userId,
+                        currentStudentProvider.currentUserId(),
                         request.getEmail(),
                         request.getName(),
                         request.getDepartmentId(),

@@ -8,10 +8,15 @@ public record SurveyManagementSummaryResponse(
         String description,
         LocalDateTime startDate,
         LocalDateTime endDate,
-        String status,
+        String lifecycleState,
+        String runtimeStatus,
         boolean hidden,
         String recipientScope,
         Integer recipientDepartmentId,
-        long responseCount
+        long responseCount,
+        long targetedCount,
+        long openedCount,
+        long submittedCount,
+        double responseRate
 ) {
 }

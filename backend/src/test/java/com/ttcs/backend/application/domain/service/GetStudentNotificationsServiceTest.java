@@ -1,9 +1,11 @@
 package com.ttcs.backend.application.domain.service;
 
 import com.ttcs.backend.application.domain.model.Survey;
+import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
+import com.ttcs.backend.application.domain.model.SurveyRecipient;
 import com.ttcs.backend.application.port.in.resultview.StudentNotificationResult;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
-import com.ttcs.backend.application.port.out.LoadSurveyResponsePort;
+import com.ttcs.backend.application.port.out.LoadSurveyRecipientPort;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -24,11 +26,12 @@ class GetStudentNotificationsServiceTest {
                 LocalDateTime.now().minusDays(1),
                 LocalDateTime.now().plusHours(12),
                 1,
-                false
+                false,
+                SurveyLifecycleState.PUBLISHED
         );
         GetStudentNotificationsService service = new GetStudentNotificationsService(
                 surveyPort(List.of(survey)),
-                surveyResponsePort(false)
+                recipientPort(new SurveyRecipient(1, 1, 10, LocalDateTime.now().minusDays(1), null, null))
         );
 
         List<StudentNotificationResult> results = service.getNotifications(10);
@@ -47,11 +50,12 @@ class GetStudentNotificationsServiceTest {
                 LocalDateTime.now().minusDays(1),
                 LocalDateTime.now().plusHours(12),
                 1,
-                false
+                false,
+                SurveyLifecycleState.PUBLISHED
         );
         GetStudentNotificationsService service = new GetStudentNotificationsService(
                 surveyPort(List.of(survey)),
-                surveyResponsePort(true)
+                recipientPort(new SurveyRecipient(1, 1, 10, LocalDateTime.now().minusDays(1), LocalDateTime.now().minusHours(6), LocalDateTime.now().minusHours(1)))
         );
 
         List<StudentNotificationResult> results = service.getNotifications(10);
@@ -68,11 +72,12 @@ class GetStudentNotificationsServiceTest {
                 LocalDateTime.now().plusDays(2),
                 LocalDateTime.now().plusDays(6),
                 1,
-                false
+                false,
+                SurveyLifecycleState.PUBLISHED
         );
         GetStudentNotificationsService service = new GetStudentNotificationsService(
                 surveyPort(List.of(survey)),
-                surveyResponsePort(false)
+                recipientPort(new SurveyRecipient(1, 2, 10, LocalDateTime.now().minusDays(1), null, null))
         );
 
         List<StudentNotificationResult> results = service.getNotifications(10);
@@ -95,16 +100,21 @@ class GetStudentNotificationsServiceTest {
         };
     }
 
-    private LoadSurveyResponsePort surveyResponsePort(boolean submitted) {
-        return new LoadSurveyResponsePort() {
+    private LoadSurveyRecipientPort recipientPort(SurveyRecipient recipient) {
+        return new LoadSurveyRecipientPort() {
             @Override
-            public boolean existsBySurveyIdAndStudentId(Integer surveyId, Integer studentId) {
-                return submitted;
+            public Optional<SurveyRecipient> loadBySurveyIdAndStudentId(Integer surveyId, Integer studentId) {
+                return Optional.ofNullable(recipient);
             }
 
             @Override
-            public long countBySurveyId(Integer surveyId) {
-                return 0;
+            public List<SurveyRecipient> loadBySurveyId(Integer surveyId) {
+                return recipient == null ? List.of() : List.of(recipient);
+            }
+
+            @Override
+            public List<SurveyRecipient> loadByStudentId(Integer studentId) {
+                return recipient == null ? List.of() : List.of(recipient);
             }
         };
     }

@@ -16,6 +16,10 @@ function formatDateRange(startDate: string, endDate: string) {
     return `${formatter.format(new Date(startDate))} - ${formatter.format(new Date(endDate))}`;
 }
 
+function formatRate(value: number) {
+    return `${value.toFixed(1)}%`;
+}
+
 function RatingQuestionBlock({ question }: { question: QuestionStatistics }) {
     return (
         <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
@@ -142,16 +146,28 @@ export default function SurveyResultDetailPage() {
                                         </p>
                                     </div>
 
-                                    <div className="grid min-w-[260px] gap-4 rounded-[28px] border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
-                                        <div className="flex items-center justify-between gap-4">
-                                            <span className="font-semibold text-slate-500">Responses</span>
-                                            <span className="text-2xl font-extrabold tracking-tight text-slate-950">
-                                                {survey.responseCount}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between gap-4">
-                                            <span className="font-semibold text-slate-500">Questions</span>
-                                            <span className="font-bold text-slate-900">{survey.questions.length}</span>
+                                        <div className="grid min-w-[260px] gap-4 rounded-[28px] border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <span className="font-semibold text-slate-500">Targeted</span>
+                                                <span className="text-2xl font-extrabold tracking-tight text-slate-950">
+                                                    {survey.targetedCount}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between gap-4">
+                                                <span className="font-semibold text-slate-500">Opened</span>
+                                                <span className="font-bold text-slate-900">{survey.openedCount}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between gap-4">
+                                                <span className="font-semibold text-slate-500">Submitted</span>
+                                                <span className="font-bold text-slate-900">{survey.submittedCount}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between gap-4">
+                                                <span className="font-semibold text-slate-500">Response rate</span>
+                                                <span className="font-bold text-slate-900">{formatRate(survey.responseRate)}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between gap-4">
+                                                <span className="font-semibold text-slate-500">Questions</span>
+                                                <span className="font-bold text-slate-900">{survey.questions.length}</span>
                                         </div>
                                         <div className="flex items-center justify-between gap-4">
                                             <span className="font-semibold text-slate-500">Window</span>

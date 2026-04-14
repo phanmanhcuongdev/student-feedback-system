@@ -9,6 +9,10 @@ public record SurveyResultSummaryResponse(
         LocalDateTime startDate,
         LocalDateTime endDate,
         String status,
-        Long responseCount
+        Long responseCount,
+        Long targetedCount,
+        Long openedCount,
+        Long submittedCount,
+        Double responseRate
 ) {
 }

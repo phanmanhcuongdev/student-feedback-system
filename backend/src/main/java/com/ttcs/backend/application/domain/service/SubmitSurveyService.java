@@ -30,6 +30,8 @@ public class SubmitSurveyService implements SubmitSurveyUseCase {
     private final LoadSurveyResponsePort loadSurveyResponsePort;
     private final SaveSurveyResponsePort saveSurveyResponsePort;
     private final SaveResponseDetailPort saveResponseDetailPort;
+    private final LoadSurveyRecipientPort loadSurveyRecipientPort;
+    private final SaveSurveyRecipientPort saveSurveyRecipientPort;
 
     @Override
     public SubmitSurveyResult submitSurvey(SubmitSurveyCommand command) {
@@ -52,7 +54,7 @@ public class SubmitSurveyService implements SubmitSurveyUseCase {
             );
         }
 
-        if (!survey.isOpen()) {
+        if (!survey.isPublished() || !survey.isOpen()) {
             return SubmitSurveyResult.fail(
                     SubmitSurveyResultCode.SURVEY_CLOSED,
                     "Survey is not open for submission"
@@ -70,6 +72,19 @@ public class SubmitSurveyService implements SubmitSurveyUseCase {
             return SubmitSurveyResult.fail(
                     SubmitSurveyResultCode.INVALID_INPUT,
                     "Student account is not active"
+            );
+        }
+        if (student.getUser() == null || !Boolean.TRUE.equals(student.getUser().getVerified())) {
+            return SubmitSurveyResult.fail(
+                    SubmitSurveyResultCode.INVALID_INPUT,
+                    "Student account is not active"
+            );
+        }
+        SurveyRecipient recipient = loadSurveyRecipientPort.loadBySurveyIdAndStudentId(command.surveyId(), command.studentId()).orElse(null);
+        if (recipient == null) {
+            return SubmitSurveyResult.fail(
+                    SubmitSurveyResultCode.SURVEY_NOT_FOUND,
+                    "Survey recipient not found"
             );
         }
 
@@ -101,6 +116,14 @@ public class SubmitSurveyService implements SubmitSurveyUseCase {
 
         List<ResponseDetail> responseDetails = validationResult.responseDetails(savedSurveyResponse);
         saveResponseDetailPort.saveAll(responseDetails);
+        saveSurveyRecipientPort.save(new SurveyRecipient(
+                recipient.getId(),
+                recipient.getSurveyId(),
+                recipient.getStudentId(),
+                recipient.getAssignedAt(),
+                recipient.getOpenedAt() == null ? savedSurveyResponse.getSubmittedAt() : recipient.getOpenedAt(),
+                savedSurveyResponse.getSubmittedAt()
+        ));
 
         return SubmitSurveyResult.success("Submit survey successfully");
     }

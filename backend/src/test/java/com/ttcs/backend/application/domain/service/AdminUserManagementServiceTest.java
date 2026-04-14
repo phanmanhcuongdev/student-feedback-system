@@ -1,5 +1,7 @@
 package com.ttcs.backend.application.domain.service;
 
+import com.ttcs.backend.application.domain.model.AuditActionType;
+import com.ttcs.backend.application.domain.model.AuditLog;
 import com.ttcs.backend.application.domain.model.Department;
 import com.ttcs.backend.application.domain.model.ManagedUser;
 import com.ttcs.backend.application.domain.model.Role;
@@ -9,6 +11,7 @@ import com.ttcs.backend.application.port.in.admin.ManagedUserSummaryResult;
 import com.ttcs.backend.application.port.in.admin.SetUserActiveCommand;
 import com.ttcs.backend.application.port.in.admin.UpdateUserCommand;
 import com.ttcs.backend.application.port.in.admin.UserManagementActionResult;
+import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.admin.ManageUserPort;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +28,8 @@ class AdminUserManagementServiceTest {
     @Test
     void shouldListUsers() {
         InMemoryManageUserPort port = new InMemoryManageUserPort();
-        AdminUserManagementService service = new AdminUserManagementService(port);
+        RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
+        AdminUserManagementService service = new AdminUserManagementService(port, auditLogPort);
 
         List<ManagedUserSummaryResult> result = service.getUsers();
 
@@ -36,51 +40,81 @@ class AdminUserManagementServiceTest {
     @Test
     void shouldUpdateTeacherBasicInfo() {
         InMemoryManageUserPort port = new InMemoryManageUserPort();
-        AdminUserManagementService service = new AdminUserManagementService(port);
+        RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
+        AdminUserManagementService service = new AdminUserManagementService(port, auditLogPort);
 
         UserManagementActionResult result = service.updateUser(
-                new UpdateUserCommand(2, "teacher.updated@university.edu", "Updated Lecturer", 2, null, "T1002")
+                new UpdateUserCommand(2, 1, "teacher.updated@university.edu", "Updated Lecturer", 2, null, "T1002")
         );
 
         assertTrue(result.success());
         assertEquals("USER_UPDATED", result.code());
         assertEquals("teacher.updated@university.edu", port.loadById(2).orElseThrow().getUser().getEmail());
         assertEquals("Updated Lecturer", port.loadById(2).orElseThrow().getName());
+        assertEquals(1, auditLogPort.savedLogs.size());
+        assertEquals(AuditActionType.USER_PROFILE_UPDATED, auditLogPort.savedLogs.getFirst().getActionType());
+        assertTrue(auditLogPort.savedLogs.getFirst().getDetails().contains("email=teacher@university.edu -> teacher.updated@university.edu"));
+        assertTrue(auditLogPort.savedLogs.getFirst().getOldState().contains("active=ACTIVE"));
+        assertTrue(auditLogPort.savedLogs.getFirst().getNewState().contains("department=Information Systems"));
     }
 
     @Test
     void shouldBlockDuplicateEmail() {
         InMemoryManageUserPort port = new InMemoryManageUserPort();
-        AdminUserManagementService service = new AdminUserManagementService(port);
+        RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
+        AdminUserManagementService service = new AdminUserManagementService(port, auditLogPort);
 
         UserManagementActionResult result = service.updateUser(
-                new UpdateUserCommand(2, "admin@university.edu", "Updated Lecturer", 1, null, "T1002")
+                new UpdateUserCommand(2, 1, "admin@university.edu", "Updated Lecturer", 1, null, "T1002")
         );
 
         assertFalse(result.success());
         assertEquals("EMAIL_ALREADY_USED", result.code());
+        assertTrue(auditLogPort.savedLogs.isEmpty());
     }
 
     @Test
     void shouldDeactivateUser() {
         InMemoryManageUserPort port = new InMemoryManageUserPort();
-        AdminUserManagementService service = new AdminUserManagementService(port);
+        RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
+        AdminUserManagementService service = new AdminUserManagementService(port, auditLogPort);
 
         UserManagementActionResult result = service.setUserActive(new SetUserActiveCommand(2, 1, false));
 
         assertTrue(result.success());
         assertFalse(port.loadById(2).orElseThrow().getUser().getVerified());
+        assertEquals(1, auditLogPort.savedLogs.size());
+        assertEquals(AuditActionType.USER_DEACTIVATED, auditLogPort.savedLogs.getFirst().getActionType());
+        assertEquals("ACTIVE", auditLogPort.savedLogs.getFirst().getOldState());
+        assertEquals("INACTIVE", auditLogPort.savedLogs.getFirst().getNewState());
     }
 
     @Test
     void shouldBlockSelfDeactivation() {
         InMemoryManageUserPort port = new InMemoryManageUserPort();
-        AdminUserManagementService service = new AdminUserManagementService(port);
+        RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
+        AdminUserManagementService service = new AdminUserManagementService(port, auditLogPort);
 
         UserManagementActionResult result = service.setUserActive(new SetUserActiveCommand(1, 1, false));
 
         assertFalse(result.success());
         assertEquals("SELF_ACTION_BLOCKED", result.code());
+        assertTrue(auditLogPort.savedLogs.isEmpty());
+    }
+
+    @Test
+    void shouldRejectUpdateWithoutActorIdAndSkipAudit() {
+        InMemoryManageUserPort port = new InMemoryManageUserPort();
+        RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
+        AdminUserManagementService service = new AdminUserManagementService(port, auditLogPort);
+
+        UserManagementActionResult result = service.updateUser(
+                new UpdateUserCommand(2, null, "teacher.updated@university.edu", "Updated Lecturer", 2, null, "T1002")
+        );
+
+        assertFalse(result.success());
+        assertEquals("INVALID_INPUT", result.code());
+        assertTrue(auditLogPort.savedLogs.isEmpty());
     }
 
     private static final class InMemoryManageUserPort implements ManageUserPort {
@@ -134,6 +168,16 @@ class AdminUserManagementServiceTest {
                 }
             }
             users.add(managedUser);
+        }
+    }
+
+    private static final class RecordingAuditLogPort implements SaveAuditLogPort {
+        private final List<AuditLog> savedLogs = new ArrayList<>();
+
+        @Override
+        public AuditLog save(AuditLog auditLog) {
+            savedLogs.add(auditLog);
+            return auditLog;
         }
     }
 }

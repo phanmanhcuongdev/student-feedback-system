@@ -21,6 +21,10 @@ export type SurveyResultSummary = {
     endDate: string;
     status: string;
     responseCount: number;
+    targetedCount: number;
+    openedCount: number;
+    submittedCount: number;
+    responseRate: number;
 };
 
 export type SurveyResultDetail = SurveyResultSummary & {

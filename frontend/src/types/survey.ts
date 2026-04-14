@@ -1,3 +1,6 @@
+export type SurveyRuntimeStatus = "OPEN" | "CLOSED" | "NOT_OPEN";
+export type SurveyLifecycleState = "DRAFT" | "PUBLISHED" | "CLOSED" | "ARCHIVED";
+
 export interface Survey {
     id: number;
     title: string;
@@ -5,7 +8,7 @@ export interface Survey {
     startDate: string;
     endDate: string;
     createdBy: number;
-    status: "OPEN" | "CLOSED" | "NOT_OPEN";
+    status: SurveyRuntimeStatus;
 }
 
 export interface CreateQuestionData {
@@ -29,11 +32,16 @@ export interface ManagedSurveySummary {
     description: string;
     startDate: string | null;
     endDate: string | null;
-    status: "OPEN" | "CLOSED" | "NOT_OPEN";
+    lifecycleState: SurveyLifecycleState;
+    runtimeStatus: SurveyRuntimeStatus;
     hidden: boolean;
     recipientScope: "ALL_STUDENTS" | "DEPARTMENT";
     recipientDepartmentId: number | null;
     responseCount: number;
+    targetedCount: number;
+    openedCount: number;
+    submittedCount: number;
+    responseRate: number;
 }
 
 export interface ManagedSurveyDetail extends ManagedSurveySummary {
@@ -42,4 +50,20 @@ export interface ManagedSurveyDetail extends ManagedSurveySummary {
         content: string;
         type: "RATING" | "TEXT";
     }>;
+    pendingRecipients: Array<{
+        studentId: number;
+        studentName: string;
+        studentCode: string;
+        departmentName: string | null;
+        participationStatus: "ASSIGNED" | "OPENED" | "SUBMITTED";
+        openedAt: string | null;
+        submittedAt: string | null;
+    }>;
+}
+
+export interface CreateSurveyResponse {
+    success: boolean;
+    surveyId: number;
+    code: string;
+    message: string;
 }

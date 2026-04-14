@@ -1,5 +1,7 @@
 package com.ttcs.backend.application.domain.service;
 
+import com.ttcs.backend.application.domain.model.AuditActionType;
+import com.ttcs.backend.application.domain.model.AuditLog;
 import com.ttcs.backend.application.domain.model.Department;
 import com.ttcs.backend.application.domain.model.Role;
 import com.ttcs.backend.application.domain.model.Status;
@@ -7,10 +9,12 @@ import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.domain.model.User;
 import com.ttcs.backend.application.port.in.admin.ApprovalActionResult;
 import com.ttcs.backend.application.port.out.admin.LoadPendingStudentsPort;
+import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
 import com.ttcs.backend.application.port.out.auth.SaveStudentPort;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,10 +30,12 @@ class AdminStudentApprovalServiceTest {
     void shouldRejectPendingStudentWithReasonAndNotes() {
         Student pendingStudent = pendingStudent();
         RecordingSaveStudentPort saveStudentPort = new RecordingSaveStudentPort();
+        RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
         AdminStudentApprovalService service = new AdminStudentApprovalService(
                 pendingPort(List.of(pendingStudent)),
                 loadStudentPort(pendingStudent),
-                saveStudentPort
+                saveStudentPort,
+                auditLogPort
         );
 
         ApprovalActionResult result = service.reject(5, "Photo unreadable", "Student card edges are cut off.", 1);
@@ -42,16 +48,23 @@ class AdminStudentApprovalServiceTest {
         assertEquals("Student card edges are cut off.", saveStudentPort.lastSavedStudent.getReviewNotes());
         assertEquals(1, saveStudentPort.lastSavedStudent.getReviewedByUserId());
         assertNotNull(saveStudentPort.lastSavedStudent.getReviewedAt());
+        assertEquals(1, auditLogPort.savedLogs.size());
+        assertEquals(AuditActionType.ONBOARDING_REJECTED, auditLogPort.savedLogs.getFirst().getActionType());
+        assertEquals("PENDING", auditLogPort.savedLogs.getFirst().getOldState());
+        assertEquals("REJECTED", auditLogPort.savedLogs.getFirst().getNewState());
+        assertTrue(auditLogPort.savedLogs.getFirst().getDetails().contains("reason=Photo unreadable"));
     }
 
     @Test
     void shouldRequireReasonWhenRejectingStudent() {
         Student pendingStudent = pendingStudent();
         RecordingSaveStudentPort saveStudentPort = new RecordingSaveStudentPort();
+        RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
         AdminStudentApprovalService service = new AdminStudentApprovalService(
                 pendingPort(List.of(pendingStudent)),
                 loadStudentPort(pendingStudent),
-                saveStudentPort
+                saveStudentPort,
+                auditLogPort
         );
 
         ApprovalActionResult result = service.reject(5, "   ", "Missing reason", 1);
@@ -59,16 +72,19 @@ class AdminStudentApprovalServiceTest {
         assertFalse(result.success());
         assertEquals("REVIEW_REASON_REQUIRED", result.code());
         assertNull(saveStudentPort.lastSavedStudent);
+        assertTrue(auditLogPort.savedLogs.isEmpty());
     }
 
     @Test
     void shouldApprovePendingStudentAndPersistReviewerNotes() {
         Student pendingStudent = pendingStudent();
         RecordingSaveStudentPort saveStudentPort = new RecordingSaveStudentPort();
+        RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
         AdminStudentApprovalService service = new AdminStudentApprovalService(
                 pendingPort(List.of(pendingStudent)),
                 loadStudentPort(pendingStudent),
-                saveStudentPort
+                saveStudentPort,
+                auditLogPort
         );
 
         ApprovalActionResult result = service.approve(5, "Identity documents verified.", 2);
@@ -79,6 +95,30 @@ class AdminStudentApprovalServiceTest {
         assertNull(saveStudentPort.lastSavedStudent.getReviewReason());
         assertEquals("Identity documents verified.", saveStudentPort.lastSavedStudent.getReviewNotes());
         assertEquals(2, saveStudentPort.lastSavedStudent.getReviewedByUserId());
+        assertEquals(1, auditLogPort.savedLogs.size());
+        assertEquals(AuditActionType.ONBOARDING_APPROVED, auditLogPort.savedLogs.getFirst().getActionType());
+        assertEquals("PENDING", auditLogPort.savedLogs.getFirst().getOldState());
+        assertEquals("ACTIVE", auditLogPort.savedLogs.getFirst().getNewState());
+    }
+
+    @Test
+    void shouldNotCreateAuditLogWhenReviewerIdIsMissing() {
+        Student pendingStudent = pendingStudent();
+        RecordingSaveStudentPort saveStudentPort = new RecordingSaveStudentPort();
+        RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
+        AdminStudentApprovalService service = new AdminStudentApprovalService(
+                pendingPort(List.of(pendingStudent)),
+                loadStudentPort(pendingStudent),
+                saveStudentPort,
+                auditLogPort
+        );
+
+        ApprovalActionResult result = service.approve(5, "Identity documents verified.", null);
+
+        assertFalse(result.success());
+        assertEquals("INVALID_INPUT", result.code());
+        assertNull(saveStudentPort.lastSavedStudent);
+        assertTrue(auditLogPort.savedLogs.isEmpty());
     }
 
     private LoadPendingStudentsPort pendingPort(List<Student> students) {
@@ -129,6 +169,16 @@ class AdminStudentApprovalServiceTest {
         @Override
         public boolean existsByStudentCode(String studentCode) {
             return false;
+        }
+    }
+
+    private static final class RecordingAuditLogPort implements SaveAuditLogPort {
+        private final List<AuditLog> savedLogs = new ArrayList<>();
+
+        @Override
+        public AuditLog save(AuditLog auditLog) {
+            savedLogs.add(auditLog);
+            return auditLog;
         }
     }
 }

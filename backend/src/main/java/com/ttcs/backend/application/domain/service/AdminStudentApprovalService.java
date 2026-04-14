@@ -1,5 +1,8 @@
 package com.ttcs.backend.application.domain.service;
 
+import com.ttcs.backend.application.domain.model.AuditActionType;
+import com.ttcs.backend.application.domain.model.AuditLog;
+import com.ttcs.backend.application.domain.model.AuditTargetType;
 import com.ttcs.backend.application.domain.model.Status;
 import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.port.in.admin.ApprovalActionResult;
@@ -8,6 +11,7 @@ import com.ttcs.backend.application.port.in.admin.GetPendingStudentsUseCase;
 import com.ttcs.backend.application.port.in.admin.PendingStudentResult;
 import com.ttcs.backend.application.port.in.admin.RejectStudentUseCase;
 import com.ttcs.backend.application.port.out.admin.LoadPendingStudentsPort;
+import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
 import com.ttcs.backend.application.port.out.auth.SaveStudentPort;
 import com.ttcs.backend.common.UseCase;
@@ -28,6 +32,7 @@ public class AdminStudentApprovalService implements
     private final LoadPendingStudentsPort loadPendingStudentsPort;
     private final LoadStudentByIdPort loadStudentByIdPort;
     private final SaveStudentPort saveStudentPort;
+    private final SaveAuditLogPort saveAuditLogPort;
 
     @Override
     @Transactional(readOnly = true)
@@ -88,8 +93,8 @@ public class AdminStudentApprovalService implements
             String code,
             String message
     ) {
-        if (studentId == null) {
-            return ApprovalActionResult.fail("INVALID_INPUT", "Student id is required");
+        if (studentId == null || reviewerUserId == null) {
+            return ApprovalActionResult.fail("INVALID_INPUT", "Student id and reviewer id are required");
         }
 
         Student student = loadStudentByIdPort.loadById(studentId).orElse(null);
@@ -117,8 +122,35 @@ public class AdminStudentApprovalService implements
                 student.getResubmissionCount() == null ? 0 : student.getResubmissionCount()
         );
         saveStudentPort.save(updatedStudent);
+        saveAuditLogPort.save(new AuditLog(
+                null,
+                reviewerUserId,
+                targetStatus == Status.ACTIVE ? AuditActionType.ONBOARDING_APPROVED : AuditActionType.ONBOARDING_REJECTED,
+                AuditTargetType.STUDENT,
+                student.getId(),
+                targetStatus == Status.ACTIVE ? "Approved onboarding review" : "Rejected onboarding review",
+                buildDecisionDetails(student, reviewReason, reviewNotes),
+                student.getStatus().name(),
+                targetStatus.name(),
+                null
+        ));
 
         return ApprovalActionResult.success(code, message);
+    }
+
+    private String buildDecisionDetails(Student student, String reviewReason, String reviewNotes) {
+        StringBuilder details = new StringBuilder();
+        details.append("studentCode=").append(student.getStudentCode());
+        if (student.getDepartment() != null) {
+            details.append("; department=").append(student.getDepartment().getName());
+        }
+        if (!isBlank(reviewReason)) {
+            details.append("; reason=").append(reviewReason.trim());
+        }
+        if (!isBlank(reviewNotes)) {
+            details.append("; notes=").append(reviewNotes.trim());
+        }
+        return details.toString();
     }
 
     private String normalizeNullableText(String value) {

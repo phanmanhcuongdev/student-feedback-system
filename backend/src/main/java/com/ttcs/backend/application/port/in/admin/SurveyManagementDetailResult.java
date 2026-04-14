@@ -9,11 +9,17 @@ public record SurveyManagementDetailResult(
         String description,
         LocalDateTime startDate,
         LocalDateTime endDate,
-        String status,
+        String lifecycleState,
+        String runtimeStatus,
         boolean hidden,
         String recipientScope,
         Integer recipientDepartmentId,
         long responseCount,
-        List<SurveyManagementQuestionResult> questions
+        long targetedCount,
+        long openedCount,
+        long submittedCount,
+        double responseRate,
+        List<SurveyManagementQuestionResult> questions,
+        List<SurveyManagementRecipientResult> pendingRecipients
 ) {
 }

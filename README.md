@@ -10,6 +10,9 @@ The current implementation supports:
 - Email verification through Resend
 - Student document upload after verification
 - Admin approval or rejection of pending student accounts
+- Governed survey lifecycle with draft, publish, close, and archive states
+- Survey recipient tracking with denominator-based response metrics
+- Scoped teacher survey-result access for department-targeted surveys
 - Authenticated survey listing, detail view, and submission
 - Survey result viewing for admin and teacher roles
 
@@ -74,6 +77,7 @@ Notes:
 - Spring Boot in this repo does not auto-load `.env` files. Export variables in your shell or configure them in your IDE run configuration.
 - `spring.jpa.hibernate.ddl-auto=validate` is enabled, so the database schema must already exist and match the entities.
 - For a new database, apply `database/full_schema.sql`. For an existing database, apply incremental scripts from `database/migrations/`.
+- The current incremental chain includes onboarding review workflow, survey lifecycle, survey recipient tracking, and privileged-action audit logging.
 - Resend must be configured if you want registration to send a real verification email. If `RESEND_API_KEY` is missing, registration email delivery will fail by design.
 
 ## How to Run Locally
@@ -157,7 +161,17 @@ npm run build
 1. Sign in with an active student account
 2. Open `/surveys`
 3. View survey detail
-4. Submit answers for all required questions
+4. Submit answers for all required questions on surveys that have been published and are currently open
+
+### Survey administration
+
+1. Sign in with an admin account
+2. Open `/admin/surveys`
+3. Create a survey draft
+4. Edit the draft until dates, questions, and recipient scope are ready
+5. Publish the survey
+6. Monitor targeted, opened, submitted, and response-rate metrics
+7. Close it when collection should stop, then archive it when the run is complete
 
 ### Survey result review
 

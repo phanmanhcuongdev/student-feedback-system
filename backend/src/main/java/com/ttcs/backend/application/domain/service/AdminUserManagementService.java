@@ -1,5 +1,8 @@
 package com.ttcs.backend.application.domain.service;
 
+import com.ttcs.backend.application.domain.model.AuditActionType;
+import com.ttcs.backend.application.domain.model.AuditLog;
+import com.ttcs.backend.application.domain.model.AuditTargetType;
 import com.ttcs.backend.application.domain.model.Department;
 import com.ttcs.backend.application.domain.model.ManagedUser;
 import com.ttcs.backend.application.domain.model.Role;
@@ -13,6 +16,7 @@ import com.ttcs.backend.application.port.in.admin.SetUserActiveUseCase;
 import com.ttcs.backend.application.port.in.admin.UpdateUserCommand;
 import com.ttcs.backend.application.port.in.admin.UpdateUserUseCase;
 import com.ttcs.backend.application.port.in.admin.UserManagementActionResult;
+import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.admin.ManageUserPort;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +34,7 @@ public class AdminUserManagementService implements
         SetUserActiveUseCase {
 
     private final ManageUserPort manageUserPort;
+    private final SaveAuditLogPort saveAuditLogPort;
 
     @Override
     @Transactional(readOnly = true)
@@ -53,9 +58,10 @@ public class AdminUserManagementService implements
     public UserManagementActionResult updateUser(UpdateUserCommand command) {
         if (command == null
                 || command.userId() == null
+                || command.actorUserId() == null
                 || isBlank(command.email())
                 || isBlank(command.name())) {
-            return UserManagementActionResult.fail("INVALID_INPUT", "Email and name are required.");
+            return UserManagementActionResult.fail("INVALID_INPUT", "Actor, email, and name are required.");
         }
 
         ManagedUser existing = manageUserPort.loadById(command.userId()).orElse(null);
@@ -113,6 +119,18 @@ public class AdminUserManagementService implements
                 existing.getStudentStatus()
         );
         manageUserPort.save(updated);
+        saveAuditLogPort.save(new AuditLog(
+                null,
+                command.actorUserId(),
+                AuditActionType.USER_PROFILE_UPDATED,
+                AuditTargetType.USER,
+                existing.getUser().getId(),
+                "Updated managed user profile",
+                buildUserUpdateDetails(existing, updated),
+                userStateSummary(existing),
+                userStateSummary(updated),
+                null
+        ));
         return UserManagementActionResult.ok("USER_UPDATED", "User updated successfully.");
     }
 
@@ -146,6 +164,18 @@ public class AdminUserManagementService implements
                 existing.getStudentStatus()
         );
         manageUserPort.save(updated);
+        saveAuditLogPort.save(new AuditLog(
+                null,
+                command.actorUserId(),
+                command.active() ? AuditActionType.USER_ACTIVATED : AuditActionType.USER_DEACTIVATED,
+                AuditTargetType.USER,
+                existing.getUser().getId(),
+                command.active() ? "Activated user account" : "Deactivated user account",
+                "role=" + existing.getUser().getRole().name() + "; email=" + existing.getUser().getEmail(),
+                activeState(Boolean.TRUE.equals(existing.getUser().getVerified())),
+                activeState(command.active()),
+                null
+        ));
 
         return command.active()
                 ? UserManagementActionResult.ok("USER_ACTIVATED", "User activated successfully.")
@@ -181,5 +211,45 @@ public class AdminUserManagementService implements
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private String buildUserUpdateDetails(ManagedUser before, ManagedUser after) {
+        StringBuilder details = new StringBuilder();
+        details.append("role=").append(after.getUser().getRole().name());
+        appendFieldChange(details, "email", before.getUser().getEmail(), after.getUser().getEmail());
+        appendFieldChange(details, "name", before.getName(), after.getName());
+        appendFieldChange(
+                details,
+                "department",
+                before.getDepartment() != null ? before.getDepartment().getName() : null,
+                after.getDepartment() != null ? after.getDepartment().getName() : null
+        );
+        if (after.getStudentCode() != null || before.getStudentCode() != null) {
+            appendFieldChange(details, "studentCode", before.getStudentCode(), after.getStudentCode());
+        }
+        if (after.getTeacherCode() != null || before.getTeacherCode() != null) {
+            appendFieldChange(details, "teacherCode", before.getTeacherCode(), after.getTeacherCode());
+        }
+        return details.toString();
+    }
+
+    private String userStateSummary(ManagedUser user) {
+        return "email=" + user.getUser().getEmail()
+                + ", name=" + user.getName()
+                + ", department=" + (user.getDepartment() != null ? user.getDepartment().getName() : "-")
+                + ", active=" + activeState(Boolean.TRUE.equals(user.getUser().getVerified()));
+    }
+
+    private void appendFieldChange(StringBuilder details, String field, String before, String after) {
+        details.append("; ")
+                .append(field)
+                .append("=")
+                .append(before == null ? "-" : before)
+                .append(" -> ")
+                .append(after == null ? "-" : after);
+    }
+
+    private String activeState(boolean active) {
+        return active ? "ACTIVE" : "INACTIVE";
     }
 }
