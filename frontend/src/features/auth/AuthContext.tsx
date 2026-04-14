@@ -9,7 +9,7 @@ function canPersistSession(role: string | null, studentStatus: string | null): b
         return true;
     }
 
-    return studentStatus === "ACTIVE" || studentStatus === "EMAIL_VERIFIED";
+    return studentStatus === "ACTIVE" || studentStatus === "EMAIL_VERIFIED" || studentStatus === "REJECTED";
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

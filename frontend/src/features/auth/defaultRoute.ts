@@ -7,7 +7,7 @@ export function getDefaultAppRoute(role: string | null | undefined, studentStatu
         return "/dashboard/lecturer";
     }
 
-    if (role === "STUDENT" && studentStatus === "EMAIL_VERIFIED") {
+    if (role === "STUDENT" && (studentStatus === "EMAIL_VERIFIED" || studentStatus === "REJECTED")) {
         return "/upload-documents";
     }
 

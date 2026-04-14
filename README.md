@@ -31,6 +31,8 @@ The current implementation supports:
   React web client that calls the backend API.
 - [`API_CONTRACT.md`](/E:/Lap/TTCS/student-feedback-system/API_CONTRACT.md)
   Implemented API slices and payload expectations.
+- [`database/README.md`](/E:/Lap/TTCS/student-feedback-system/database/README.md)
+  Fresh setup, migration path, and demo credential notes.
 - [`.env.example`](/E:/Lap/TTCS/student-feedback-system/.env.example)
   Backend environment variable template.
 - [`frontend/.env.example`](/E:/Lap/TTCS/student-feedback-system/frontend/.env.example)
@@ -71,6 +73,7 @@ Notes:
 
 - Spring Boot in this repo does not auto-load `.env` files. Export variables in your shell or configure them in your IDE run configuration.
 - `spring.jpa.hibernate.ddl-auto=validate` is enabled, so the database schema must already exist and match the entities.
+- For a new database, apply `database/full_schema.sql`. For an existing database, apply incremental scripts from `database/migrations/`.
 - Resend must be configured if you want registration to send a real verification email. If `RESEND_API_KEY` is missing, registration email delivery will fail by design.
 
 ## How to Run Locally
@@ -140,13 +143,14 @@ npm run build
 3. Check the real email inbox and click the `/verify-email?token=...` link sent by Resend
 4. Sign in as that student
 5. Upload student card and national ID documents
-6. Sign in again after admin approval
+6. If admin rejects the onboarding request, sign in again, review the rejection feedback, and resubmit corrected documents
+7. Sign in again after admin approval
 
 ### Admin approval
 
 1. Sign in with an admin account that already exists in the database
 2. Open `/admin/students/pending`
-3. Approve or reject a pending student
+3. Approve a pending student with optional reviewer notes, or reject with a required reason and optional reviewer notes
 
 ### Survey submission
 
@@ -168,6 +172,10 @@ npm run build
 - The frontend does not generate backend URLs on its own. Use `VITE_API_BASE_URL` and `VITE_API_PROXY_TARGET` instead of hardcoding API hosts.
 - Student onboarding relies on the existing SQL Server schema and lookup data. In particular, department names must exist in the `Department` table before registration succeeds.
 - If the backend fails on startup with schema validation errors, the local database does not match the JPA mappings.
+- Seed accounts in `database/seed_data.sql` are BCrypt-compatible and can be used directly after import:
+  - `admin@university.edu` / `admin123`
+  - `teacher@university.edu` / `teacher123`
+  - seeded student accounts / `student123`
 
 ## Architecture Summary
 

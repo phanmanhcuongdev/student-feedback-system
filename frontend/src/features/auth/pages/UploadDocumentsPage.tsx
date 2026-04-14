@@ -1,23 +1,45 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { getApiErrorMessage } from "../../../api/apiError";
-import { uploadDocuments } from "../../../api/authApi";
+import { getOnboardingStatus, uploadDocuments } from "../../../api/authApi";
 import AuthShell from "../components/AuthShell";
 import { useAuth } from "../useAuth";
+import type { OnboardingStatusResponse } from "../../../types/auth";
 
 export default function UploadDocumentsPage() {
     const navigate = useNavigate();
     const { session, logout } = useAuth();
+    const isRejectedSession = session?.studentStatus === "REJECTED";
     const [studentCard, setStudentCard] = useState<File | null>(null);
     const [nationalId, setNationalId] = useState<File | null>(null);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [status, setStatus] = useState<OnboardingStatusResponse | null>(null);
+    const [statusLoading, setStatusLoading] = useState(true);
 
     const canSubmit = useMemo(
-        () => studentCard !== null && nationalId !== null && !submitting,
-        [nationalId, studentCard, submitting]
+        () => studentCard !== null && nationalId !== null && !submitting && status?.canUploadDocuments !== false,
+        [nationalId, status?.canUploadDocuments, studentCard, submitting]
     );
+
+    useEffect(() => {
+        async function fetchOnboardingStatus() {
+            try {
+                setStatusLoading(true);
+                setError("");
+                setStatus(await getOnboardingStatus());
+            } catch (requestError) {
+                setError(getApiErrorMessage(requestError, "Unable to load your onboarding status right now."));
+            } finally {
+                setStatusLoading(false);
+            }
+        }
+
+        if (session?.role === "STUDENT") {
+            fetchOnboardingStatus();
+        }
+    }, [session?.role]);
 
     if (!session) {
         return <Navigate to="/login" replace />;
@@ -27,7 +49,7 @@ export default function UploadDocumentsPage() {
         return <Navigate to="/" replace />;
     }
 
-    if (session.studentStatus !== "EMAIL_VERIFIED") {
+    if (session.studentStatus !== "EMAIL_VERIFIED" && session.studentStatus !== "REJECTED") {
         return <Navigate to="/" replace />;
     }
 
@@ -53,7 +75,9 @@ export default function UploadDocumentsPage() {
             navigate("/login", {
                 replace: true,
                 state: {
-                    notice: "Documents uploaded successfully. Your account is now pending administrator approval.",
+                    notice: isRejectedSession
+                        ? "Documents resubmitted successfully. Your account is back in the administrator review queue."
+                        : "Documents uploaded successfully. Your account is now pending administrator approval.",
                 },
             });
         } catch (requestError) {
@@ -65,17 +89,45 @@ export default function UploadDocumentsPage() {
 
     return (
         <AuthShell
-            eyebrow="Document Upload"
-            title="Upload required verification documents"
-            description="Submit both document images so your student account can move into the approval queue."
-            footer={
+            eyebrow={isRejectedSession ? "Document Resubmission" : "Document Upload"}
+            title={isRejectedSession
+                ? "Correct and resubmit your verification documents"
+                : "Upload required verification documents"}
+            description={isRejectedSession
+                ? "Your previous onboarding review was rejected. Fix the issues below and resubmit both documents."
+                : "Submit both document images so your student account can move into the approval queue."}
+            footer={(
                 <p className="text-sm text-slate-500">
-                    Signed in as
-                    {" "}
+                    Signed in as{" "}
                     <span className="font-semibold text-blue-700">{session.email}</span>
                 </p>
-            }
+            )}
         >
+            {statusLoading ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                    Loading onboarding status...
+                </div>
+            ) : null}
+
+            {status && isRejectedSession ? (
+                <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+                    <p className="font-semibold uppercase tracking-[0.12em] text-amber-700">Review feedback</p>
+                    {status.reviewReason ? (
+                        <p>
+                            <span className="font-semibold">Reason:</span> {status.reviewReason}
+                        </p>
+                    ) : null}
+                    {status.reviewNotes ? (
+                        <p className="whitespace-pre-wrap">
+                            <span className="font-semibold">Notes:</span> {status.reviewNotes}
+                        </p>
+                    ) : null}
+                    <p>
+                        <span className="font-semibold">Previous resubmissions:</span> {status.resubmissionCount}
+                    </p>
+                </div>
+            ) : null}
+
             <form className="space-y-4" onSubmit={handleSubmit}>
                 <label className="block space-y-2">
                     <span className="text-sm font-semibold text-slate-700">Student card image</span>
@@ -110,7 +162,9 @@ export default function UploadDocumentsPage() {
                 ) : null}
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                    After upload, your account will move into the pending approval queue until an administrator reviews and activates it.
+                    {isRejectedSession
+                        ? "After resubmission, your account will return to the pending review queue until an administrator reviews the corrected documents."
+                        : "After upload, your account will move into the pending approval queue until an administrator reviews and activates it."}
                 </div>
 
                 <button
@@ -118,7 +172,7 @@ export default function UploadDocumentsPage() {
                     disabled={!canSubmit}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#0f5bcf_0%,#1d78ec_100%)] px-5 py-3.5 text-sm font-bold text-white shadow-[0_16px_36px_rgba(29,120,236,0.28)] transition hover:translate-y-[-1px] hover:shadow-[0_20px_44px_rgba(29,120,236,0.32)] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
                 >
-                    <span>{submitting ? "Uploading..." : "Upload documents"}</span>
+                    <span>{submitting ? "Uploading..." : isRejectedSession ? "Resubmit documents" : "Upload documents"}</span>
                     <span className="material-symbols-outlined text-base">cloud_upload</span>
                 </button>
 

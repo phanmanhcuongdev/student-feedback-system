@@ -8,6 +8,9 @@ public record PendingStudentResult(
         String departmentName,
         String status,
         String studentCardImageUrl,
-        String nationalIdImageUrl
+        String nationalIdImageUrl,
+        String reviewReason,
+        String reviewNotes,
+        Integer resubmissionCount
 ) {
 }

@@ -7,6 +7,9 @@ export type PendingStudent = {
     status: string;
     studentCardImageUrl: string | null;
     nationalIdImageUrl: string | null;
+    reviewReason: string | null;
+    reviewNotes: string | null;
+    resubmissionCount: number;
 };
 
 export type ManagedUserSummary = {
@@ -36,4 +39,13 @@ export type AdminActionResponse = {
     success: boolean;
     code: string;
     message: string;
+};
+
+export type ApproveStudentRequest = {
+    reviewNotes?: string;
+};
+
+export type RejectStudentRequest = {
+    reviewReason: string;
+    reviewNotes?: string;
 };

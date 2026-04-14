@@ -14,4 +14,7 @@ public class PendingStudentResponse {
     private String status;
     private String studentCardImageUrl;
     private String nationalIdImageUrl;
+    private String reviewReason;
+    private String reviewNotes;
+    private Integer resubmissionCount;
 }

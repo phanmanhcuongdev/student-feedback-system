@@ -14,6 +14,7 @@ import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @UseCase
@@ -40,22 +41,53 @@ public class AdminStudentApprovalService implements
                         student.getDepartment() != null ? student.getDepartment().getName() : null,
                         student.getStatus().name(),
                         student.getStudentCardImageUrl(),
-                        student.getNationalIdImageUrl()
+                        student.getNationalIdImageUrl(),
+                        student.getReviewReason(),
+                        student.getReviewNotes(),
+                        student.getResubmissionCount()
                 ))
                 .toList();
     }
 
     @Override
-    public ApprovalActionResult approve(Integer studentId) {
-        return updateStatus(studentId, Status.ACTIVE, "APPROVE_SUCCESS", "Student approved successfully");
+    public ApprovalActionResult approve(Integer studentId, String reviewNotes, Integer reviewerUserId) {
+        return updateStatus(
+                studentId,
+                Status.ACTIVE,
+                null,
+                reviewNotes,
+                reviewerUserId,
+                "APPROVE_SUCCESS",
+                "Student approved successfully"
+        );
     }
 
     @Override
-    public ApprovalActionResult reject(Integer studentId) {
-        return updateStatus(studentId, Status.REJECTED, "REJECT_SUCCESS", "Student rejected successfully");
+    public ApprovalActionResult reject(Integer studentId, String reviewReason, String reviewNotes, Integer reviewerUserId) {
+        if (isBlank(reviewReason)) {
+            return ApprovalActionResult.fail("REVIEW_REASON_REQUIRED", "Review reason is required");
+        }
+
+        return updateStatus(
+                studentId,
+                Status.REJECTED,
+                reviewReason.trim(),
+                reviewNotes,
+                reviewerUserId,
+                "REJECT_SUCCESS",
+                "Student rejected successfully"
+        );
     }
 
-    private ApprovalActionResult updateStatus(Integer studentId, Status targetStatus, String code, String message) {
+    private ApprovalActionResult updateStatus(
+            Integer studentId,
+            Status targetStatus,
+            String reviewReason,
+            String reviewNotes,
+            Integer reviewerUserId,
+            String code,
+            String message
+    ) {
         if (studentId == null) {
             return ApprovalActionResult.fail("INVALID_INPUT", "Student id is required");
         }
@@ -77,10 +109,26 @@ public class AdminStudentApprovalService implements
                 student.getDepartment(),
                 targetStatus,
                 student.getStudentCardImageUrl(),
-                student.getNationalIdImageUrl()
+                student.getNationalIdImageUrl(),
+                reviewReason,
+                normalizeNullableText(reviewNotes),
+                reviewerUserId,
+                LocalDateTime.now(),
+                student.getResubmissionCount() == null ? 0 : student.getResubmissionCount()
         );
         saveStudentPort.save(updatedStudent);
 
         return ApprovalActionResult.success(code, message);
+    }
+
+    private String normalizeNullableText(String value) {
+        if (isBlank(value)) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }

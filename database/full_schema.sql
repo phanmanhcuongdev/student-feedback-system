@@ -49,10 +49,16 @@ CREATE TABLE [dbo].[Student] (
     [status] NVARCHAR(50) NOT NULL CONSTRAINT [DF_Student_Status] DEFAULT ('ACTIVE'),
     [student_card_img] NVARCHAR(500) NULL,
     [national_id_img] NVARCHAR(500) NULL,
+    [review_reason] NVARCHAR(255) NULL,
+    [review_notes] NVARCHAR(MAX) NULL,
+    [reviewed_by_user_id] INT NULL,
+    [reviewed_at] DATETIME NULL,
+    [resubmission_count] INT NOT NULL CONSTRAINT [DF_Student_ResubmissionCount] DEFAULT ((0)),
     CONSTRAINT [PK_Student] PRIMARY KEY ([user_id]),
     CONSTRAINT [UQ_Student_Code] UNIQUE ([student_code]),
     CONSTRAINT [FK_Student_User] FOREIGN KEY ([user_id]) REFERENCES [dbo].[User]([user_id]),
     CONSTRAINT [FK_Student_Department] FOREIGN KEY ([dept_id]) REFERENCES [dbo].[Department]([dept_id]),
+    CONSTRAINT [FK_Student_ReviewedByUser] FOREIGN KEY ([reviewed_by_user_id]) REFERENCES [dbo].[User]([user_id]),
     CONSTRAINT [CHK_Student_Status] CHECK ([status] IN ('ACTIVE', 'PENDING', 'EMAIL_VERIFIED', 'EMAIL_UNVERIFIED', 'REJECTED'))
 );
 GO

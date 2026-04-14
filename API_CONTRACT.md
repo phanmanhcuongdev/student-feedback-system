@@ -48,8 +48,9 @@ The login flow is state-aware for student accounts and can return failure codes 
 - `INVALID_CREDENTIALS`
 - `EMAIL_NOT_VERIFIED`
 - `WAITING_APPROVAL`
-- `ACCOUNT_REJECTED`
 - `STUDENT_PROFILE_NOT_FOUND`
+
+Student accounts in `REJECTED` are now allowed to sign in again so they can view review feedback and resubmit documents.
 
 ### `POST /api/auth/upload-docs`
 
@@ -65,6 +66,17 @@ Rules:
 - Requires authentication
 - Student identity is resolved from JWT on the server side
 - Current onboarding status must allow document upload
+- `EMAIL_VERIFIED` submits the first onboarding package
+- `REJECTED` submits corrected documents and returns the account to `PENDING`
+
+### `GET /api/auth/onboarding-status`
+
+Returns the authenticated student's onboarding state, review feedback, upload eligibility, and resubmission count.
+
+Current implementation note:
+
+- This slice stores only the latest review snapshot on the student record.
+- Full review history / audit history is not implemented yet.
 
 ## Surveys
 
@@ -138,9 +150,32 @@ Returns pending student onboarding records for admin review.
 
 Approves a pending student.
 
+Request body:
+
+```json
+{
+  "reviewNotes": "Identity documents verified."
+}
+```
+
 ### `POST /api/admin/students/{studentId}/reject`
 
 Rejects a pending student.
+
+Request body:
+
+```json
+{
+  "reviewReason": "Document mismatch",
+  "reviewNotes": "Please upload a clearer student card and a complete national ID image."
+}
+```
+
+Rules:
+
+- Rejection reason is required
+- Approval and rejection both persist reviewer notes
+- Pending student payloads now include the previous review context and `resubmissionCount`
 
 ## Survey Results
 

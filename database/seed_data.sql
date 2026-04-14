@@ -10,12 +10,13 @@ GO
 
 SET IDENTITY_INSERT [dbo].[User] ON;
 INSERT INTO [dbo].[User] ([user_id], [email], [pass_word], [role], [verify]) VALUES
-    (1, N'admin@university.edu', N'admin123', N'ADMIN', 1),
-    (2, N'teacher@university.edu', N'teacher123', N'TEACHER', 1),
-    (3, N'student.active@university.edu', N'student123', N'STUDENT', 1),
-    (4, N'student.verified@university.edu', N'student123', N'STUDENT', 1),
-    (5, N'student.pending@university.edu', N'student123', N'STUDENT', 1),
-    (6, N'student.unverified@university.edu', N'student123', N'STUDENT', 0);
+    (1, N'admin@university.edu', N'$2a$10$lk.RCUFC0mwBCuqtMWPjieICJ/rgZ1LD/ZWBOrxN8/leR.VbTG5xy', N'ADMIN', 1),
+    (2, N'teacher@university.edu', N'$2a$10$NAUl9QQgFCEW/iv/87jDKur7/3MfgOcepdc.cXXE0P0ZfrpxLxhMy', N'TEACHER', 1),
+    (3, N'student.active@university.edu', N'$2a$10$4Tf.uaQGQdw2RIDZzkPSpep4LERq6jo06m1Q4w7EkBIivrZarnGlO', N'STUDENT', 1),
+    (4, N'student.verified@university.edu', N'$2a$10$4Tf.uaQGQdw2RIDZzkPSpep4LERq6jo06m1Q4w7EkBIivrZarnGlO', N'STUDENT', 1),
+    (5, N'student.pending@university.edu', N'$2a$10$4Tf.uaQGQdw2RIDZzkPSpep4LERq6jo06m1Q4w7EkBIivrZarnGlO', N'STUDENT', 1),
+    (6, N'student.unverified@university.edu', N'$2a$10$4Tf.uaQGQdw2RIDZzkPSpep4LERq6jo06m1Q4w7EkBIivrZarnGlO', N'STUDENT', 0),
+    (7, N'student.rejected@university.edu', N'$2a$10$4Tf.uaQGQdw2RIDZzkPSpep4LERq6jo06m1Q4w7EkBIivrZarnGlO', N'STUDENT', 1);
 SET IDENTITY_INSERT [dbo].[User] OFF;
 GO
 
@@ -27,11 +28,25 @@ INSERT INTO [dbo].[Teacher] ([user_id], [name], [teacher_code], [dept_id]) VALUE
     (2, N'Lecturer Demo', N'T0001', 1);
 GO
 
-INSERT INTO [dbo].[Student] ([user_id], [name], [student_code], [dept_id], [status], [student_card_img], [national_id_img]) VALUES
-    (3, N'Active Student', N'S0001', 1, N'ACTIVE', N'/docs/student-card-s0001.png', N'/docs/national-id-s0001.png'),
-    (4, N'Email Verified Student', N'S0002', 1, N'EMAIL_VERIFIED', NULL, NULL),
-    (5, N'Pending Approval Student', N'S0003', 2, N'PENDING', N'/docs/student-card-s0003.png', N'/docs/national-id-s0003.png'),
-    (6, N'Unverified Student', N'S0004', 2, N'EMAIL_UNVERIFIED', NULL, NULL);
+INSERT INTO [dbo].[Student] (
+    [user_id],
+    [name],
+    [student_code],
+    [dept_id],
+    [status],
+    [student_card_img],
+    [national_id_img],
+    [review_reason],
+    [review_notes],
+    [reviewed_by_user_id],
+    [reviewed_at],
+    [resubmission_count]
+) VALUES
+    (3, N'Active Student', N'S0001', 1, N'ACTIVE', N'/docs/student-card-s0001.png', N'/docs/national-id-s0001.png', NULL, NULL, NULL, NULL, 0),
+    (4, N'Email Verified Student', N'S0002', 1, N'EMAIL_VERIFIED', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (5, N'Pending Approval Student', N'S0003', 2, N'PENDING', N'/docs/student-card-s0003.png', N'/docs/national-id-s0003.png', NULL, NULL, NULL, NULL, 0),
+    (6, N'Unverified Student', N'S0004', 2, N'EMAIL_UNVERIFIED', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+    (7, N'Rejected Student', N'S0005', 1, N'REJECTED', N'/docs/student-card-s0005-blurry.png', N'/docs/national-id-s0005-cutoff.png', N'Document mismatch', N'Please upload a clearer student card and a complete national ID image.', 1, DATEADD(DAY, -1, GETDATE()), 1);
 GO
 
 SET IDENTITY_INSERT [dbo].[student_token] ON;

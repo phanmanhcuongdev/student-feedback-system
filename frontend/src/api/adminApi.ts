@@ -1,5 +1,12 @@
 import axios from "./axios";
-import type { AdminActionResponse, ManagedUserDetail, ManagedUserSummary, PendingStudent } from "../types/admin";
+import type {
+    AdminActionResponse,
+    ApproveStudentRequest,
+    ManagedUserDetail,
+    ManagedUserSummary,
+    PendingStudent,
+    RejectStudentRequest,
+} from "../types/admin";
 import type { CreateSurveyData, ManagedSurveyDetail, ManagedSurveySummary } from "../types/survey";
 
 export async function getPendingStudents(): Promise<PendingStudent[]> {
@@ -7,13 +14,19 @@ export async function getPendingStudents(): Promise<PendingStudent[]> {
     return response.data;
 }
 
-export async function approveStudent(studentId: number): Promise<AdminActionResponse> {
-    const response = await axios.post<AdminActionResponse>(`/admin/students/${studentId}/approve`);
+export async function approveStudent(
+    studentId: number,
+    payload: ApproveStudentRequest
+): Promise<AdminActionResponse> {
+    const response = await axios.post<AdminActionResponse>(`/admin/students/${studentId}/approve`, payload);
     return response.data;
 }
 
-export async function rejectStudent(studentId: number): Promise<AdminActionResponse> {
-    const response = await axios.post<AdminActionResponse>(`/admin/students/${studentId}/reject`);
+export async function rejectStudent(
+    studentId: number,
+    payload: RejectStudentRequest
+): Promise<AdminActionResponse> {
+    const response = await axios.post<AdminActionResponse>(`/admin/students/${studentId}/reject`, payload);
     return response.data;
 }
 

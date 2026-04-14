@@ -141,6 +141,11 @@ CREATE TABLE [dbo].[Student](
     [status] [nvarchar](50) NULL,
     [student_card_img] [nvarchar](500) NULL,
     [national_id_img] [nvarchar](500) NULL,
+    [review_reason] [nvarchar](255) NULL,
+    [review_notes] [nvarchar](max) NULL,
+    [reviewed_by_user_id] [int] NULL,
+    [reviewed_at] [datetime] NULL,
+    [resubmission_count] [int] NOT NULL,
     PRIMARY KEY CLUSTERED
 (
 [user_id] ASC
@@ -284,6 +289,8 @@ CREATE TABLE [dbo].[User](
     GO
 ALTER TABLE [dbo].[Student] ADD  DEFAULT ('ACTIVE') FOR [status]
     GO
+ALTER TABLE [dbo].[Student] ADD  DEFAULT ((0)) FOR [resubmission_count]
+    GO
 ALTER TABLE [dbo].[student_token] ADD  DEFAULT (getdate()) FOR [created_at]
     GO
 ALTER TABLE [dbo].[student_token] ADD  DEFAULT ((0)) FOR [delete_flg]
@@ -319,6 +326,9 @@ ALTER TABLE [dbo].[Feedback_Response]  WITH CHECK ADD FOREIGN KEY([responder_use
     GO
 ALTER TABLE [dbo].[Student]  WITH CHECK ADD FOREIGN KEY([dept_id])
     REFERENCES [dbo].[Department] ([dept_id])
+    GO
+ALTER TABLE [dbo].[Student]  WITH CHECK ADD FOREIGN KEY([reviewed_by_user_id])
+    REFERENCES [dbo].[User] ([user_id])
     GO
 ALTER TABLE [dbo].[Student]  WITH CHECK ADD FOREIGN KEY([user_id])
     REFERENCES [dbo].[User] ([user_id])

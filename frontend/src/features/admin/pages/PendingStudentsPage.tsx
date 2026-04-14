@@ -10,11 +10,24 @@ type ActionState = {
     type: "approve" | "reject" | null;
 };
 
+type ReviewDraft = {
+    reviewReason: string;
+    reviewNotes: string;
+};
+
+function getInitialDraft(student: PendingStudent): ReviewDraft {
+    return {
+        reviewReason: student.reviewReason ?? "",
+        reviewNotes: student.reviewNotes ?? "",
+    };
+}
+
 export default function PendingStudentsPage() {
     const [students, setStudents] = useState<PendingStudent[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [feedback, setFeedback] = useState("");
+    const [drafts, setDrafts] = useState<Record<number, ReviewDraft>>({});
     const [actionState, setActionState] = useState<ActionState>({
         studentId: null,
         type: null,
@@ -25,7 +38,14 @@ export default function PendingStudentsPage() {
             try {
                 setLoading(true);
                 setError("");
-                setStudents(await getPendingStudents());
+                const pendingStudents = await getPendingStudents();
+                setStudents(pendingStudents);
+                setDrafts(
+                    pendingStudents.reduce<Record<number, ReviewDraft>>((acc, student) => {
+                        acc[student.id] = getInitialDraft(student);
+                        return acc;
+                    }, {})
+                );
             } catch (requestError) {
                 setError(getApiErrorMessage(requestError, "Unable to load pending students."));
             } finally {
@@ -36,25 +56,66 @@ export default function PendingStudentsPage() {
         fetchPendingStudents();
     }, []);
 
-    async function handleAction(studentId: number, type: "approve" | "reject") {
+    function updateDraft(studentId: number, patch: Partial<ReviewDraft>) {
+        setDrafts((prev) => ({
+            ...prev,
+            [studentId]: {
+                ...(prev[studentId] ?? { reviewReason: "", reviewNotes: "" }),
+                ...patch,
+            },
+        }));
+    }
+
+    async function handleApprove(studentId: number) {
         try {
-            setActionState({ studentId, type });
+            setActionState({ studentId, type: "approve" });
             setError("");
             setFeedback("");
 
-            const response = type === "approve"
-                ? await approveStudent(studentId)
-                : await rejectStudent(studentId);
+            const response = await approveStudent(studentId, {
+                reviewNotes: drafts[studentId]?.reviewNotes?.trim() || undefined,
+            });
 
             if (!response.success) {
-                setError(response.message || "Unable to process this student.");
+                setError(response.message || "Unable to approve this student.");
                 return;
             }
 
             setStudents((prev) => prev.filter((student) => student.id !== studentId));
             setFeedback(response.message);
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to process this student."));
+            setError(getApiErrorMessage(requestError, "Unable to approve this student."));
+        } finally {
+            setActionState({ studentId: null, type: null });
+        }
+    }
+
+    async function handleReject(studentId: number) {
+        const reviewReason = drafts[studentId]?.reviewReason?.trim() ?? "";
+        if (!reviewReason) {
+            setError("A rejection reason is required before rejecting a student.");
+            return;
+        }
+
+        try {
+            setActionState({ studentId, type: "reject" });
+            setError("");
+            setFeedback("");
+
+            const response = await rejectStudent(studentId, {
+                reviewReason,
+                reviewNotes: drafts[studentId]?.reviewNotes?.trim() || undefined,
+            });
+
+            if (!response.success) {
+                setError(response.message || "Unable to reject this student.");
+                return;
+            }
+
+            setStudents((prev) => prev.filter((student) => student.id !== studentId));
+            setFeedback(response.message);
+        } catch (requestError) {
+            setError(getApiErrorMessage(requestError, "Unable to reject this student."));
         } finally {
             setActionState({ studentId: null, type: null });
         }
@@ -75,8 +136,8 @@ export default function PendingStudentsPage() {
                                 Pending student approvals
                             </h1>
                             <p className="mt-4 text-base leading-7 text-slate-500">
-                                Review newly onboarded students, inspect submitted document paths, and decide whether each
-                                account should move to ACTIVE or REJECTED.
+                                Review submitted documents, capture review notes, and give rejected students a clear
+                                reason so they can correct and resubmit instead of falling into a dead end.
                             </p>
                         </div>
 
@@ -114,6 +175,7 @@ export default function PendingStudentsPage() {
                     ) : (
                         <div className="grid gap-6 lg:grid-cols-2">
                             {students.map((student) => {
+                                const draft = drafts[student.id] ?? getInitialDraft(student);
                                 const isApproving = actionState.studentId === student.id && actionState.type === "approve";
                                 const isRejecting = actionState.studentId === student.id && actionState.type === "reject";
                                 const isBusy = actionState.studentId === student.id;
@@ -125,9 +187,16 @@ export default function PendingStudentsPage() {
                                     >
                                         <div className="mb-5 flex items-start justify-between gap-4">
                                             <div>
-                                                <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-amber-700">
-                                                    {student.status}
-                                                </span>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-amber-700">
+                                                        {student.status}
+                                                    </span>
+                                                    {student.resubmissionCount > 0 ? (
+                                                        <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">
+                                                            Resubmitted {student.resubmissionCount}x
+                                                        </span>
+                                                    ) : null}
+                                                </div>
                                                 <h2 className="mt-3 text-2xl font-bold text-slate-950">{student.name}</h2>
                                                 <p className="mt-1 text-sm text-slate-500">{student.email}</p>
                                             </div>
@@ -155,10 +224,51 @@ export default function PendingStudentsPage() {
                                             </div>
                                         </div>
 
+                                        {student.reviewReason || student.reviewNotes ? (
+                                            <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-blue-900">
+                                                <p className="font-semibold uppercase tracking-[0.12em] text-blue-700">
+                                                    Previous review context
+                                                </p>
+                                                {student.reviewReason ? (
+                                                    <p className="mt-2">
+                                                        <span className="font-semibold">Reason:</span> {student.reviewReason}
+                                                    </p>
+                                                ) : null}
+                                                {student.reviewNotes ? (
+                                                    <p className="mt-2 whitespace-pre-wrap">
+                                                        <span className="font-semibold">Notes:</span> {student.reviewNotes}
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                        ) : null}
+
+                                        <div className="mt-4 space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
+                                            <label className="block space-y-2">
+                                                <span className="text-sm font-semibold text-slate-700">Rejection reason</span>
+                                                <input
+                                                    type="text"
+                                                    value={draft.reviewReason}
+                                                    onChange={(event) => updateDraft(student.id, { reviewReason: event.target.value })}
+                                                    placeholder="Required if you reject this onboarding request"
+                                                    className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-red-300 focus:bg-white"
+                                                />
+                                            </label>
+                                            <label className="block space-y-2">
+                                                <span className="text-sm font-semibold text-slate-700">Reviewer notes</span>
+                                                <textarea
+                                                    value={draft.reviewNotes}
+                                                    onChange={(event) => updateDraft(student.id, { reviewNotes: event.target.value })}
+                                                    rows={4}
+                                                    placeholder="Optional notes recorded with the review decision"
+                                                    className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-300 focus:bg-white"
+                                                />
+                                            </label>
+                                        </div>
+
                                         <div className="mt-6 flex gap-3">
                                             <button
                                                 type="button"
-                                                onClick={() => handleAction(student.id, "approve")}
+                                                onClick={() => handleApprove(student.id)}
                                                 disabled={isBusy}
                                                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#0f8f55_0%,#22c55e_100%)] px-4 py-3 text-sm font-bold text-white shadow-[0_16px_36px_rgba(34,197,94,0.22)] transition hover:translate-y-[-1px] hover:shadow-[0_18px_40px_rgba(34,197,94,0.28)] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
                                             >
@@ -167,7 +277,7 @@ export default function PendingStudentsPage() {
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => handleAction(student.id, "reject")}
+                                                onClick={() => handleReject(student.id)}
                                                 disabled={isBusy}
                                                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                                             >

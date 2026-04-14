@@ -12,7 +12,7 @@ export default function ProtectedRoute() {
 
     if (
         session?.role === "STUDENT"
-        && session.studentStatus === "EMAIL_VERIFIED"
+        && (session.studentStatus === "EMAIL_VERIFIED" || session.studentStatus === "REJECTED")
         && location.pathname !== "/upload-documents"
     ) {
         return <Navigate to={getDefaultAppRoute(session.role, session.studentStatus)} replace />;

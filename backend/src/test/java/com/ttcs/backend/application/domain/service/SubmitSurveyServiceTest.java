@@ -181,7 +181,12 @@ class SubmitSurveyServiceTest {
                 new Department(1, "Computer Science"),
                 Status.ACTIVE,
                 null,
-                null
+                null,
+                null,
+                null,
+                null,
+                null,
+                0
         );
     }
 
