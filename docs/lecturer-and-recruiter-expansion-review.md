@@ -1,0 +1,382 @@
+# Lecturer and Recruiter Expansion Review
+
+## 1. Current Impression From Lecturer Perspective
+- What looks good:
+  - The project is broader than a minimal assignment. It includes onboarding, surveys, results, feedback, role separation, CI, and Docker packaging.
+  - The backend structure is stronger than average student work. The ports-and-adapters organization gives the system a more deliberate architecture (`README.md:172-180`).
+  - Core survey submission validation is serious enough to show attention to business rules (`backend/src/main/java/com/ttcs/backend/application/domain/service/SubmitSurveyService.java:35-217`).
+  - Student onboarding is not fake. It includes verification and document upload before activation (`backend/src/main/java/com/ttcs/backend/application/domain/service/AuthUseCaseService.java:90-320`).
+- What still feels like student work:
+  - Many flows stop at the first success state.
+    - onboarding ends at approve/reject
+    - surveys end at submission and static result viewing
+    - feedback ends at reply threads
+  - Admin flows expose raw system details instead of product-level workflows.
+    - department ID entry in survey/user admin UI
+    - file paths shown instead of document review UI
+  - Dashboards are visually polished but logically thin. They show totals, not operational decisions (`frontend/src/features/dashboard/pages/AdminDashboardPage.tsx:35-149`).
+  - Notifications are not a real business process. They are calculated on read, not managed as events (`backend/src/main/java/com/ttcs/backend/application/domain/service/GetStudentNotificationsService.java:30-97`).
+- What is missing for a stronger academic evaluation:
+  - Closed-loop lifecycles
+    - especially onboarding correction loop and survey campaign lifecycle
+  - Better governance
+    - approval notes, scoped access, audit trail
+  - Stronger business completeness
+    - participation tracking, response rate, unresolved feedback management
+  - Better evidence of “why this product works in practice”
+    - not just “which screens exist”
+
+## 2. Current Impression From Recruiter Perspective
+- What looks good:
+  - The repo shows solid full-stack fundamentals:
+    - Spring Boot API
+    - React frontend
+    - SQL schema
+    - CI
+    - container images
+  - The backend architecture is more mature than the average portfolio CRUD app.
+  - The project already demonstrates role-aware application behavior and some integration with a third-party email provider.
+  - The use cases and DTOs are explicit enough to signal engineering discipline.
+- What still looks shallow:
+  - Business depth is not yet matched by operational depth.
+  - The most obvious workflows are still thin:
+    - binary onboarding review
+    - role-only access scoping
+    - result pages with no denominator-based metrics
+    - toy-like feedback handling
+  - Technical breadth is still narrow in practice:
+    - no frontend tests
+    - no runtime orchestration
+    - no real background processing
+    - weak file handling realism
+  - Some details weaken credibility:
+    - plaintext-seeming seed passwords (`database/seed_data.sql:11-18`)
+    - local file copy for student documents
+    - mixed API style and thin reporting model
+- What is missing for stronger engineering credibility:
+  - A strong example of lifecycle/state modeling
+  - A stronger authorization model than static roles
+  - Some justified runtime or background processing
+  - Better testing breadth
+  - Better evidence that the project can be operated, not just built
+
+## 3. Additions That Most Improve Lecturer Evaluation
+- Onboarding correction workflow
+  - What it adds to product completeness:
+    - turns approval from a dead-end binary decision into a real institutional workflow
+  - What academic depth it shows:
+    - lifecycle modeling
+    - exception handling
+    - role logic
+  - Why it matters in evaluation:
+    - lecturers can see that the system handles realistic failure/rework cases rather than only happy paths
+- Survey lifecycle with draft/publish/archive states
+  - What it adds to product completeness:
+    - makes surveys look like governed campaigns, not data entries
+  - What academic depth it shows:
+    - state transitions
+    - business governance
+    - rules about when editing is allowed
+  - Why it matters in evaluation:
+    - this directly upgrades the project from “feature-complete” to “workflow-complete”
+- Recipient tracking and response-rate reporting
+  - What it adds to product completeness:
+    - closes the gap between assignment and submission
+  - What academic depth it shows:
+    - stronger domain modeling
+    - more realistic analytics
+    - evidence-based reporting
+  - Why it matters in evaluation:
+    - results become analytically meaningful, not just visual
+- Feedback ticket lifecycle
+  - What it adds to product completeness:
+    - gives feedback a real resolution path
+  - What academic depth it shows:
+    - service workflow thinking
+    - status management
+    - ownership logic
+  - Why it matters in evaluation:
+    - shows the project can support organizational process, not just data capture
+- Actionable dashboards
+  - What it adds to product completeness:
+    - turns cosmetic dashboards into operator workboards
+  - What academic depth it shows:
+    - operational thinking
+    - prioritization of action over display
+  - Why it matters in evaluation:
+    - demonstrates understanding of product usefulness, not just interface presence
+
+## 4. Additions That Most Improve Recruiter Impression
+- Scoped authorization beyond static roles
+  - What engineering strength it demonstrates:
+    - policy-based access design
+    - domain-aware authorization
+  - Why it is credible:
+    - the current repo already has role-based security, so this is a real extension, not a random add-on
+  - What problem it solves in the actual product:
+    - teachers should not see global results by default
+- Background jobs for reminders and stale-case checks
+  - What engineering strength it demonstrates:
+    - async/process separation
+    - operational scheduling
+  - Why it is credible:
+    - reminder and escalation behavior is a real missing need in this product
+  - What problem it solves in the actual product:
+    - notifications and reminders should not depend on page visits
+- Object storage for student documents
+  - What engineering strength it demonstrates:
+    - storage abstraction
+    - secure file-handling design
+  - Why it is credible:
+    - the system already handles identity documents
+  - What problem it solves in the actual product:
+    - local file-path storage is weak and not deployment-friendly
+- Audit logging for privileged actions
+  - What engineering strength it demonstrates:
+    - traceability
+    - operational accountability
+  - Why it is credible:
+    - the admin surface already includes high-impact actions
+  - What problem it solves in the actual product:
+    - no visible audit trail for approvals, closures, or deactivations
+- Frontend and integration tests
+  - What engineering strength it demonstrates:
+    - reliability discipline
+    - ability to protect flows during evolution
+  - Why it is credible:
+    - the repo is already large enough that regressions are likely
+  - What problem it solves in the actual product:
+    - current confidence is limited, especially on the frontend
+- Reporting read models / summary tables
+  - What engineering strength it demonstrates:
+    - read-optimized reporting design
+    - practical architecture maturity
+  - Why it is credible:
+    - survey analytics are a core product need here
+  - What problem it solves in the actual product:
+    - meaningful dashboard/report queries become cleaner and more scalable
+
+## 5. Best Overlap Additions
+- Onboarding correction workflow
+  - Business value:
+    - students can recover from rejection; admins can process cases more realistically
+  - Architecture/engineering value:
+    - requires state transitions, validation, and clearer status rules
+  - Why it is worth building:
+    - high lecturer value and high recruiter value with moderate implementation effort
+- Survey lifecycle plus participation tracking
+  - Business value:
+    - makes surveys measurable, governed, and operationally useful
+  - Architecture/engineering value:
+    - adds lifecycle modeling, reporting logic, and better domain separation
+  - Why it is worth building:
+    - strongest upgrade to the repo’s main business area
+- Scoped authorization for teacher/admin access
+  - Business value:
+    - fixes unrealistic data access
+  - Architecture/engineering value:
+    - demonstrates stronger authorization than role-only systems
+  - Why it is worth building:
+    - obvious governance win with strong engineering credibility
+- Audit logging
+  - Business value:
+    - provides accountability for decisions and changes
+  - Architecture/engineering value:
+    - shows operational maturity
+  - Why it is worth building:
+    - low flash, high credibility, strong internal-tool realism
+- Persistent notifications plus reminder jobs
+  - Business value:
+    - increases participation and makes workflows proactive
+  - Architecture/engineering value:
+    - demonstrates background processing and event-like operational handling
+  - Why it is worth building:
+    - visible product improvement and good technical breadth without overengineering
+
+## 6. Technology Recommendations With Evaluation Lens
+
+### Background jobs / scheduler
+- What it demonstrates technically:
+  - asynchronous workflow support
+  - time-based process execution
+- What product problem it solves:
+  - reminders, stale-case scanning, and notification generation
+- Whether lecturers will care:
+  - Yes, if it is tied to realistic product behavior
+- Whether recruiters will care:
+  - Yes, because it shows operational maturity beyond request/response CRUD
+- Whether it is worth the effort:
+  - Yes, high-value and justified
+
+### Object storage
+- What it demonstrates technically:
+  - externalized storage, file handling abstraction
+- What product problem it solves:
+  - safer handling of student documents and generated reports
+- Whether lecturers will care:
+  - Moderately, mostly as realism evidence
+- Whether recruiters will care:
+  - Yes, if implemented cleanly with an adapter and access controls
+- Whether it is worth the effort:
+  - Yes, once onboarding review becomes more serious
+
+### Policy-based authorization layer
+- What it demonstrates technically:
+  - authorization design beyond static role checks
+- What product problem it solves:
+  - teacher/admin data scoping
+- Whether lecturers will care:
+  - Yes, because it improves realism and governance
+- Whether recruiters will care:
+  - Yes, because it signals a stronger security model
+- Whether it is worth the effort:
+  - Yes, especially because the current repo clearly needs it
+
+### Audit logging
+- What it demonstrates technically:
+  - traceability and operational accountability
+- What product problem it solves:
+  - untracked privileged actions
+- Whether lecturers will care:
+  - Yes, because it strengthens system seriousness
+- Whether recruiters will care:
+  - Yes, especially for internal-tool realism
+- Whether it is worth the effort:
+  - Yes, very justified
+
+### Reporting read models / summary tables
+- What it demonstrates technically:
+  - reporting-aware backend design
+- What product problem it solves:
+  - cleaner response-rate dashboards and operational reporting
+- Whether lecturers will care:
+  - Yes, if it results in better analytics and clearer reporting
+- Whether recruiters will care:
+  - Yes, because it shows practical system evolution without fake complexity
+- Whether it is worth the effort:
+  - Yes, after recipient tracking exists
+
+### Frontend testing
+- What it demonstrates technically:
+  - UI reliability and regression protection
+- What product problem it solves:
+  - unstable multi-step flows as the product grows
+- Whether lecturers will care:
+  - Some will; mainly as evidence of quality discipline
+- Whether recruiters will care:
+  - Yes, because this repo currently lacks it
+- Whether it is worth the effort:
+  - Yes, especially for onboarding and survey admin flows
+
+### Deployment orchestration
+- What it demonstrates technically:
+  - runnable system packaging, not just separate images
+- What product problem it solves:
+  - poor local/demo reproducibility
+- Whether lecturers will care:
+  - Yes during demo/setup
+- Whether recruiters will care:
+  - Yes, though less than business-closure improvements
+- Whether it is worth the effort:
+  - Yes, but after higher-impact product changes
+
+## 7. What NOT To Add
+- Microservices
+  - Why it would likely be overengineering:
+    - the product does not have enough scale or team complexity to justify service decomposition
+  - Low demo value:
+    - it makes the project harder to explain and run
+  - Low product value:
+    - does not solve current business-depth gaps
+  - Hard to justify:
+    - lecturer will likely see it as architecture cosplay
+- Kafka or large-scale event infrastructure
+  - Why it would likely be overengineering:
+    - reminder jobs and internal notifications can be handled with simpler patterns first
+  - Low demo value:
+    - high setup burden, low visible user benefit
+  - Low product value:
+    - current domain problems are lifecycle and reporting, not throughput
+  - Hard to justify:
+    - recruiter may ask why a scheduler/outbox was not enough
+- Elasticsearch
+  - Why it would likely be overengineering:
+    - current repo does not yet have enough data complexity to justify separate search infra
+  - Low demo value:
+    - hard to explain unless filtering/reporting is already mature
+  - Low product value:
+    - SQL-backed filtering improvements should come first
+  - Hard to justify:
+    - would look like added complexity for optics
+- Kubernetes
+  - Why it would likely be overengineering:
+    - runtime orchestration is not the primary gap, and the repo does not even have a simple root stack yet
+  - Low demo value:
+    - a lot of setup with little product payoff
+  - Low product value:
+    - no change to user workflows
+  - Hard to justify:
+    - better to show clean compose-style orchestration first
+- AI features for comment summarization
+  - Why it would likely be overengineering:
+    - the core reporting and lifecycle model is not mature enough yet
+  - Low demo value:
+    - can feel gimmicky if base analytics are shallow
+  - Low product value:
+    - better qualitative workflow can be built first with tagging and classification
+  - Hard to justify:
+    - lecturer may see it as distracting from core system depth
+
+## 8. Best Balanced Expansion Scope
+- Recommended balanced scope:
+  - Product additions:
+    - onboarding correction loop with reviewer notes and rejection reasons
+    - survey draft/publish/archive lifecycle
+    - recipient tracking with response-rate reporting
+    - scoped teacher access
+    - actionable dashboards
+  - Technology additions:
+    - audit logging
+    - background jobs / scheduler
+    - object storage
+    - reporting read models
+    - frontend and integration tests
+- Why this is the best balance:
+  - Better academic score:
+    - it closes business flows and adds governance depth
+  - Better portfolio strength:
+    - it introduces broader but justified technical patterns
+  - Manageable implementation effort:
+    - it stays incremental and evolves the existing repo instead of replacing it
+- What this scope avoids:
+  - resume-driven infrastructure
+  - hard-to-demo complexity
+  - domain dilution
+
+## 9. Final Recommendation
+- Top 5 additions for lecturer value:
+  - onboarding correction workflow
+  - survey lifecycle states
+  - recipient tracking and response-rate reporting
+  - feedback ticket lifecycle
+  - actionable dashboards
+- Top 5 additions for recruiter value:
+  - scoped authorization
+  - audit logging
+  - background jobs/reminder workflow
+  - object storage for document handling
+  - frontend/integration testing
+- Top 7 additions overall:
+  - onboarding correction workflow
+  - survey lifecycle states
+  - recipient tracking and response-rate reporting
+  - scoped authorization
+  - audit logging
+  - persistent notifications plus reminder jobs
+  - object storage-backed document handling
+- Top 5 technologies/patterns overall:
+  - policy-based authorization layer
+  - audit logging
+  - background jobs / scheduler
+  - object storage
+  - reporting read models / summary tables
