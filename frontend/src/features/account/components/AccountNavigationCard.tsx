@@ -56,17 +56,28 @@ function AccountNavLink({
         <NavLink
             to={to}
             end={end}
-            className={({ isActive }) =>
-                [
-                    "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition",
-                    isActive
-                        ? "bg-slate-900 text-white shadow-sm"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
-                ].join(" ")
-            }
+            className={({ isActive }) => [
+                "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2",
+                isActive
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+            ].join(" ")}
         >
-            <span className="material-symbols-outlined text-[20px]">{icon}</span>
-            <span>{label}</span>
+            {({ isActive }) => (
+                <>
+                    <span
+                        className={[
+                            "material-symbols-outlined text-[20px] transition-colors",
+                            isActive ? "text-white" : "text-slate-500 group-hover:text-slate-900",
+                        ].join(" ")}
+                    >
+                        {icon}
+                    </span>
+                    <span className={isActive ? "text-white" : "text-slate-700 group-hover:text-slate-950"}>
+                        {label}
+                    </span>
+                </>
+            )}
         </NavLink>
     );
 }

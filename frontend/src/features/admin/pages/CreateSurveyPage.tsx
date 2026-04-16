@@ -20,6 +20,7 @@ import PageHeader from "../../../components/ui/PageHeader";
 import SectionCard from "../../../components/ui/SectionCard";
 import StatCard from "../../../components/ui/StatCard";
 import StatusBadge from "../../../components/ui/StatusBadge";
+import { darkActionButtonClass, darkActionButtonStyle } from "../../../components/ui/buttonStyles";
 import type { DepartmentOption } from "../../../types/admin";
 import type { CreateQuestionData, CreateSurveyData, SurveyLifecycleState, SurveyRuntimeStatus } from "../../../types/survey";
 
@@ -444,8 +445,10 @@ export default function CreateSurveyPage() {
                             ) : null}
 
                             <div className="flex justify-end">
-                                <button type="submit" disabled={loading || formLocked} className="inline-flex items-center rounded-2xl bg-slate-900 px-6 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
-                                    {loading ? "Saving..." : isEditMode ? "Save draft changes" : "Create draft"}
+                                <button type="submit" disabled={loading || formLocked} className={`${darkActionButtonClass} px-6 py-4 text-sm font-semibold`} style={darkActionButtonStyle}>
+                                    <span className="text-white" style={darkActionButtonStyle}>
+                                        {loading ? "Saving..." : isEditMode ? "Save draft changes" : "Create draft"}
+                                    </span>
                                 </button>
                             </div>
                         </form>

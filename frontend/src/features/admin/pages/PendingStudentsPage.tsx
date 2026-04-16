@@ -15,6 +15,7 @@ import LoadingState from "../../../components/ui/LoadingState";
 import PageHeader from "../../../components/ui/PageHeader";
 import SectionCard from "../../../components/ui/SectionCard";
 import StatusBadge from "../../../components/ui/StatusBadge";
+import { darkActionButtonClass, darkActionButtonStyle } from "../../../components/ui/buttonStyles";
 import type { PendingStudent } from "../../../types/admin";
 
 type ActionState = {
@@ -344,8 +345,10 @@ export default function PendingStudentsPage() {
                                                         <textarea value={drafts[activeStudent.id]?.reviewNotes ?? ""} onChange={(event) => updateDraft(activeStudent.id, { reviewNotes: event.target.value })} rows={5} placeholder="Optional notes recorded with the review decision" className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5" />
                                                     </label>
                                                     <div className="grid gap-3 md:grid-cols-2">
-                                                        <button type="button" onClick={() => setConfirmAction("approve")} disabled={actionState.studentId === activeStudent.id} className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
-                                                            {actionState.studentId === activeStudent.id && actionState.type === "approve" ? "Approving..." : "Approve"}
+                                                        <button type="button" onClick={() => setConfirmAction("approve")} disabled={actionState.studentId === activeStudent.id} className={`${darkActionButtonClass} px-4 py-3 text-sm font-semibold`} style={darkActionButtonStyle}>
+                                                            <span className="text-white" style={darkActionButtonStyle}>
+                                                                {actionState.studentId === activeStudent.id && actionState.type === "approve" ? "Approving..." : "Approve"}
+                                                            </span>
                                                         </button>
                                                         <button type="button" onClick={() => setConfirmAction("reject")} disabled={actionState.studentId === activeStudent.id} className="inline-flex items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60">
                                                             {actionState.studentId === activeStudent.id && actionState.type === "reject" ? "Rejecting..." : "Reject"}

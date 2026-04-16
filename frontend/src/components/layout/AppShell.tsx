@@ -27,7 +27,7 @@ export default function AppShell() {
                         <button
                             type="button"
                             aria-label="Close navigation"
-                            className="absolute inset-0 bg-slate-950/40"
+                            className="absolute inset-0 bg-slate-950/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                             onClick={() => setMobileNavigationOpen(false)}
                         />
                         <div className="relative h-full w-[292px] max-w-[85vw]">

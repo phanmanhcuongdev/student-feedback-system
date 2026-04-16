@@ -1,3 +1,5 @@
+import { darkActionButtonClass, darkActionButtonStyle } from "./buttonStyles";
+
 type ConfirmDialogProps = {
     open: boolean;
     title: string;
@@ -24,8 +26,8 @@ export default function ConfirmDialog({
     }
 
     const confirmClassName = tone === "danger"
-        ? "border-red-200 bg-red-600 text-white hover:bg-red-700"
-        : "border-slate-900 bg-slate-900 text-white hover:bg-slate-800";
+        ? "border-red-200 bg-red-600 text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+        : `${darkActionButtonClass} border border-slate-900`;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-6">
@@ -47,8 +49,11 @@ export default function ConfirmDialog({
                         onClick={onConfirm}
                         disabled={busy}
                         className={`inline-flex items-center justify-center rounded-2xl border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${confirmClassName}`}
+                        style={tone === "danger" ? undefined : darkActionButtonStyle}
                     >
-                        {busy ? "Working..." : confirmLabel}
+                        <span className={tone === "danger" ? "" : "text-white"} style={tone === "danger" ? undefined : darkActionButtonStyle}>
+                            {busy ? "Working..." : confirmLabel}
+                        </span>
                     </button>
                 </div>
             </div>

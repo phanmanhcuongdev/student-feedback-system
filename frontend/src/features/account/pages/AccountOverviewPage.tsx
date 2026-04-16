@@ -4,6 +4,7 @@ import EmptyState from "../../../components/ui/EmptyState";
 import InfoCard from "../../../components/ui/InfoCard";
 import SectionCard from "../../../components/ui/SectionCard";
 import StatusBadge from "../../../components/ui/StatusBadge";
+import { darkActionButtonClass, darkActionButtonStyle } from "../../../components/ui/buttonStyles";
 
 export default function AccountOverviewPage() {
     const { session } = useAuth();
@@ -53,10 +54,11 @@ export default function AccountOverviewPage() {
                     </p>
                     <Link
                         to="/account/security"
-                        className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+                        className={`mt-5 w-full px-4 py-3 text-sm font-bold ${darkActionButtonClass}`}
+                        style={darkActionButtonStyle}
                     >
-                        <span>Open security settings</span>
-                        <span className="material-symbols-outlined text-[18px]">shield_lock</span>
+                        <span className="text-white" style={darkActionButtonStyle}>Open security settings</span>
+                        <span className="material-symbols-outlined text-[18px] text-white" style={darkActionButtonStyle}>shield_lock</span>
                     </Link>
                 </SectionCard>
             </div>

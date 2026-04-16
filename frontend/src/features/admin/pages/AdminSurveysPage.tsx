@@ -15,6 +15,7 @@ import LoadingState from "../../../components/ui/LoadingState";
 import PageHeader from "../../../components/ui/PageHeader";
 import StatCard from "../../../components/ui/StatCard";
 import StatusBadge from "../../../components/ui/StatusBadge";
+import { darkActionButtonClass, darkActionButtonStyle } from "../../../components/ui/buttonStyles";
 import type { ManagedSurveyMetrics, ManagedSurveySummary } from "../../../types/survey";
 
 type SurveyActionType = "publish" | "close" | "archive" | "show" | "hide";
@@ -289,9 +290,9 @@ export default function AdminSurveysPage() {
                             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">
                                 {totalElements} matching survey{totalElements === 1 ? "" : "s"}
                             </div>
-                            <Link to="/admin/surveys/create" className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
-                                <span className="material-symbols-outlined text-[18px]">add</span>
-                                Create survey
+                            <Link to="/admin/surveys/create" className={`${darkActionButtonClass} px-5 py-3 text-sm font-semibold`} aria-label="Create survey" style={darkActionButtonStyle}>
+                                <span className="material-symbols-outlined text-[18px] text-white" style={darkActionButtonStyle}>add</span>
+                                <span className="text-white" style={darkActionButtonStyle}>Create survey</span>
                             </Link>
                         </>
                     )}
@@ -342,7 +343,7 @@ export default function AdminSurveysPage() {
                             title="No matching surveys"
                             description="Adjust the filters, date window, or search terms to find the survey campaign you need."
                             icon="assignment"
-                            action={<Link to="/admin/surveys/create" className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">Create survey</Link>}
+                            action={<Link to="/admin/surveys/create" className={`${darkActionButtonClass} px-4 py-3 text-sm font-semibold`} aria-label="Create survey" style={darkActionButtonStyle}><span className="text-white" style={darkActionButtonStyle}>Create survey</span></Link>}
                         />
                     ) : (
                         <>

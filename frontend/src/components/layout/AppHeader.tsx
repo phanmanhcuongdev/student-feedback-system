@@ -52,7 +52,7 @@ export default function AppHeader({ onOpenNavigation }: AppHeaderProps) {
                     <button
                         type="button"
                         onClick={onOpenNavigation}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 lg:hidden"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 lg:hidden"
                         aria-label="Open navigation"
                     >
                         <span className="material-symbols-outlined text-[20px]">menu</span>
@@ -73,7 +73,7 @@ export default function AppHeader({ onOpenNavigation }: AppHeaderProps) {
                         <button
                             type="button"
                             onClick={() => setMenuOpen((current) => !current)}
-                            className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-left transition hover:border-slate-300 hover:bg-slate-100 sm:px-4"
+                            className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-left transition hover:border-slate-300 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:px-4"
                             aria-haspopup="menu"
                             aria-expanded={menuOpen}
                         >
@@ -110,7 +110,7 @@ export default function AppHeader({ onOpenNavigation }: AppHeaderProps) {
                                     <button
                                         type="button"
                                         onClick={handleLogout}
-                                        className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
+                                        className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
                                     >
                                         <span className="material-symbols-outlined text-[20px]">logout</span>
                                         <span>Logout</span>
@@ -140,7 +140,7 @@ function HeaderMenuLink({
         <Link
             to={to}
             onClick={onClick}
-            className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
+            className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
         >
             <span className="material-symbols-outlined text-[20px]">{icon}</span>
             <span>{label}</span>

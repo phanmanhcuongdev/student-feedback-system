@@ -4,6 +4,7 @@ import { getApiErrorMessage } from "../../../api/apiError";
 import ErrorState from "../../../components/ui/ErrorState";
 import FormSection from "../../../components/ui/FormSection";
 import PageHeader from "../../../components/ui/PageHeader";
+import { darkActionButtonClass, darkActionButtonStyle } from "../../../components/ui/buttonStyles";
 
 export default function ChangePasswordPage() {
     const [currentPassword, setCurrentPassword] = useState("");
@@ -116,10 +117,11 @@ export default function ChangePasswordPage() {
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-65"
+                        className={`${darkActionButtonClass} w-full px-5 py-3.5 text-sm font-bold`}
+                        style={darkActionButtonStyle}
                     >
-                        <span>{submitting ? "Updating..." : "Change password"}</span>
-                        <span className="material-symbols-outlined text-base">password</span>
+                        <span className="text-white" style={darkActionButtonStyle}>{submitting ? "Updating..." : "Change password"}</span>
+                        <span className="material-symbols-outlined text-base text-white" style={darkActionButtonStyle}>password</span>
                     </button>
                 </form>
                 </FormSection>

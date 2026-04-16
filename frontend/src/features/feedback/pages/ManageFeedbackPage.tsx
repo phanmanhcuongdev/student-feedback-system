@@ -12,6 +12,7 @@ import LoadingState from "../../../components/ui/LoadingState";
 import PageHeader from "../../../components/ui/PageHeader";
 import SectionCard from "../../../components/ui/SectionCard";
 import StatusBadge from "../../../components/ui/StatusBadge";
+import { darkActionButtonClass, darkActionButtonStyle } from "../../../components/ui/buttonStyles";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { getAllFeedback, respondToFeedback } from "../../../api/feedbackApi";
 import type { FeedbackResponse, StaffFeedback } from "../../../types/feedback";
@@ -284,8 +285,10 @@ export default function ManageFeedbackPage() {
                                                     />
                                                 </label>
                                                 <div className="flex justify-end">
-                                                    <button type="button" onClick={() => void handleRespond(activeItem.id)} disabled={submittingId === activeItem.id} className="inline-flex items-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
-                                                        {submittingId === activeItem.id ? "Sending..." : "Send response"}
+                                                    <button type="button" onClick={() => void handleRespond(activeItem.id)} disabled={submittingId === activeItem.id} className={`${darkActionButtonClass} px-5 py-3 text-sm font-semibold`} style={darkActionButtonStyle}>
+                                                        <span className="text-white" style={darkActionButtonStyle}>
+                                                            {submittingId === activeItem.id ? "Sending..." : "Send response"}
+                                                        </span>
                                                     </button>
                                                 </div>
                                             </SectionCard>
