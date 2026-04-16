@@ -14,7 +14,7 @@ class SurveyAssignmentMapperTest {
     void shouldMapLowercaseAssignmentTypesWithoutCrashing() {
         SurveyAssignmentEntity entity = new SurveyAssignmentEntity();
         entity.setId(1);
-        entity.setSurvey(new SurveyEntity(1, "Title", "Desc", null, null, false, null));
+        entity.setSurvey(new SurveyEntity(1, "Title", "Desc", null, null, false, "DRAFT", null));
         entity.setEvaluatorType("student");
         entity.setSubjectType("department");
         entity.setSubjectValue(2);
@@ -31,7 +31,7 @@ class SurveyAssignmentMapperTest {
     void shouldReturnNullForInvalidAssignmentType() {
         SurveyAssignmentEntity entity = new SurveyAssignmentEntity();
         entity.setId(1);
-        entity.setSurvey(new SurveyEntity(1, "Title", "Desc", null, null, false, null));
+        entity.setSurvey(new SurveyEntity(1, "Title", "Desc", null, null, false, "DRAFT", null));
         entity.setEvaluatorType("BROKEN");
         entity.setSubjectType("ALL");
 

@@ -3,6 +3,7 @@ package com.ttcs.backend.adapter.out.persistence.survey;
 import com.ttcs.backend.adapter.out.persistence.admin.AdminEntity;
 import com.ttcs.backend.adapter.out.persistence.admin.AdminRepository;
 import com.ttcs.backend.application.domain.model.Survey;
+import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -38,7 +39,8 @@ class SurveyPersistenceAdapterTest {
                 LocalDateTime.now(),
                 LocalDateTime.now().plusDays(1),
                 7,
-                false
+                false,
+                SurveyLifecycleState.DRAFT
         );
         AdminEntity managedAdmin = new AdminEntity();
         managedAdmin.setId(7);

@@ -2,18 +2,20 @@ package com.ttcs.backend.adapter.in.web;
 
 import com.ttcs.backend.adapter.in.web.dto.ChangePasswordRequest;
 import com.ttcs.backend.adapter.in.web.dto.ChangePasswordResponse;
-import com.ttcs.backend.adapter.in.web.dto.LoginRequest;
-import com.ttcs.backend.adapter.in.web.dto.LoginResponse;
 import com.ttcs.backend.adapter.in.web.dto.ForgotPasswordRequest;
 import com.ttcs.backend.adapter.in.web.dto.ForgotPasswordResponse;
+import com.ttcs.backend.adapter.in.web.dto.LoginRequest;
+import com.ttcs.backend.adapter.in.web.dto.LoginResponse;
 import com.ttcs.backend.adapter.in.web.dto.RegisterStudentRequest;
 import com.ttcs.backend.adapter.in.web.dto.RegisterStudentResponse;
 import com.ttcs.backend.adapter.in.web.dto.ResetPasswordRequest;
 import com.ttcs.backend.adapter.in.web.dto.ResetPasswordResponse;
+import com.ttcs.backend.adapter.in.web.dto.StudentOnboardingStatusResponse;
 import com.ttcs.backend.adapter.in.web.dto.UploadDocumentsResponse;
 import com.ttcs.backend.adapter.in.web.dto.VerifyEmailResponse;
 import com.ttcs.backend.application.port.in.auth.ChangePasswordUseCase;
 import com.ttcs.backend.application.port.in.auth.ForgotPasswordUseCase;
+import com.ttcs.backend.application.port.in.auth.GetStudentOnboardingStatusUseCase;
 import com.ttcs.backend.application.port.in.auth.LoginUseCase;
 import com.ttcs.backend.application.port.in.auth.RegisterStudentUseCase;
 import com.ttcs.backend.application.port.in.auth.ResetPasswordUseCase;
@@ -31,13 +33,19 @@ import com.ttcs.backend.application.port.in.auth.result.ForgotPasswordResult;
 import com.ttcs.backend.application.port.in.auth.result.LoginResult;
 import com.ttcs.backend.application.port.in.auth.result.RegisterStudentResult;
 import com.ttcs.backend.application.port.in.auth.result.ResetPasswordResult;
+import com.ttcs.backend.application.port.in.auth.result.StudentOnboardingStatusResult;
 import com.ttcs.backend.application.port.in.auth.result.UploadStudentDocumentsResult;
 import com.ttcs.backend.application.port.in.auth.result.VerifyEmailResult;
 import com.ttcs.backend.common.WebAdapter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
 @WebAdapter
@@ -48,6 +56,7 @@ public class AuthController {
     private final RegisterStudentUseCase registerStudentUseCase;
     private final VerifyEmailUseCase verifyEmailUseCase;
     private final UploadStudentDocumentsUseCase uploadStudentDocumentsUseCase;
+    private final GetStudentOnboardingStatusUseCase getStudentOnboardingStatusUseCase;
     private final LoginUseCase loginUseCase;
     private final ChangePasswordUseCase changePasswordUseCase;
     private final ForgotPasswordUseCase forgotPasswordUseCase;
@@ -98,6 +107,25 @@ public class AuthController {
                 result.isSuccess(),
                 result.getCode(),
                 result.getMessage()
+        ));
+    }
+
+    @GetMapping("/onboarding-status")
+    public ResponseEntity<StudentOnboardingStatusResponse> getOnboardingStatus() {
+        StudentOnboardingStatusResult result = getStudentOnboardingStatusUseCase.getStatus(
+                currentStudentProvider.currentStudentId()
+        );
+
+        return ResponseEntity.ok(new StudentOnboardingStatusResponse(
+                result.success(),
+                result.code(),
+                result.message(),
+                result.status(),
+                result.reviewReason(),
+                result.reviewNotes(),
+                result.hasUploadedDocuments(),
+                result.canUploadDocuments(),
+                result.resubmissionCount()
         ));
     }
 

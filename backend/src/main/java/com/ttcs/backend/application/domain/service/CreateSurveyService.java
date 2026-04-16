@@ -1,10 +1,11 @@
 package com.ttcs.backend.application.domain.service;
 
-import com.ttcs.backend.application.domain.model.Question;
 import com.ttcs.backend.application.domain.model.EvaluatorType;
+import com.ttcs.backend.application.domain.model.Question;
 import com.ttcs.backend.application.domain.model.SubjectType;
 import com.ttcs.backend.application.domain.model.Survey;
 import com.ttcs.backend.application.domain.model.SurveyAssignment;
+import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
 import com.ttcs.backend.application.domain.model.SurveyRecipientScope;
 import com.ttcs.backend.application.port.in.CreateSurveyUseCase;
 import com.ttcs.backend.application.port.in.command.CreateSurveyCommand;
@@ -28,30 +29,44 @@ public class CreateSurveyService implements CreateSurveyUseCase {
     @Override
     @Transactional
     public Integer createSurvey(CreateSurveyCommand command) {
-        // Create and save Survey
-        Survey survey = new Survey(
+        if (command == null || isBlank(command.title())) {
+            throw new IllegalArgumentException("Survey title is required");
+        }
+        if (command.recipientScope() == null) {
+            throw new IllegalArgumentException("Recipient scope is required");
+        }
+        if (command.startDate() != null && command.endDate() != null && command.endDate().isBefore(command.startDate())) {
+            throw new IllegalArgumentException("End date must be after start date");
+        }
+        if (command.questions() == null || command.questions().isEmpty()) {
+            throw new IllegalArgumentException("At least one question is required");
+        }
+        if (command.questions().stream().anyMatch(question -> question == null || isBlank(question.content()))) {
+            throw new IllegalArgumentException("All questions must have content");
+        }
+        if (command.recipientScope() == SurveyRecipientScope.DEPARTMENT && command.recipientDepartmentId() == null) {
+            throw new IllegalArgumentException("Recipient department is required for department scope");
+        }
+
+        Survey savedSurvey = saveSurveyPort.save(new Survey(
                 null,
-                command.title(),
+                command.title().trim(),
                 command.description(),
                 command.startDate(),
                 command.endDate(),
                 command.createdBy(),
-                false
-        );
-        Survey savedSurvey = saveSurveyPort.save(survey);
+                false,
+                SurveyLifecycleState.DRAFT
+        ));
 
-        // Create and save Questions with the newly generated Survey ID
-        if (command.questions() != null && !command.questions().isEmpty()) {
-            List<Question> questionsToSave = command.questions().stream()
-                    .map(qCmd -> new Question(
-                            null,
-                            savedSurvey.getId(),
-                            qCmd.content(),
-                            qCmd.type()
-                    ))
-                    .toList();
-            saveQuestionPort.saveAll(questionsToSave);
-        }
+        saveQuestionPort.saveAll(command.questions().stream()
+                .map(qCmd -> new Question(
+                        null,
+                        savedSurvey.getId(),
+                        qCmd.content(),
+                        qCmd.type()
+                ))
+                .toList());
 
         saveSurveyAssignmentPort.replaceAssignments(
                 savedSurvey.getId(),
@@ -81,5 +96,9 @@ public class CreateSurveyService implements CreateSurveyUseCase {
                 SubjectType.ALL,
                 null
         );
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }

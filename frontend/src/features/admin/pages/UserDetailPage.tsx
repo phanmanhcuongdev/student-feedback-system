@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { activateUser, deactivateUser, getUserDetail, updateUser } from "../../../api/adminApi";
 import { getApiErrorMessage } from "../../../api/apiError";
-import MainFooter from "../../../components/layout/MainFooter";
-import MainHeader from "../../../components/layout/MainHeader";
 import type { ManagedUserDetail } from "../../../types/admin";
 
 export default function UserDetailPage() {
@@ -108,10 +106,8 @@ export default function UserDetailPage() {
     }
 
     return (
-        <>
-            <MainHeader />
-            <main className="min-h-screen bg-[linear-gradient(180deg,#f7f8fb_0%,#eef1f5_44%,#fafbfd_100%)]">
-                <div className="mx-auto max-w-screen-lg px-6 py-10">
+        <main className="bg-[linear-gradient(180deg,#f7f8fb_0%,#eef1f5_44%,#fafbfd_100%)]">
+            <div className="mx-auto max-w-screen-lg px-6 py-10">
                     <div className="mb-8 flex items-center justify-between gap-4">
                         <div>
                             <span className="mb-3 inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-slate-700">
@@ -274,9 +270,7 @@ export default function UserDetailPage() {
                             </section>
                         </div>
                     )}
-                </div>
-            </main>
-            <MainFooter />
-        </>
+            </div>
+        </main>
     );
 }

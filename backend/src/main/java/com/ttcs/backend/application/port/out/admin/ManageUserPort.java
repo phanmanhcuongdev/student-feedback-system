@@ -9,6 +9,10 @@ import java.util.Optional;
 public interface ManageUserPort {
     List<ManagedUser> loadAll();
 
+    ManagedUserSearchPage loadPage(ManageUsersQuery query);
+
+    List<Department> loadDepartments();
+
     Optional<ManagedUser> loadById(Integer userId);
 
     Optional<Department> loadDepartmentById(Integer departmentId);

@@ -2,8 +2,8 @@ import { type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { getAllSurveys } from "../../../api/surveyApi";
-import MainFooter from "../../../components/layout/MainFooter";
-import MainHeader from "../../../components/layout/MainHeader";
+import ErrorState from "../../../components/ui/ErrorState";
+import LoadingState from "../../../components/ui/LoadingState";
 import type { Survey } from "../../../types/survey";
 
 function formatDate(date: string) {
@@ -44,10 +44,8 @@ export default function StudentDashboardPage() {
         .slice(0, 3);
 
     return (
-        <>
-            <MainHeader />
-            <main className="min-h-screen bg-[linear-gradient(180deg,#f5f9ff_0%,#eef4fb_42%,#f8fbfd_100%)]">
-                <div className="mx-auto max-w-screen-xl px-6 py-10">
+        <main className="bg-slate-100">
+            <div className="mx-auto max-w-screen-xl px-6 py-10">
                     <div className="mb-10 max-w-3xl">
                         <span className="mb-3 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-blue-700">
                             Student Dashboard
@@ -60,16 +58,10 @@ export default function StudentDashboardPage() {
                         </p>
                     </div>
 
-                    {error ? (
-                        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                            {error}
-                        </div>
-                    ) : null}
+                    {error ? <ErrorState description={error} /> : null}
 
                     {loading ? (
-                        <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-10 text-sm font-medium text-slate-500 shadow-sm">
-                            Loading dashboard...
-                        </div>
+                        <LoadingState label="Loading dashboard..." />
                     ) : (
                         <>
                             <div className="grid gap-5 md:grid-cols-3">
@@ -167,10 +159,8 @@ export default function StudentDashboardPage() {
                             </div>
                         </>
                     )}
-                </div>
-            </main>
-            <MainFooter />
-        </>
+            </div>
+        </main>
     );
 }
 

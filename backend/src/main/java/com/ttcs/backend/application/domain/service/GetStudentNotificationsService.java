@@ -1,11 +1,12 @@
 package com.ttcs.backend.application.domain.service;
 
 import com.ttcs.backend.application.domain.model.Survey;
+import com.ttcs.backend.application.domain.model.SurveyRecipient;
 import com.ttcs.backend.application.domain.model.SurveyStatus;
 import com.ttcs.backend.application.port.in.resultview.GetStudentNotificationsUseCase;
 import com.ttcs.backend.application.port.in.resultview.StudentNotificationResult;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
-import com.ttcs.backend.application.port.out.LoadSurveyResponsePort;
+import com.ttcs.backend.application.port.out.LoadSurveyRecipientPort;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 
@@ -25,16 +26,19 @@ public class GetStudentNotificationsService implements GetStudentNotificationsUs
     private static final long CLOSED_RECENTLY_DAYS = 2;
 
     private final LoadSurveyPort loadSurveyPort;
-    private final LoadSurveyResponsePort loadSurveyResponsePort;
+    private final LoadSurveyRecipientPort loadSurveyRecipientPort;
 
     @Override
     public List<StudentNotificationResult> getNotifications(Integer studentId) {
         LocalDateTime now = LocalDateTime.now();
         List<StudentNotificationResult> notifications = new ArrayList<>();
 
-        for (Survey survey : loadSurveyPort.loadAll()) {
-            boolean submitted = loadSurveyResponsePort.existsBySurveyIdAndStudentId(survey.getId(), studentId);
-            notifications.addAll(toNotifications(survey, submitted, now));
+        for (SurveyRecipient recipient : loadSurveyRecipientPort.loadByStudentId(studentId)) {
+            Survey survey = loadSurveyPort.loadById(recipient.getSurveyId()).orElse(null);
+            if (survey == null) {
+                continue;
+            }
+            notifications.addAll(toNotifications(survey, recipient, now));
         }
 
         return notifications.stream()
@@ -42,11 +46,15 @@ public class GetStudentNotificationsService implements GetStudentNotificationsUs
                 .toList();
     }
 
-    private List<StudentNotificationResult> toNotifications(Survey survey, boolean submitted, LocalDateTime now) {
+    private List<StudentNotificationResult> toNotifications(Survey survey, SurveyRecipient recipient, LocalDateTime now) {
         List<StudentNotificationResult> notifications = new ArrayList<>();
         SurveyStatus status = survey.statusAt(now);
 
-        if (status == SurveyStatus.OPEN && !submitted && isWithinPastDays(survey.getStartDate(), now, NEW_SURVEY_DAYS)) {
+        if (!survey.isPublished() || survey.isHidden()) {
+            return notifications;
+        }
+
+        if (status == SurveyStatus.OPEN && !recipient.hasSubmitted() && isWithinPastDays(survey.getStartDate(), now, NEW_SURVEY_DAYS)) {
             notifications.add(new StudentNotificationResult(
                     "NEW_SURVEY",
                     "New survey available",
@@ -70,7 +78,7 @@ public class GetStudentNotificationsService implements GetStudentNotificationsUs
             ));
         }
 
-        if (status == SurveyStatus.OPEN && !submitted && isWithinNextDays(survey.getEndDate(), now, CLOSING_SOON_DAYS)) {
+        if (status == SurveyStatus.OPEN && !recipient.hasSubmitted() && isWithinNextDays(survey.getEndDate(), now, CLOSING_SOON_DAYS)) {
             notifications.add(new StudentNotificationResult(
                     "CLOSING_SOON",
                     "Survey closing soon",
@@ -82,7 +90,7 @@ public class GetStudentNotificationsService implements GetStudentNotificationsUs
             ));
         }
 
-        if (status == SurveyStatus.CLOSED && !submitted && isWithinPastDays(survey.getEndDate(), now, CLOSED_RECENTLY_DAYS)) {
+        if (status == SurveyStatus.CLOSED && !recipient.hasSubmitted() && isWithinPastDays(survey.getEndDate(), now, CLOSED_RECENTLY_DAYS)) {
             notifications.add(new StudentNotificationResult(
                     "CLOSED",
                     "Survey closed",

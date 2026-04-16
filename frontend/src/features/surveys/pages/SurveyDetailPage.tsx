@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import Footer from "../../../components/layout/MainFooter";
-import MainHeader from "../../../components/layout/MainHeader";
+import ErrorState from "../../../components/ui/ErrorState";
+import LoadingState from "../../../components/ui/LoadingState";
 import type { AnswersState } from "../../../types/surveyDetail";
 import SurveyDetailMain from "../components/SurveyDetailMain";
 import { useSubmitSurvey } from "../hooks/useSubmitSurvey";
@@ -69,9 +69,7 @@ export default function SurveyDetailPage() {
 
     return (
         <>
-            <MainHeader />
-
-            <div className="min-h-screen bg-[#f8f9ff] text-[#0b1c30]">
+            <div className="min-h-screen bg-slate-100 text-slate-900">
                 <div className="mx-auto max-w-3xl px-6 pt-8">
                     <Link
                         to="/surveys"
@@ -83,16 +81,14 @@ export default function SurveyDetailPage() {
                 </div>
 
                 {loading && (
-                    <div className="mx-auto max-w-3xl px-6 pt-12 text-lg font-medium text-slate-500">
-                        Loading survey...
+                    <div className="mx-auto max-w-3xl px-6 pt-12">
+                        <LoadingState label="Loading survey..." />
                     </div>
                 )}
 
                 {error && (
                     <div className="mx-auto max-w-3xl px-6 pt-12">
-                        <div className="rounded-xl bg-red-50 p-4 text-red-600 shadow-sm">
-                            {error}
-                        </div>
+                        <ErrorState description={error} />
                     </div>
                 )}
 
@@ -114,7 +110,6 @@ export default function SurveyDetailPage() {
                 message={submitModal.message}
                 onOk={handleModalOk}
             />
-            <Footer />
         </>
     );
 }

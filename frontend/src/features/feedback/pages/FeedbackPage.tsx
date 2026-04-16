@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFeedback, getStudentFeedback } from "../../../api/feedbackApi";
 import { getApiErrorMessage } from "../../../api/apiError";
-import MainFooter from "../../../components/layout/MainFooter";
-import MainHeader from "../../../components/layout/MainHeader";
 import type { FeedbackResponse, StudentFeedback } from "../../../types/feedback";
 
 function formatDate(date: string) {
@@ -70,10 +68,8 @@ export default function FeedbackPage() {
     }
 
     return (
-        <>
-            <MainHeader />
-            <main className="min-h-screen bg-[linear-gradient(180deg,#f4f8ff_0%,#eef3f8_44%,#f7fafc_100%)]">
-                <div className="mx-auto max-w-screen-lg px-6 py-10">
+        <main className="bg-[linear-gradient(180deg,#f4f8ff_0%,#eef3f8_44%,#f7fafc_100%)]">
+            <div className="mx-auto max-w-screen-lg px-6 py-10">
                     <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
                         <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
                             <div className="mb-8">
@@ -193,10 +189,8 @@ export default function FeedbackPage() {
                             )}
                         </section>
                     </div>
-                </div>
-            </main>
-            <MainFooter />
-        </>
+            </div>
+        </main>
     );
 }
 

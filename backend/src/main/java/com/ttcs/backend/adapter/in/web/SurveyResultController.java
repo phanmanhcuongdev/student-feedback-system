@@ -25,11 +25,15 @@ public class SurveyResultController {
 
     private final GetSurveyResultListUseCase getSurveyResultListUseCase;
     private final GetSurveyResultDetailUseCase getSurveyResultDetailUseCase;
+    private final CurrentStudentProvider currentStudentProvider;
 
     @GetMapping
     public ResponseEntity<List<SurveyResultSummaryResponse>> getSurveyResults() {
         return ResponseEntity.ok(
-                getSurveyResultListUseCase.getSurveyResults().stream()
+                getSurveyResultListUseCase.getSurveyResults(
+                                currentStudentProvider.currentUserId(),
+                                currentStudentProvider.currentRole()
+                        ).stream()
                         .map(this::toSummaryResponse)
                         .toList()
         );
@@ -37,7 +41,13 @@ public class SurveyResultController {
 
     @GetMapping("/{surveyId}")
     public ResponseEntity<SurveyResultDetailResponse> getSurveyResult(@PathVariable Integer surveyId) {
-        return ResponseEntity.ok(toDetailResponse(getSurveyResultDetailUseCase.getSurveyResult(surveyId)));
+        return ResponseEntity.ok(toDetailResponse(
+                getSurveyResultDetailUseCase.getSurveyResult(
+                        surveyId,
+                        currentStudentProvider.currentUserId(),
+                        currentStudentProvider.currentRole()
+                )
+        ));
     }
 
     private SurveyResultSummaryResponse toSummaryResponse(SurveyResultSummaryResult result) {
@@ -48,7 +58,15 @@ public class SurveyResultController {
                 result.startDate(),
                 result.endDate(),
                 result.status(),
-                result.responseCount()
+                result.lifecycleState(),
+                result.runtimeStatus(),
+                result.recipientScope(),
+                result.recipientDepartmentName(),
+                result.responseCount(),
+                result.targetedCount(),
+                result.openedCount(),
+                result.submittedCount(),
+                result.responseRate()
         );
     }
 
@@ -60,7 +78,15 @@ public class SurveyResultController {
                 result.startDate(),
                 result.endDate(),
                 result.status(),
+                result.lifecycleState(),
+                result.runtimeStatus(),
+                result.recipientScope(),
+                result.recipientDepartmentName(),
                 result.responseCount(),
+                result.targetedCount(),
+                result.openedCount(),
+                result.submittedCount(),
+                result.responseRate(),
                 result.questions().stream().map(this::toQuestionResponse).toList()
         );
     }

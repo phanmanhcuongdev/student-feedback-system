@@ -5,8 +5,11 @@ public record ManagedUserSummaryResult(
         String email,
         String role,
         String name,
+        Integer departmentId,
         String departmentName,
         String studentStatus,
-        boolean active
+        boolean active,
+        String studentCode,
+        String teacherCode
 ) {
 }

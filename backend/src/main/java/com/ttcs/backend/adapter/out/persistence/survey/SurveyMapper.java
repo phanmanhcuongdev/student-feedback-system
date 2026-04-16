@@ -1,5 +1,6 @@
 package com.ttcs.backend.adapter.out.persistence.survey;
 
+import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
 import com.ttcs.backend.application.domain.model.Survey;
 
 public final class SurveyMapper {
@@ -19,7 +20,8 @@ public final class SurveyMapper {
                 entity.getStartDate(),
                 entity.getEndDate(),
                 entity.getCreatedBy() != null ? entity.getCreatedBy().getId() : null,
-                entity.isHidden()
+                entity.isHidden(),
+                parseLifecycleState(entity.getLifecycleState())
         );
     }
 
@@ -33,7 +35,15 @@ public final class SurveyMapper {
         entity.setStartDate(domain.getStartDate());
         entity.setEndDate(domain.getEndDate());
         entity.setHidden(domain.isHidden());
+        entity.setLifecycleState(domain.getLifecycleState().name());
 
         return entity;
+    }
+
+    private static SurveyLifecycleState parseLifecycleState(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return SurveyLifecycleState.DRAFT;
+        }
+        return SurveyLifecycleState.valueOf(rawValue.trim().toUpperCase());
     }
 }

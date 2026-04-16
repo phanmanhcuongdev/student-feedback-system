@@ -15,7 +15,7 @@ function getLoginErrorMessage(code: string, fallback: string): string {
         case "ACCOUNT_PENDING":
             return "Your account is pending review and cannot sign in yet.";
         case "ACCOUNT_REJECTED":
-            return "Your account was rejected. Contact an administrator for the next steps.";
+            return "Your account was rejected. Sign in again to review feedback and resubmit corrected documents.";
         case "ACCOUNT_INACTIVE":
             return "Your account is inactive. Complete verification or contact an administrator.";
         default:

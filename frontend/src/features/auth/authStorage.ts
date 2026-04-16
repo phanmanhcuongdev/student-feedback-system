@@ -7,7 +7,9 @@ function isAllowedStudentSession(session: AuthSession): boolean {
         return true;
     }
 
-    return session.studentStatus === "ACTIVE" || session.studentStatus === "EMAIL_VERIFIED";
+    return session.studentStatus === "ACTIVE"
+        || session.studentStatus === "EMAIL_VERIFIED"
+        || session.studentStatus === "REJECTED";
 }
 
 function decodeBase64Url(value: string): string | null {

@@ -16,11 +16,19 @@ export type QuestionStatistics = {
 export type SurveyResultSummary = {
     id: number;
     title: string;
-    description: string;
+    description: string | null;
     startDate: string;
     endDate: string;
     status: string;
+    lifecycleState: string;
+    runtimeStatus: string;
+    recipientScope: string;
+    recipientDepartmentName: string | null;
     responseCount: number;
+    targetedCount: number;
+    openedCount: number;
+    submittedCount: number;
+    responseRate: number;
 };
 
 export type SurveyResultDetail = SurveyResultSummary & {

@@ -1,8 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { approveStudent, getPendingStudents, rejectStudent } from "../../../api/adminApi";
 import { getApiErrorMessage } from "../../../api/apiError";
-import MainFooter from "../../../components/layout/MainFooter";
-import MainHeader from "../../../components/layout/MainHeader";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
+import DataTable, { type DataTableColumn } from "../../../components/data-view/DataTable";
+import DataToolbar from "../../../components/data-view/DataToolbar";
+import PaginationControls from "../../../components/data-view/PaginationControls";
+import ResponsiveDataList from "../../../components/data-view/ResponsiveDataList";
+import SearchInput from "../../../components/data-view/SearchInput";
+import SelectFilter from "../../../components/data-view/SelectFilter";
+import DetailPanel from "../../../components/ui/DetailPanel";
+import EmptyState from "../../../components/ui/EmptyState";
+import ErrorState from "../../../components/ui/ErrorState";
+import LoadingState from "../../../components/ui/LoadingState";
+import PageHeader from "../../../components/ui/PageHeader";
+import SectionCard from "../../../components/ui/SectionCard";
+import StatusBadge from "../../../components/ui/StatusBadge";
+import { darkActionButtonClass, darkActionButtonStyle } from "../../../components/ui/buttonStyles";
 import type { PendingStudent } from "../../../types/admin";
 
 type ActionState = {
@@ -10,22 +23,47 @@ type ActionState = {
     type: "approve" | "reject" | null;
 };
 
+type ReviewDraft = {
+    reviewReason: string;
+    reviewNotes: string;
+};
+
+function getInitialDraft(student: PendingStudent): ReviewDraft {
+    return {
+        reviewReason: student.reviewReason ?? "",
+        reviewNotes: student.reviewNotes ?? "",
+    };
+}
+
 export default function PendingStudentsPage() {
     const [students, setStudents] = useState<PendingStudent[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [feedback, setFeedback] = useState("");
-    const [actionState, setActionState] = useState<ActionState>({
-        studentId: null,
-        type: null,
-    });
+    const [drafts, setDrafts] = useState<Record<number, ReviewDraft>>({});
+    const [actionState, setActionState] = useState<ActionState>({ studentId: null, type: null });
+    const [search, setSearch] = useState("");
+    const [departmentFilter, setDepartmentFilter] = useState("ALL");
+    const [resubmissionFilter, setResubmissionFilter] = useState("ALL");
+    const [sortOrder, setSortOrder] = useState("resubmissions");
+    const [page, setPage] = useState(1);
+    const [activeStudentId, setActiveStudentId] = useState<number | null>(null);
+    const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | null>(null);
+
+    const pageSize = 10;
 
     useEffect(() => {
         async function fetchPendingStudents() {
             try {
                 setLoading(true);
                 setError("");
-                setStudents(await getPendingStudents());
+                const pendingStudents = await getPendingStudents();
+                setStudents(pendingStudents);
+                setDrafts(pendingStudents.reduce<Record<number, ReviewDraft>>((acc, student) => {
+                    acc[student.id] = getInitialDraft(student);
+                    return acc;
+                }, {}));
+                setActiveStudentId(pendingStudents[0]?.id ?? null);
             } catch (requestError) {
                 setError(getApiErrorMessage(requestError, "Unable to load pending students."));
             } finally {
@@ -33,157 +71,319 @@ export default function PendingStudentsPage() {
             }
         }
 
-        fetchPendingStudents();
+        void fetchPendingStudents();
     }, []);
 
-    async function handleAction(studentId: number, type: "approve" | "reject") {
+    function updateDraft(studentId: number, patch: Partial<ReviewDraft>) {
+        setDrafts((prev) => ({
+            ...prev,
+            [studentId]: { ...(prev[studentId] ?? { reviewReason: "", reviewNotes: "" }), ...patch },
+        }));
+    }
+
+    async function handleApprove(studentId: number) {
         try {
-            setActionState({ studentId, type });
+            setActionState({ studentId, type: "approve" });
             setError("");
             setFeedback("");
 
-            const response = type === "approve"
-                ? await approveStudent(studentId)
-                : await rejectStudent(studentId);
+            const response = await approveStudent(studentId, {
+                reviewNotes: drafts[studentId]?.reviewNotes?.trim() || undefined,
+            });
 
             if (!response.success) {
-                setError(response.message || "Unable to process this student.");
+                setError(response.message || "Unable to approve this student.");
                 return;
             }
 
             setStudents((prev) => prev.filter((student) => student.id !== studentId));
             setFeedback(response.message);
+            setConfirmAction(null);
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to process this student."));
+            setError(getApiErrorMessage(requestError, "Unable to approve this student."));
         } finally {
             setActionState({ studentId: null, type: null });
         }
     }
 
+    async function handleReject(studentId: number) {
+        const reviewReason = drafts[studentId]?.reviewReason?.trim() ?? "";
+        if (!reviewReason) {
+            setError("A rejection reason is required before rejecting a student.");
+            setConfirmAction(null);
+            return;
+        }
+
+        try {
+            setActionState({ studentId, type: "reject" });
+            setError("");
+            setFeedback("");
+
+            const response = await rejectStudent(studentId, {
+                reviewReason,
+                reviewNotes: drafts[studentId]?.reviewNotes?.trim() || undefined,
+            });
+
+            if (!response.success) {
+                setError(response.message || "Unable to reject this student.");
+                return;
+            }
+
+            setStudents((prev) => prev.filter((student) => student.id !== studentId));
+            setFeedback(response.message);
+            setConfirmAction(null);
+        } catch (requestError) {
+            setError(getApiErrorMessage(requestError, "Unable to reject this student."));
+        } finally {
+            setActionState({ studentId: null, type: null });
+        }
+    }
+
+    const departmentOptions = useMemo(() => [
+        { label: "All departments", value: "ALL" },
+        ...Array.from(new Set(students.map((student) => student.departmentName).filter(Boolean))).sort().map((department) => ({
+            label: department as string,
+            value: department as string,
+        })),
+    ], [students]);
+
+    const filteredStudents = useMemo(() => {
+        const normalizedSearch = search.trim().toLowerCase();
+        const result = students.filter((student) => {
+            if (normalizedSearch) {
+                const haystack = [student.name, student.email, student.studentCode].join(" ").toLowerCase();
+                if (!haystack.includes(normalizedSearch)) {
+                    return false;
+                }
+            }
+            if (departmentFilter !== "ALL" && student.departmentName !== departmentFilter) {
+                return false;
+            }
+            if (resubmissionFilter === "RESUBMITTED" && student.resubmissionCount === 0) {
+                return false;
+            }
+            if (resubmissionFilter === "FIRST_SUBMISSION" && student.resubmissionCount > 0) {
+                return false;
+            }
+            return true;
+        });
+
+        result.sort((left, right) => {
+            switch (sortOrder) {
+                case "name":
+                    return left.name.localeCompare(right.name);
+                case "department":
+                    return (left.departmentName || "").localeCompare(right.departmentName || "");
+                default:
+                    return right.resubmissionCount - left.resubmissionCount;
+            }
+        });
+
+        return result;
+    }, [departmentFilter, resubmissionFilter, search, sortOrder, students]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search, departmentFilter, resubmissionFilter, sortOrder]);
+
+    const pageCount = Math.max(1, Math.ceil(filteredStudents.length / pageSize));
+    const pagedStudents = filteredStudents.slice((page - 1) * pageSize, page * pageSize);
+    const activeStudent = filteredStudents.find((student) => student.id === activeStudentId) ?? pagedStudents[0] ?? null;
+
+    useEffect(() => {
+        if (!activeStudent && pagedStudents[0]) {
+            setActiveStudentId(pagedStudents[0].id);
+        }
+    }, [activeStudent, pagedStudents]);
+
+    const columns: DataTableColumn<PendingStudent>[] = [
+        {
+            key: "student",
+            header: "Student",
+            render: (student) => (
+                <div>
+                    <p className="font-bold text-slate-950">{student.name}</p>
+                    <p className="mt-1 text-sm text-slate-500">{student.email}</p>
+                </div>
+            ),
+        },
+        {
+            key: "code",
+            header: "Student code",
+            render: (student) => student.studentCode,
+        },
+        {
+            key: "department",
+            header: "Department",
+            render: (student) => student.departmentName ?? "Unassigned",
+        },
+        {
+            key: "status",
+            header: "Status",
+            render: (student) => (
+                <div className="flex flex-wrap gap-2">
+                    <StatusBadge kind="onboarding" value={student.status} />
+                    {student.resubmissionCount > 0 ? <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700">Resubmitted {student.resubmissionCount}x</span> : null}
+                </div>
+            ),
+        },
+        {
+            key: "actions",
+            header: "Actions",
+            className: "text-right",
+            render: (student) => (
+                <div className="flex justify-end">
+                    <button type="button" onClick={() => setActiveStudentId(student.id)} className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
+                        Review
+                    </button>
+                </div>
+            ),
+        },
+    ];
+
     return (
-        <>
-            <MainHeader />
+        <main className="bg-slate-100">
+            <div className="mx-auto max-w-screen-2xl px-6 py-10">
+                <PageHeader
+                    eyebrow="Admin Review"
+                    title="Pending student approvals"
+                    description="Review onboarding requests as a queue with searchable student context, reusable review notes, and explicit approve or reject decisions."
+                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{filteredStudents.length} pending student{filteredStudents.length === 1 ? "" : "s"}</div>}
+                />
 
-            <main className="min-h-screen bg-[linear-gradient(180deg,#f4f8ff_0%,#eef3f8_44%,#f7fafc_100%)]">
-                <div className="mx-auto max-w-screen-xl px-6 py-10">
-                    <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                        <div className="max-w-2xl">
-                            <span className="mb-3 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-amber-700">
-                                Admin Review
-                            </span>
-                            <h1 className="text-4xl font-extrabold tracking-tight text-slate-950">
-                                Pending student approvals
-                            </h1>
-                            <p className="mt-4 text-base leading-7 text-slate-500">
-                                Review newly onboarded students, inspect submitted document paths, and decide whether each
-                                account should move to ACTIVE or REJECTED.
-                            </p>
-                        </div>
+                <div className="mt-6 space-y-6">
+                    <DataToolbar
+                        filters={(
+                            <>
+                                <SearchInput value={search} onChange={setSearch} placeholder="Search by name, email, or student code" />
+                                <SelectFilter label="Department" value={departmentFilter} onChange={setDepartmentFilter} options={departmentOptions} />
+                                <SelectFilter label="Submission" value={resubmissionFilter} onChange={setResubmissionFilter} options={[{ label: "All submissions", value: "ALL" }, { label: "Resubmitted only", value: "RESUBMITTED" }, { label: "First submission", value: "FIRST_SUBMISSION" }]} />
+                                <SelectFilter label="Sort" value={sortOrder} onChange={setSortOrder} options={[{ label: "Resubmission count", value: "resubmissions" }, { label: "Student name", value: "name" }, { label: "Department", value: "department" }]} />
+                            </>
+                        )}
+                    />
 
-                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">
-                            {students.length} pending student{students.length === 1 ? "" : "s"}
-                        </div>
-                    </div>
-
-                    {error ? (
-                        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                            {error}
-                        </div>
-                    ) : null}
-
-                    {feedback ? (
-                        <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-                            {feedback}
-                        </div>
-                    ) : null}
+                    {error ? <ErrorState description={error} /> : null}
+                    {feedback ? <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700">{feedback}</div> : null}
 
                     {loading ? (
-                        <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-10 text-center text-sm font-medium text-slate-500 shadow-sm">
-                            Loading pending students...
-                        </div>
-                    ) : students.length === 0 ? (
-                        <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-                                <span className="material-symbols-outlined text-[30px]">task_alt</span>
-                            </div>
-                            <h2 className="text-2xl font-bold text-slate-900">No pending students</h2>
-                            <p className="mt-3 text-sm text-slate-500">
-                                All currently onboarded students have already been reviewed.
-                            </p>
-                        </div>
+                        <LoadingState label="Loading pending students..." />
+                    ) : filteredStudents.length === 0 ? (
+                        <EmptyState title="No pending students in this queue view" description="Adjust the search or filters to find the onboarding request you need." icon="task_alt" />
                     ) : (
-                        <div className="grid gap-6 lg:grid-cols-2">
-                            {students.map((student) => {
-                                const isApproving = actionState.studentId === student.id && actionState.type === "approve";
-                                const isRejecting = actionState.studentId === student.id && actionState.type === "reject";
-                                const isBusy = actionState.studentId === student.id;
+                        <>
+                            <div className="hidden lg:block">
+                                <DataTable columns={columns} items={pagedStudents} getRowKey={(student) => student.id} />
+                            </div>
 
-                                return (
-                                    <article
-                                        key={student.id}
-                                        className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_18px_40px_rgba(15,23,42,0.05)]"
-                                    >
-                                        <div className="mb-5 flex items-start justify-between gap-4">
+                            <ResponsiveDataList
+                                items={pagedStudents}
+                                getKey={(student) => student.id}
+                                renderItem={(student) => (
+                                    <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                                        <div className="flex items-start justify-between gap-4">
                                             <div>
-                                                <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-amber-700">
-                                                    {student.status}
-                                                </span>
-                                                <h2 className="mt-3 text-2xl font-bold text-slate-950">{student.name}</h2>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <StatusBadge kind="onboarding" value={student.status} />
+                                                    {student.resubmissionCount > 0 ? <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700">Resubmitted {student.resubmissionCount}x</span> : null}
+                                                </div>
+                                                <h2 className="mt-3 text-xl font-bold text-slate-950">{student.name}</h2>
                                                 <p className="mt-1 text-sm text-slate-500">{student.email}</p>
                                             </div>
-                                            <div className="rounded-2xl bg-slate-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                                ID {student.id}
-                                            </div>
                                         </div>
-
-                                        <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                                            <div className="flex items-center justify-between gap-4">
-                                                <span className="font-semibold text-slate-500">Student code</span>
-                                                <span className="text-right font-medium text-slate-900">{student.studentCode}</span>
-                                            </div>
-                                            <div className="flex items-center justify-between gap-4">
-                                                <span className="font-semibold text-slate-500">Department</span>
-                                                <span className="text-right font-medium text-slate-900">{student.departmentName ?? "Unassigned"}</span>
-                                            </div>
-                                            <div className="flex flex-col gap-1">
-                                                <span className="font-semibold text-slate-500">Student card image</span>
-                                                <span className="break-all text-slate-900">{student.studentCardImageUrl ?? "Missing"}</span>
-                                            </div>
-                                            <div className="flex flex-col gap-1">
-                                                <span className="font-semibold text-slate-500">National ID image</span>
-                                                <span className="break-all text-slate-900">{student.nationalIdImageUrl ?? "Missing"}</span>
-                                            </div>
+                                        <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Student code</span><span className="font-medium text-slate-900">{student.studentCode}</span></div>
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Department</span><span className="font-medium text-slate-900">{student.departmentName ?? "Unassigned"}</span></div>
                                         </div>
-
-                                        <div className="mt-6 flex gap-3">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleAction(student.id, "approve")}
-                                                disabled={isBusy}
-                                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#0f8f55_0%,#22c55e_100%)] px-4 py-3 text-sm font-bold text-white shadow-[0_16px_36px_rgba(34,197,94,0.22)] transition hover:translate-y-[-1px] hover:shadow-[0_18px_40px_rgba(34,197,94,0.28)] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
-                                            >
-                                                <span>{isApproving ? "Approving..." : "Approve"}</span>
-                                                <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleAction(student.id, "reject")}
-                                                disabled={isBusy}
-                                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                            >
-                                                <span>{isRejecting ? "Rejecting..." : "Reject"}</span>
-                                                <span className="material-symbols-outlined text-[18px]">cancel</span>
-                                            </button>
-                                        </div>
+                                        <button type="button" onClick={() => setActiveStudentId(student.id)} className="mt-5 inline-flex w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
+                                            Review
+                                        </button>
                                     </article>
-                                );
-                            })}
-                        </div>
+                                )}
+                            />
+
+                            <PaginationControls page={page} pageCount={pageCount} onPageChange={setPage} />
+
+                            {activeStudent ? (
+                                <SectionCard title="Review detail" description="Approve or reject without leaving the onboarding queue. Rejection reason remains required.">
+                                    <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+                                        <DetailPanel
+                                            title="Context"
+                                            items={[
+                                                { label: "Student", value: activeStudent.name },
+                                                { label: "Email", value: activeStudent.email },
+                                                { label: "Student code", value: activeStudent.studentCode },
+                                                { label: "Department", value: activeStudent.departmentName ?? "Unassigned" },
+                                            ]}
+                                        />
+
+                                        <div className="space-y-5">
+                                            <SectionCard title="Submitted documents" description="Document URLs are shown as review references in the current system.">
+                                                <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                                                    <div className="flex flex-col gap-1"><span className="font-semibold text-slate-500">Student card image</span><span className="break-all text-slate-900">{activeStudent.studentCardImageUrl ?? "Missing"}</span></div>
+                                                    <div className="flex flex-col gap-1"><span className="font-semibold text-slate-500">National ID image</span><span className="break-all text-slate-900">{activeStudent.nationalIdImageUrl ?? "Missing"}</span></div>
+                                                </div>
+                                            </SectionCard>
+
+                                            {(activeStudent.reviewReason || activeStudent.reviewNotes) ? (
+                                                <SectionCard title="Previous review context" description="This appears when the student has been previously rejected and resubmitted.">
+                                                    <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                                                        {activeStudent.reviewReason ? <p><span className="font-semibold text-slate-900">Reason:</span> {activeStudent.reviewReason}</p> : null}
+                                                        {activeStudent.reviewNotes ? <p className="whitespace-pre-wrap"><span className="font-semibold text-slate-900">Notes:</span> {activeStudent.reviewNotes}</p> : null}
+                                                    </div>
+                                                </SectionCard>
+                                            ) : null}
+
+                                            <SectionCard title="Review decision" description="Provide the rejection reason before rejecting. Notes are optional for both decisions.">
+                                                <div className="space-y-4">
+                                                    <label className="block space-y-2">
+                                                        <span className="text-sm font-semibold text-slate-700">Rejection reason</span>
+                                                        <input type="text" value={drafts[activeStudent.id]?.reviewReason ?? ""} onChange={(event) => updateDraft(activeStudent.id, { reviewReason: event.target.value })} placeholder="Required if you reject this onboarding request" className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5" />
+                                                    </label>
+                                                    <label className="block space-y-2">
+                                                        <span className="text-sm font-semibold text-slate-700">Reviewer notes</span>
+                                                        <textarea value={drafts[activeStudent.id]?.reviewNotes ?? ""} onChange={(event) => updateDraft(activeStudent.id, { reviewNotes: event.target.value })} rows={5} placeholder="Optional notes recorded with the review decision" className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5" />
+                                                    </label>
+                                                    <div className="grid gap-3 md:grid-cols-2">
+                                                        <button type="button" onClick={() => setConfirmAction("approve")} disabled={actionState.studentId === activeStudent.id} className={`${darkActionButtonClass} px-4 py-3 text-sm font-semibold`} style={darkActionButtonStyle}>
+                                                            <span className="text-white" style={darkActionButtonStyle}>
+                                                                {actionState.studentId === activeStudent.id && actionState.type === "approve" ? "Approving..." : "Approve"}
+                                                            </span>
+                                                        </button>
+                                                        <button type="button" onClick={() => setConfirmAction("reject")} disabled={actionState.studentId === activeStudent.id} className="inline-flex items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60">
+                                                            {actionState.studentId === activeStudent.id && actionState.type === "reject" ? "Rejecting..." : "Reject"}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </SectionCard>
+                                        </div>
+                                    </div>
+                                </SectionCard>
+                            ) : null}
+                        </>
                     )}
                 </div>
-            </main>
+            </div>
 
-            <MainFooter />
-        </>
+            <ConfirmDialog
+                open={confirmAction != null && activeStudent != null}
+                title={confirmAction === "approve" ? "Approve student" : "Reject student"}
+                description={confirmAction === "approve" ? `Approve ${activeStudent?.name} and activate this onboarding request.` : `Reject ${activeStudent?.name}. A rejection reason will be sent back through the existing resubmission flow.`}
+                confirmLabel={confirmAction === "approve" ? "Approve student" : "Reject student"}
+                tone={confirmAction === "reject" ? "danger" : "default"}
+                busy={activeStudent != null && actionState.studentId === activeStudent.id}
+                onCancel={() => setConfirmAction(null)}
+                onConfirm={() => {
+                    if (!activeStudent) {
+                        return;
+                    }
+                    if (confirmAction === "approve") {
+                        void handleApprove(activeStudent.id);
+                    } else {
+                        void handleReject(activeStudent.id);
+                    }
+                }}
+            />
+        </main>
     );
 }

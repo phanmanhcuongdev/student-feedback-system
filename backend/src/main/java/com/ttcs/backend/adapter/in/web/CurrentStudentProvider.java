@@ -2,6 +2,7 @@ package com.ttcs.backend.adapter.in.web;
 
 import com.ttcs.backend.application.domain.model.Status;
 import com.ttcs.backend.application.domain.model.Student;
+import com.ttcs.backend.application.domain.model.Role;
 import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -41,6 +42,28 @@ public class CurrentStudentProvider {
         throw new ResponseStatusException(FORBIDDEN, "Authenticated student identity is unavailable");
     }
 
+    public Role currentRole() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
+            throw new ResponseStatusException(UNAUTHORIZED, "Unauthorized");
+        }
+
+        if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
+            return Role.ADMIN;
+        }
+        if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_TEACHER"))) {
+            return Role.TEACHER;
+        }
+        if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_STUDENT"))) {
+            return Role.STUDENT;
+        }
+
+        throw new ResponseStatusException(FORBIDDEN, "Authenticated user role is unavailable");
+    }
+
     public void ensureActiveStudentAccount() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null
@@ -53,7 +76,9 @@ public class CurrentStudentProvider {
         Student student = loadStudentByIdPort.loadByUserId(userId)
                 .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "Student profile not found"));
 
-        if (student.getStatus() != Status.ACTIVE) {
+        if (student.getStatus() != Status.ACTIVE
+                || student.getUser() == null
+                || !Boolean.TRUE.equals(student.getUser().getVerified())) {
             throw new ResponseStatusException(FORBIDDEN, "Student account is not active");
         }
     }

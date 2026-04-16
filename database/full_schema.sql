@@ -49,10 +49,16 @@ CREATE TABLE [dbo].[Student] (
     [status] NVARCHAR(50) NOT NULL CONSTRAINT [DF_Student_Status] DEFAULT ('ACTIVE'),
     [student_card_img] NVARCHAR(500) NULL,
     [national_id_img] NVARCHAR(500) NULL,
+    [review_reason] NVARCHAR(255) NULL,
+    [review_notes] NVARCHAR(MAX) NULL,
+    [reviewed_by_user_id] INT NULL,
+    [reviewed_at] DATETIME NULL,
+    [resubmission_count] INT NOT NULL CONSTRAINT [DF_Student_ResubmissionCount] DEFAULT ((0)),
     CONSTRAINT [PK_Student] PRIMARY KEY ([user_id]),
     CONSTRAINT [UQ_Student_Code] UNIQUE ([student_code]),
     CONSTRAINT [FK_Student_User] FOREIGN KEY ([user_id]) REFERENCES [dbo].[User]([user_id]),
     CONSTRAINT [FK_Student_Department] FOREIGN KEY ([dept_id]) REFERENCES [dbo].[Department]([dept_id]),
+    CONSTRAINT [FK_Student_ReviewedByUser] FOREIGN KEY ([reviewed_by_user_id]) REFERENCES [dbo].[User]([user_id]),
     CONSTRAINT [CHK_Student_Status] CHECK ([status] IN ('ACTIVE', 'PENDING', 'EMAIL_VERIFIED', 'EMAIL_UNVERIFIED', 'REJECTED'))
 );
 GO
@@ -87,10 +93,12 @@ CREATE TABLE [dbo].[Survey] (
     [description] NVARCHAR(MAX) NULL,
     [start_date] DATETIME NULL,
     [end_date] DATETIME NULL,
+    [lifecycle_state] NVARCHAR(20) NOT NULL CONSTRAINT [DF_Survey_LifecycleState] DEFAULT ('DRAFT'),
     [hidden] BIT NOT NULL CONSTRAINT [DF_Survey_Hidden] DEFAULT ((0)),
     [created_by] INT NOT NULL,
     CONSTRAINT [PK_Survey] PRIMARY KEY ([survey_id]),
-    CONSTRAINT [FK_Survey_Admin] FOREIGN KEY ([created_by]) REFERENCES [dbo].[Admin]([user_id])
+    CONSTRAINT [FK_Survey_Admin] FOREIGN KEY ([created_by]) REFERENCES [dbo].[Admin]([user_id]),
+    CONSTRAINT [CHK_Survey_LifecycleState] CHECK ([lifecycle_state] IN ('DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED'))
 );
 GO
 
@@ -114,6 +122,20 @@ CREATE TABLE [dbo].[Survey_Assignment] (
     [subject_value] INT NULL,
     CONSTRAINT [PK_SurveyAssignment] PRIMARY KEY ([id]),
     CONSTRAINT [FK_SurveyAssignment_Survey] FOREIGN KEY ([survey_id]) REFERENCES [dbo].[Survey]([survey_id])
+);
+GO
+
+CREATE TABLE [dbo].[Survey_Recipient] (
+    [recipient_id] INT IDENTITY(1,1) NOT NULL,
+    [survey_id] INT NOT NULL,
+    [student_id] INT NOT NULL,
+    [assigned_at] DATETIME NOT NULL CONSTRAINT [DF_SurveyRecipient_AssignedAt] DEFAULT (GETDATE()),
+    [opened_at] DATETIME NULL,
+    [submitted_at] DATETIME NULL,
+    CONSTRAINT [PK_Survey_Recipient] PRIMARY KEY ([recipient_id]),
+    CONSTRAINT [UQ_SurveyRecipient_SurveyStudent] UNIQUE ([survey_id], [student_id]),
+    CONSTRAINT [FK_SurveyRecipient_Survey] FOREIGN KEY ([survey_id]) REFERENCES [dbo].[Survey]([survey_id]),
+    CONSTRAINT [FK_SurveyRecipient_Student] FOREIGN KEY ([student_id]) REFERENCES [dbo].[Student]([user_id])
 );
 GO
 
@@ -167,6 +189,22 @@ CREATE TABLE [dbo].[Feedback_Response] (
     CONSTRAINT [PK_Feedback_Response] PRIMARY KEY ([response_id]),
     CONSTRAINT [FK_FeedbackResponse_Feedback] FOREIGN KEY ([feedback_id]) REFERENCES [dbo].[Feedback]([feedback_id]),
     CONSTRAINT [FK_FeedbackResponse_User] FOREIGN KEY ([responder_user_id]) REFERENCES [dbo].[User]([user_id])
+);
+GO
+
+CREATE TABLE [dbo].[Audit_Log] (
+    [audit_id] INT IDENTITY(1,1) NOT NULL,
+    [actor_user_id] INT NOT NULL,
+    [action_type] NVARCHAR(50) NOT NULL,
+    [target_type] NVARCHAR(30) NOT NULL,
+    [target_id] INT NOT NULL,
+    [summary] NVARCHAR(255) NOT NULL,
+    [details] NVARCHAR(MAX) NULL,
+    [old_state] NVARCHAR(255) NULL,
+    [new_state] NVARCHAR(255) NULL,
+    [created_at] DATETIME NOT NULL CONSTRAINT [DF_AuditLog_CreatedAt] DEFAULT (GETDATE()),
+    CONSTRAINT [PK_Audit_Log] PRIMARY KEY ([audit_id]),
+    CONSTRAINT [FK_AuditLog_ActorUser] FOREIGN KEY ([actor_user_id]) REFERENCES [dbo].[User]([user_id])
 );
 GO
 

@@ -1,19 +1,19 @@
 package com.ttcs.backend.application.domain.service;
 
 import com.ttcs.backend.application.domain.exception.SurveyNotFoundException;
-import com.ttcs.backend.application.domain.model.EvaluatorType;
 import com.ttcs.backend.application.domain.model.Student;
-import com.ttcs.backend.application.domain.model.SubjectType;
 import com.ttcs.backend.application.domain.model.Survey;
-import com.ttcs.backend.application.domain.model.SurveyAssignment;
+import com.ttcs.backend.application.domain.model.SurveyRecipient;
 import com.ttcs.backend.application.port.in.GetSurveyUseCase;
 import com.ttcs.backend.application.port.in.result.SurveySummaryResult;
-import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
+import com.ttcs.backend.application.port.out.LoadSurveyRecipientPort;
+import com.ttcs.backend.application.port.out.SaveSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -21,8 +21,9 @@ import java.util.List;
 public class GetSurveyService implements GetSurveyUseCase {
 
     private final LoadSurveyPort loadSurveyPort;
-    private final LoadSurveyAssignmentPort loadSurveyAssignmentPort;
     private final LoadStudentByIdPort loadStudentByIdPort;
+    private final LoadSurveyRecipientPort loadSurveyRecipientPort;
+    private final SaveSurveyRecipientPort saveSurveyRecipientPort;
 
     @Override
     public SurveySummaryResult getSurveyById(Integer surveyId, Integer studentUserId) {
@@ -30,9 +31,11 @@ public class GetSurveyService implements GetSurveyUseCase {
                 .orElseThrow(() -> new SurveyNotFoundException(surveyId));
         Student student = loadStudentByIdPort.loadByUserId(studentUserId)
                 .orElseThrow(() -> new SurveyNotFoundException(surveyId));
-        if (survey.isHidden() || !isAssignedToStudent(surveyId, student)) {
+        SurveyRecipient recipient = loadSurveyRecipientPort.loadBySurveyIdAndStudentId(surveyId, student.getId()).orElse(null);
+        if (!survey.isPublished() || survey.isHidden() || recipient == null) {
             throw new SurveyNotFoundException(surveyId);
         }
+        markOpenedIfNecessary(recipient);
 
         return new SurveySummaryResult(
                 survey.getId(),
@@ -49,35 +52,31 @@ public class GetSurveyService implements GetSurveyUseCase {
     public List<SurveySummaryResult> getAllSurveys(Integer studentUserId) {
         Student student = loadStudentByIdPort.loadByUserId(studentUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Student profile not found"));
-        return loadSurveyPort.loadAll()
-                .stream()
-                .filter(survey -> !survey.isHidden())
-                .filter(survey -> isAssignedToStudent(survey.getId(), student))
+        return loadSurveyRecipientPort.loadByStudentId(student.getId()).stream()
+                .map(recipient -> loadSurveyPort.loadById(recipient.getSurveyId()).orElse(null))
+                .filter(survey -> survey != null && survey.isPublished() && !survey.isHidden())
                 .map(survey -> new SurveySummaryResult(
-                        survey.getId(),
-                        survey.getTitle(),
-                        survey.getDescription(),
-                        survey.getStartDate(),
-                        survey.getEndDate(),
-                        survey.getCreatedBy(),
-                        survey.status()
+                    survey.getId(),
+                    survey.getTitle(),
+                    survey.getDescription(),
+                    survey.getStartDate(),
+                    survey.getEndDate(),
+                    survey.getCreatedBy(),
+                    survey.status()
                 ))
                 .toList();
     }
 
-    private boolean isAssignedToStudent(Integer surveyId, Student student) {
-        List<SurveyAssignment> assignments = loadSurveyAssignmentPort.loadBySurveyId(surveyId);
-        if (assignments.isEmpty()) {
-            return true;
+    private void markOpenedIfNecessary(SurveyRecipient recipient) {
+        if (!recipient.hasOpened()) {
+            saveSurveyRecipientPort.save(new SurveyRecipient(
+                    recipient.getId(),
+                    recipient.getSurveyId(),
+                    recipient.getStudentId(),
+                    recipient.getAssignedAt(),
+                    LocalDateTime.now(),
+                    recipient.getSubmittedAt()
+            ));
         }
-
-        return assignments.stream().anyMatch(assignment ->
-                assignment.getEvaluatorType() == EvaluatorType.STUDENT
-                        && (assignment.getSubjectType() == SubjectType.ALL
-                        || (assignment.getSubjectType() == SubjectType.DEPARTMENT
-                        && student.getDepartment() != null
-                        && assignment.getSubjectValue() != null
-                        && assignment.getSubjectValue().equals(student.getDepartment().getId())))
-        );
     }
 }

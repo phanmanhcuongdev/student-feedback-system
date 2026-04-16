@@ -17,7 +17,7 @@ export default function SurveyFilterTabs({
     onChange,
 }: SurveyFilterTabsProps) {
     return (
-        <div className="flex gap-1 rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+        <div className="flex flex-wrap gap-1 rounded-full border border-slate-200 bg-white p-1 shadow-sm">
             {tabs.map((tab) => {
                 const isActive = value === tab.value;
 
@@ -27,7 +27,7 @@ export default function SurveyFilterTabs({
                         type="button"
                         onClick={() => onChange(tab.value)}
                         className={[
-                            "cursor-pointer rounded-full px-5 py-2 text-sm font-semibold transition-all active:scale-95",
+                            "cursor-pointer rounded-full px-4 py-2 text-sm font-semibold transition-all active:scale-95 sm:px-5",
                             isActive
                                 ? "bg-slate-900 text-white shadow-sm"
                                 : "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
