@@ -13,10 +13,14 @@ import com.ttcs.backend.application.domain.model.SurveyAssignment;
 import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
 import com.ttcs.backend.application.domain.model.SurveyRecipient;
 import com.ttcs.backend.application.domain.model.SurveyRecipientScope;
+import com.ttcs.backend.application.port.in.admin.GetManagedSurveysQuery;
 import com.ttcs.backend.application.port.in.admin.ArchiveSurveyUseCase;
 import com.ttcs.backend.application.port.in.admin.CloseSurveyUseCase;
 import com.ttcs.backend.application.port.in.admin.GetManagedSurveyDetailUseCase;
 import com.ttcs.backend.application.port.in.admin.GetManagedSurveysUseCase;
+import com.ttcs.backend.application.port.in.admin.GetSurveyManagementDepartmentsUseCase;
+import com.ttcs.backend.application.port.in.admin.ManagedSurveyMetricsResult;
+import com.ttcs.backend.application.port.in.admin.ManagedSurveyPageResult;
 import com.ttcs.backend.application.port.in.admin.PublishSurveyUseCase;
 import com.ttcs.backend.application.port.in.admin.SetSurveyHiddenUseCase;
 import com.ttcs.backend.application.port.in.admin.SurveyManagementActionResult;
@@ -39,6 +43,8 @@ import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.SaveSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.SaveSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.SaveSurveyPort;
+import com.ttcs.backend.application.port.out.admin.ManageSurveyPort;
+import com.ttcs.backend.application.port.out.admin.ManageSurveysQuery;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +57,7 @@ import java.util.List;
 public class AdminSurveyManagementService implements
         GetManagedSurveysUseCase,
         GetManagedSurveyDetailUseCase,
+        GetSurveyManagementDepartmentsUseCase,
         UpdateSurveyUseCase,
         SetSurveyHiddenUseCase,
         CloseSurveyUseCase,
@@ -69,13 +76,65 @@ public class AdminSurveyManagementService implements
     private final LoadSurveyRecipientCandidatePort loadSurveyRecipientCandidatePort;
     private final LoadStudentPort loadStudentPort;
     private final SaveAuditLogPort saveAuditLogPort;
+    private final ManageSurveyPort manageSurveyPort;
 
     @Override
     @Transactional(readOnly = true)
-    public List<SurveyManagementSummaryResult> getSurveys() {
-        return loadSurveyPort.loadAll().stream()
-                .map(this::toSummary)
-                .toList();
+    public ManagedSurveyPageResult getSurveys(GetManagedSurveysQuery query) {
+        var surveyPage = manageSurveyPort.loadPage(new ManageSurveysQuery(
+                query == null ? null : query.keyword(),
+                query == null ? null : query.lifecycleState(),
+                query == null ? null : query.runtimeStatus(),
+                query == null ? null : query.hidden(),
+                query == null ? null : query.recipientScope(),
+                query == null ? null : query.startDateFrom(),
+                query == null ? null : query.endDateTo(),
+                query == null ? 0 : query.page(),
+                query == null ? 20 : query.size(),
+                query == null ? "startDate" : query.sortBy(),
+                query == null ? "desc" : query.sortDir()
+        ));
+
+        return new ManagedSurveyPageResult(
+                surveyPage.items().stream()
+                        .map(item -> new SurveyManagementSummaryResult(
+                                item.id(),
+                                item.title(),
+                                item.description(),
+                                item.startDate(),
+                                item.endDate(),
+                                item.lifecycleState(),
+                                item.runtimeStatus(),
+                                item.hidden(),
+                                item.recipientScope(),
+                                item.recipientDepartmentId(),
+                                item.recipientDepartmentName(),
+                                item.responseCount(),
+                                item.targetedCount(),
+                                item.openedCount(),
+                                item.submittedCount(),
+                                item.responseRate()
+                        ))
+                        .toList(),
+                surveyPage.page(),
+                surveyPage.size(),
+                surveyPage.totalElements(),
+                surveyPage.totalPages(),
+                new ManagedSurveyMetricsResult(
+                        surveyPage.metrics().totalSurveys(),
+                        surveyPage.metrics().totalDrafts(),
+                        surveyPage.metrics().totalPublished(),
+                        surveyPage.metrics().totalOpen(),
+                        surveyPage.metrics().totalClosed(),
+                        surveyPage.metrics().totalHidden()
+                )
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.ttcs.backend.application.domain.model.Department> getDepartments() {
+        return manageSurveyPort.loadDepartments();
     }
 
     @Override
@@ -97,6 +156,7 @@ public class AdminSurveyManagementService implements
                 survey.isHidden(),
                 recipient.scope().name(),
                 recipient.departmentId(),
+                recipient.departmentName(),
                 responseCount,
                 participation.targetedCount(),
                 participation.openedCount(),
@@ -370,6 +430,7 @@ public class AdminSurveyManagementService implements
                 survey.isHidden(),
                 recipient.scope().name(),
                 recipient.departmentId(),
+                recipient.departmentName(),
                 loadSurveyResponsePort.countBySurveyId(survey.getId()),
                 participation.targetedCount(),
                 participation.openedCount(),
@@ -381,14 +442,22 @@ public class AdminSurveyManagementService implements
     private RecipientInfo recipientInfo(Integer surveyId) {
         List<SurveyAssignment> assignments = loadSurveyAssignmentPort.loadBySurveyId(surveyId);
         if (assignments.isEmpty()) {
-            return new RecipientInfo(SurveyRecipientScope.ALL_STUDENTS, null);
+            return new RecipientInfo(SurveyRecipientScope.ALL_STUDENTS, null, null);
         }
 
         SurveyAssignment assignment = assignments.getFirst();
         if (assignment.getEvaluatorType() == EvaluatorType.STUDENT && assignment.getSubjectType() == SubjectType.DEPARTMENT) {
-            return new RecipientInfo(SurveyRecipientScope.DEPARTMENT, assignment.getSubjectValue());
+            Integer departmentId = assignment.getSubjectValue();
+            String departmentName = departmentId == null
+                    ? null
+                    : manageSurveyPort.loadDepartments().stream()
+                    .filter(department -> department.getId().equals(departmentId))
+                    .map(department -> department.getName())
+                    .findFirst()
+                    .orElse(null);
+            return new RecipientInfo(SurveyRecipientScope.DEPARTMENT, departmentId, departmentName);
         }
-        return new RecipientInfo(SurveyRecipientScope.ALL_STUDENTS, null);
+        return new RecipientInfo(SurveyRecipientScope.ALL_STUDENTS, null, null);
     }
 
     private SurveyAssignment toAssignment(Survey survey, SurveyRecipientScope scope, Integer departmentId) {
@@ -481,7 +550,7 @@ public class AdminSurveyManagementService implements
         return hidden ? "HIDDEN" : "VISIBLE";
     }
 
-    private record RecipientInfo(SurveyRecipientScope scope, Integer departmentId) {
+    private record RecipientInfo(SurveyRecipientScope scope, Integer departmentId, String departmentName) {
     }
 
     private record ParticipationSummary(long targetedCount, long openedCount, long submittedCount, double responseRate) {

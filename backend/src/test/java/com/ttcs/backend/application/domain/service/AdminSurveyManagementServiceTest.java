@@ -31,6 +31,11 @@ import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.SaveSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.SaveSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.SaveSurveyPort;
+import com.ttcs.backend.application.port.out.admin.ManageSurveyPort;
+import com.ttcs.backend.application.port.out.admin.ManagedSurveyMetrics;
+import com.ttcs.backend.application.port.out.admin.ManagedSurveySearchItem;
+import com.ttcs.backend.application.port.out.admin.ManagedSurveySearchPage;
+import com.ttcs.backend.application.port.out.admin.ManageSurveysQuery;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -290,7 +295,8 @@ class AdminSurveyManagementServiceTest {
                 new RecipientPort(state),
                 new CandidatePort(state),
                 new StudentPort(state),
-                new AuditPort(state)
+                new AuditPort(state),
+                new ManageSurveyQueryPort(state)
         );
     }
 
@@ -540,6 +546,51 @@ class AdminSurveyManagementServiceTest {
         public AuditLog save(AuditLog auditLog) {
             state.auditLogs.add(auditLog);
             return auditLog;
+        }
+    }
+
+    private static final class ManageSurveyQueryPort implements ManageSurveyPort {
+        private final InMemorySurveyState state;
+
+        private ManageSurveyQueryPort(InMemorySurveyState state) {
+            this.state = state;
+        }
+
+        @Override
+        public ManagedSurveySearchPage loadPage(ManageSurveysQuery query) {
+            return new ManagedSurveySearchPage(
+                    List.of(new ManagedSurveySearchItem(
+                            state.survey.getId(),
+                            state.survey.getTitle(),
+                            state.survey.getDescription(),
+                            state.survey.getStartDate(),
+                            state.survey.getEndDate(),
+                            state.survey.getLifecycleState().name(),
+                            state.survey.status().name(),
+                            state.survey.isHidden(),
+                            "ALL_STUDENTS",
+                            null,
+                            null,
+                            state.responseCount,
+                            state.recipients.size(),
+                            state.recipients.stream().filter(SurveyRecipient::hasOpened).count(),
+                            state.recipients.stream().filter(SurveyRecipient::hasSubmitted).count(),
+                            0.0
+                    )),
+                    0,
+                    20,
+                    1,
+                    1,
+                    new ManagedSurveyMetrics(1, 0, 0, 0, 0, 0)
+            );
+        }
+
+        @Override
+        public List<Department> loadDepartments() {
+            return List.of(
+                    new Department(1, "Department 1"),
+                    new Department(2, "Department 2")
+            );
         }
     }
 }

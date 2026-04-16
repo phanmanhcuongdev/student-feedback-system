@@ -1,12 +1,18 @@
 package com.ttcs.backend.adapter.in.web;
 
+import com.ttcs.backend.adapter.in.web.dto.DepartmentOptionResponse;
 import com.ttcs.backend.adapter.in.web.dto.ManagedUserDetailResponse;
+import com.ttcs.backend.adapter.in.web.dto.ManagedUserMetricsResponse;
+import com.ttcs.backend.adapter.in.web.dto.ManagedUserPageResponse;
 import com.ttcs.backend.adapter.in.web.dto.ManagedUserSummaryResponse;
 import com.ttcs.backend.adapter.in.web.dto.UpdateUserRequest;
 import com.ttcs.backend.adapter.in.web.dto.UserManagementActionResponse;
+import com.ttcs.backend.application.port.in.admin.GetUserManagementDepartmentsUseCase;
+import com.ttcs.backend.application.port.in.admin.GetUsersQuery;
 import com.ttcs.backend.application.port.in.admin.GetUserDetailUseCase;
 import com.ttcs.backend.application.port.in.admin.GetUsersUseCase;
 import com.ttcs.backend.application.port.in.admin.ManagedUserDetailResult;
+import com.ttcs.backend.application.port.in.admin.ManagedUserPageResult;
 import com.ttcs.backend.application.port.in.admin.ManagedUserSummaryResult;
 import com.ttcs.backend.application.port.in.admin.SetUserActiveCommand;
 import com.ttcs.backend.application.port.in.admin.SetUserActiveUseCase;
@@ -22,6 +28,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -31,14 +38,57 @@ import java.util.List;
 public class AdminUserController {
 
     private final GetUsersUseCase getUsersUseCase;
+    private final GetUserManagementDepartmentsUseCase getUserManagementDepartmentsUseCase;
     private final GetUserDetailUseCase getUserDetailUseCase;
     private final UpdateUserUseCase updateUserUseCase;
     private final SetUserActiveUseCase setUserActiveUseCase;
     private final CurrentStudentProvider currentStudentProvider;
 
     @GetMapping
-    public ResponseEntity<List<ManagedUserSummaryResponse>> getUsers() {
-        return ResponseEntity.ok(getUsersUseCase.getUsers().stream().map(this::toSummaryResponse).toList());
+    public ResponseEntity<ManagedUserPageResponse> getUsers(
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) String studentStatus,
+            @RequestParam(required = false) Integer departmentId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir
+    ) {
+        ManagedUserPageResult result = getUsersUseCase.getUsers(new GetUsersQuery(
+                role,
+                keyword,
+                active,
+                studentStatus,
+                departmentId,
+                page,
+                size,
+                sortBy,
+                sortDir
+        ));
+        return ResponseEntity.ok(new ManagedUserPageResponse(
+                result.items().stream().map(this::toSummaryResponse).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages(),
+                new ManagedUserMetricsResponse(
+                        result.metrics().totalUsers(),
+                        result.metrics().totalStudents(),
+                        result.metrics().totalTeachers(),
+                        result.metrics().totalAdmins(),
+                        result.metrics().totalInactive(),
+                        result.metrics().totalPending()
+                )
+        ));
+    }
+
+    @GetMapping("/departments")
+    public ResponseEntity<List<DepartmentOptionResponse>> getDepartmentOptions() {
+        return ResponseEntity.ok(getUserManagementDepartmentsUseCase.getDepartments().stream()
+                .map(department -> new DepartmentOptionResponse(department.getId(), department.getName()))
+                .toList());
     }
 
     @GetMapping("/{userId}")
@@ -85,9 +135,12 @@ public class AdminUserController {
                 result.email(),
                 result.role(),
                 result.name(),
+                result.departmentId(),
                 result.departmentName(),
                 result.studentStatus(),
-                result.active()
+                result.active(),
+                result.studentCode(),
+                result.teacherCode()
         );
     }
 

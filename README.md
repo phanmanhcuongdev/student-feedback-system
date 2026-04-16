@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Student Feedback System is a web-based client-server application for collecting student survey responses and reviewing onboarding requests.
+Student Feedback System is a web-based client-server application for student onboarding, survey operations, and internal feedback handling.
 
 The current implementation supports:
 
@@ -15,6 +15,11 @@ The current implementation supports:
 - Scoped teacher survey-result access for department-targeted surveys
 - Authenticated survey listing, detail view, and submission
 - Survey result viewing for admin and teacher roles
+- Shared authenticated frontend shell with role-aware navigation
+- Account area for current-user overview and password management
+- Admin user management with backend-backed search, filter, pagination, and sort
+- Admin survey management with backend-backed search, filter, pagination, and sort
+- Operational queue views for survey results, staff feedback review, and pending student review
 
 ## Tech Stack
 
@@ -31,7 +36,7 @@ The current implementation supports:
 - [`backend/`](/E:/Lap/TTCS/student-feedback-system/backend)
   Spring Boot API server. Organized around Hexagonal Architecture / Ports and Adapters.
 - [`frontend/`](/E:/Lap/TTCS/student-feedback-system/frontend)
-  React web client that calls the backend API.
+  React web client that calls the backend API. Uses a shared authenticated `AppShell`, role-aware navigation, shared UI primitives, and reusable operational data-view components.
 - [`API_CONTRACT.md`](/E:/Lap/TTCS/student-feedback-system/API_CONTRACT.md)
   Implemented API slices and payload expectations.
 - [`database/README.md`](/E:/Lap/TTCS/student-feedback-system/database/README.md)
@@ -156,6 +161,18 @@ npm run build
 2. Open `/admin/students/pending`
 3. Approve a pending student with optional reviewer notes, or reject with a required reason and optional reviewer notes
 
+### Account and security
+
+1. Sign in with any authenticated role
+2. Open `/account`
+3. Review the account overview based on the current session data
+4. Open `/account/security`
+5. Change the current password
+
+Compatibility note:
+
+- `/change-password` now redirects to `/account/security`
+
 ### Survey submission
 
 1. Sign in with an active student account
@@ -173,11 +190,25 @@ npm run build
 6. Monitor targeted, opened, submitted, and response-rate metrics
 7. Close it when collection should stop, then archive it when the run is complete
 
+### User administration
+
+1. Sign in with an admin account
+2. Open `/admin/users`
+3. Use role segmentation, keyword search, filters, pagination, and sort controls
+4. Open a user detail record and perform supported status changes
+
 ### Survey result review
 
 1. Sign in with an admin or teacher account
 2. Open `/survey-results`
-3. Inspect survey statistics and question-level breakdowns
+3. Inspect survey statistics, participation metrics, and question-level breakdowns
+
+### Feedback and review queues
+
+1. Sign in with an admin or teacher account
+2. Open `/feedback/manage`
+3. Search and filter the feedback queue, open a queue item, and send a response
+4. As admin, open `/admin/students/pending` and work the review queue
 
 ## Notes / Troubleshooting
 
@@ -186,6 +217,11 @@ npm run build
 - The frontend does not generate backend URLs on its own. Use `VITE_API_BASE_URL` and `VITE_API_PROXY_TARGET` instead of hardcoding API hosts.
 - Student onboarding relies on the existing SQL Server schema and lookup data. In particular, department names must exist in the `Department` table before registration succeeds.
 - If the backend fails on startup with schema validation errors, the local database does not match the JPA mappings.
+- Current account overview uses the authenticated session data already available to the frontend. It does not fabricate unsupported profile fields from a separate profile API.
+- User management search, filter, pagination, and sort are backend-backed.
+- Survey management search, filter, pagination, and sort are backend-backed.
+- Survey results now expose richer metadata such as lifecycle, runtime status, and audience scope.
+- Feedback management and pending-student queues still use frontend-side filtering and pagination in the current implementation.
 - Seed accounts in `database/seed_data.sql` are BCrypt-compatible and can be used directly after import:
   - `admin@university.edu` / `admin123`
   - `teacher@university.edu` / `teacher123`
@@ -193,6 +229,12 @@ npm run build
 
 ## Architecture Summary
 
+- Frontend is a React + Vite + TypeScript SPA with:
+  - shared authenticated `AppShell`
+  - role-aware navigation groups
+  - `/account` and `/account/security`
+  - shared page, state, badge, and data-view primitives
+  - operational admin pages built around tables and queues instead of flat card walls
 - Frontend calls backend REST APIs over HTTP.
 - Backend follows a Ports and Adapters structure:
   - `adapter.in`: web and security entry points

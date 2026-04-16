@@ -2,12 +2,13 @@ import axios from "./axios";
 import type {
     AdminActionResponse,
     ApproveStudentRequest,
+    DepartmentOption,
     ManagedUserDetail,
-    ManagedUserSummary,
+    ManagedUserPage,
     PendingStudent,
     RejectStudentRequest,
 } from "../types/admin";
-import type { CreateSurveyData, CreateSurveyResponse, ManagedSurveyDetail, ManagedSurveySummary } from "../types/survey";
+import type { CreateSurveyData, CreateSurveyResponse, ManagedSurveyDetail, ManagedSurveyPage } from "../types/survey";
 
 export async function getPendingStudents(): Promise<PendingStudent[]> {
     const response = await axios.get<PendingStudent[]>("/admin/students/pending");
@@ -35,8 +36,25 @@ export async function createSurvey(data: CreateSurveyData): Promise<CreateSurvey
     return response.data;
 }
 
-export async function getManagedSurveys(): Promise<ManagedSurveySummary[]> {
-    const response = await axios.get<ManagedSurveySummary[]>("/admin/surveys");
+export async function getManagedSurveys(params: {
+    keyword?: string;
+    lifecycleState?: string;
+    runtimeStatus?: string;
+    hidden?: boolean;
+    recipientScope?: string;
+    startDateFrom?: string;
+    endDateTo?: string;
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+}): Promise<ManagedSurveyPage> {
+    const response = await axios.get<ManagedSurveyPage>("/admin/surveys", { params });
+    return response.data;
+}
+
+export async function getSurveyManagementDepartments(): Promise<DepartmentOption[]> {
+    const response = await axios.get<DepartmentOption[]>("/admin/surveys/departments");
     return response.data;
 }
 
@@ -70,8 +88,23 @@ export async function setSurveyVisibility(surveyId: number, hidden: boolean): Pr
     return response.data;
 }
 
-export async function getUsers(): Promise<ManagedUserSummary[]> {
-    const response = await axios.get<ManagedUserSummary[]>("/admin/users");
+export async function getUsers(params: {
+    role?: string;
+    keyword?: string;
+    active?: boolean;
+    studentStatus?: string;
+    departmentId?: number;
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+}): Promise<ManagedUserPage> {
+    const response = await axios.get<ManagedUserPage>("/admin/users", { params });
+    return response.data;
+}
+
+export async function getUserManagementDepartments(): Promise<DepartmentOption[]> {
+    const response = await axios.get<DepartmentOption[]>("/admin/users/departments");
     return response.data;
 }
 

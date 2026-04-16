@@ -2,8 +2,6 @@ import { type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { getSurveyResults } from "../../../api/surveyResultApi";
-import MainFooter from "../../../components/layout/MainFooter";
-import MainHeader from "../../../components/layout/MainHeader";
 import type { SurveyResultSummary } from "../../../types/surveyResult";
 
 export default function LecturerDashboardPage() {
@@ -33,10 +31,8 @@ export default function LecturerDashboardPage() {
     const topResponseSurveys = results.slice().sort((a, b) => b.responseCount - a.responseCount).slice(0, 4);
 
     return (
-        <>
-            <MainHeader />
-            <main className="min-h-screen bg-[linear-gradient(180deg,#f5fbff_0%,#eef6fb_45%,#f8fbfd_100%)]">
-                <div className="mx-auto max-w-screen-xl px-6 py-10">
+        <main className="bg-[linear-gradient(180deg,#f5fbff_0%,#eef6fb_45%,#f8fbfd_100%)]">
+            <div className="mx-auto max-w-screen-xl px-6 py-10">
                     <div className="mb-10 max-w-3xl">
                         <span className="mb-3 inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-sky-700">
                             Lecturer Dashboard
@@ -129,10 +125,8 @@ export default function LecturerDashboardPage() {
                             </div>
                         </>
                     )}
-                </div>
-            </main>
-            <MainFooter />
-        </>
+            </div>
+        </main>
     );
 }
 

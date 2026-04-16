@@ -17,9 +17,12 @@ export type ManagedUserSummary = {
     email: string;
     role: string;
     name: string;
+    departmentId: number | null;
     departmentName: string | null;
     studentStatus: string | null;
     active: boolean;
+    studentCode: string | null;
+    teacherCode: string | null;
 };
 
 export type ManagedUserDetail = {
@@ -48,4 +51,27 @@ export type ApproveStudentRequest = {
 export type RejectStudentRequest = {
     reviewReason: string;
     reviewNotes?: string;
+};
+
+export type ManagedUserMetrics = {
+    totalUsers: number;
+    totalStudents: number;
+    totalTeachers: number;
+    totalAdmins: number;
+    totalInactive: number;
+    totalPending: number;
+};
+
+export type ManagedUserPage = {
+    items: ManagedUserSummary[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    metrics: ManagedUserMetrics;
+};
+
+export type DepartmentOption = {
+    id: number;
+    name: string;
 };

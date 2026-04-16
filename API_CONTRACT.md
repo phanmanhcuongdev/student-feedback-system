@@ -288,12 +288,31 @@ Rules:
 
 ### `GET /api/admin/surveys`
 
-Summary rows now include participation metrics:
+Supports query parameters:
 
+- `keyword`
+- `lifecycleState`
+- `runtimeStatus`
+- `hidden`
+- `recipientScope`
+- `startDateFrom`
+- `endDateTo`
+- `page`
+- `size`
+- `sortBy`
+- `sortDir`
+
+Summary rows now include:
+
+- `recipientDepartmentName`
 - `targetedCount`
 - `openedCount`
 - `submittedCount`
 - `responseRate`
+
+### `GET /api/admin/surveys/departments`
+
+Returns department options for survey audience filters and survey authoring.
 
 ### `GET /api/admin/surveys/{surveyId}`
 
@@ -312,6 +331,10 @@ Detail payloads also include:
 ### `GET /api/admin/students/pending`
 
 Returns pending student onboarding records for admin review.
+
+Current frontend note:
+
+- queue search, filter, sort, and pagination are currently frontend-side over this payload
 
 ### `POST /api/admin/students/{studentId}/approve`
 
@@ -364,6 +387,10 @@ Authorization semantics in this phase:
 
 Summary rows now include denominator-based participation metrics:
 
+- `lifecycleState`
+- `runtimeStatus`
+- `recipientScope`
+- `recipientDepartmentName`
 - `targetedCount`
 - `openedCount`
 - `submittedCount`
@@ -383,6 +410,10 @@ Authorization semantics match the list endpoint:
 
 Detail payloads also include:
 
+- `lifecycleState`
+- `runtimeStatus`
+- `recipientScope`
+- `recipientDepartmentName`
 - `targetedCount`
 - `openedCount`
 - `submittedCount`
@@ -415,3 +446,33 @@ Rules:
 - Current account-state audit action types:
   - `USER_ACTIVATED`
   - `USER_DEACTIVATED`
+
+### `GET /api/admin/users`
+
+Supports backend-backed query parameters:
+
+- `role`
+- `keyword`
+- `active`
+- `studentStatus`
+- `departmentId`
+- `page`
+- `size`
+- `sortBy`
+- `sortDir`
+
+### `GET /api/admin/users/departments`
+
+Returns department options for user-management filters and edit forms.
+
+## Account And Security Frontend Routing
+
+Frontend route behavior currently used by the web client:
+
+- `/account`
+- `/account/security`
+- `/change-password` redirects to `/account/security`
+
+Current implementation note:
+
+- the account overview relies on existing authenticated session data and does not use a dedicated profile endpoint

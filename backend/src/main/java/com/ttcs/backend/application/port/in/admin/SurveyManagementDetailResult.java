@@ -14,6 +14,7 @@ public record SurveyManagementDetailResult(
         boolean hidden,
         String recipientScope,
         Integer recipientDepartmentId,
+        String recipientDepartmentName,
         long responseCount,
         long targetedCount,
         long openedCount,

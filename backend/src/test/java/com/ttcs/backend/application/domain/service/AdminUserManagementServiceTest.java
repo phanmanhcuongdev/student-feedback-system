@@ -7,12 +7,17 @@ import com.ttcs.backend.application.domain.model.ManagedUser;
 import com.ttcs.backend.application.domain.model.Role;
 import com.ttcs.backend.application.domain.model.Status;
 import com.ttcs.backend.application.domain.model.User;
+import com.ttcs.backend.application.port.in.admin.GetUsersQuery;
+import com.ttcs.backend.application.port.in.admin.ManagedUserPageResult;
 import com.ttcs.backend.application.port.in.admin.ManagedUserSummaryResult;
 import com.ttcs.backend.application.port.in.admin.SetUserActiveCommand;
 import com.ttcs.backend.application.port.in.admin.UpdateUserCommand;
 import com.ttcs.backend.application.port.in.admin.UserManagementActionResult;
 import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.admin.ManageUserPort;
+import com.ttcs.backend.application.port.out.admin.ManagedUserMetrics;
+import com.ttcs.backend.application.port.out.admin.ManagedUserSearchItem;
+import com.ttcs.backend.application.port.out.admin.ManagedUserSearchPage;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -31,10 +36,10 @@ class AdminUserManagementServiceTest {
         RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
         AdminUserManagementService service = new AdminUserManagementService(port, auditLogPort);
 
-        List<ManagedUserSummaryResult> result = service.getUsers();
+        ManagedUserPageResult result = service.getUsers(new GetUsersQuery(null, null, null, null, null, 0, 20, "name", "asc"));
 
-        assertEquals(2, result.size());
-        assertEquals("admin@university.edu", result.get(0).email());
+        assertEquals(2, result.items().size());
+        assertEquals("admin@university.edu", result.items().get(0).email());
     }
 
     @Test
@@ -126,6 +131,41 @@ class AdminUserManagementServiceTest {
         @Override
         public List<ManagedUser> loadAll() {
             return List.copyOf(users);
+        }
+
+        @Override
+        public ManagedUserSearchPage loadPage(com.ttcs.backend.application.port.out.admin.ManageUsersQuery query) {
+            List<ManagedUserSearchItem> items = users.stream()
+                    .map(user -> new ManagedUserSearchItem(
+                            user.getUser().getId(),
+                            user.getUser().getEmail(),
+                            user.getUser().getRole().name(),
+                            user.getName(),
+                            user.getDepartment() != null ? user.getDepartment().getId() : null,
+                            user.getDepartment() != null ? user.getDepartment().getName() : null,
+                            user.getStudentStatus() != null ? user.getStudentStatus().name() : null,
+                            Boolean.TRUE.equals(user.getUser().getVerified()),
+                            user.getStudentCode(),
+                            user.getTeacherCode()
+                    ))
+                    .toList();
+
+            return new ManagedUserSearchPage(
+                    items,
+                    0,
+                    items.size(),
+                    items.size(),
+                    1,
+                    new ManagedUserMetrics(items.size(), 0, 1, 1, 0, 0)
+            );
+        }
+
+        @Override
+        public List<Department> loadDepartments() {
+            return List.of(
+                    new Department(1, "Computer Science"),
+                    new Department(2, "Information Systems")
+            );
         }
 
         @Override

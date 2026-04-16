@@ -29,7 +29,7 @@ export interface CreateSurveyData {
 export interface ManagedSurveySummary {
     id: number;
     title: string;
-    description: string;
+    description: string | null;
     startDate: string | null;
     endDate: string | null;
     lifecycleState: SurveyLifecycleState;
@@ -37,6 +37,7 @@ export interface ManagedSurveySummary {
     hidden: boolean;
     recipientScope: "ALL_STUDENTS" | "DEPARTMENT";
     recipientDepartmentId: number | null;
+    recipientDepartmentName: string | null;
     responseCount: number;
     targetedCount: number;
     openedCount: number;
@@ -59,6 +60,24 @@ export interface ManagedSurveyDetail extends ManagedSurveySummary {
         openedAt: string | null;
         submittedAt: string | null;
     }>;
+}
+
+export interface ManagedSurveyMetrics {
+    totalSurveys: number;
+    totalDrafts: number;
+    totalPublished: number;
+    totalOpen: number;
+    totalClosed: number;
+    totalHidden: number;
+}
+
+export interface ManagedSurveyPage {
+    items: ManagedSurveySummary[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    metrics: ManagedSurveyMetrics;
 }
 
 export interface CreateSurveyResponse {

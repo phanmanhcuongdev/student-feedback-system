@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { getStudentNotifications } from "../../../api/notificationApi";
-import MainFooter from "../../../components/layout/MainFooter";
-import MainHeader from "../../../components/layout/MainHeader";
 import type { StudentNotification } from "../../../types/notification";
 
 function formatDate(date: string) {
@@ -61,10 +59,8 @@ export default function NotificationsPage() {
     }, []);
 
     return (
-        <>
-            <MainHeader />
-            <main className="min-h-screen bg-[linear-gradient(180deg,#f4f8ff_0%,#eef3f8_44%,#f7fafc_100%)]">
-                <div className="mx-auto max-w-screen-lg px-6 py-10">
+        <main className="bg-[linear-gradient(180deg,#f4f8ff_0%,#eef3f8_44%,#f7fafc_100%)]">
+            <div className="mx-auto max-w-screen-lg px-6 py-10">
                     <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                         <div className="max-w-2xl">
                             <span className="mb-3 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-blue-700">
@@ -141,9 +137,7 @@ export default function NotificationsPage() {
                             ))}
                         </div>
                     )}
-                </div>
-            </main>
-            <MainFooter />
-        </>
+            </div>
+        </main>
     );
 }
