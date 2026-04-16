@@ -1,3 +1,6 @@
+export type SurveyRuntimeStatus = "OPEN" | "CLOSED" | "NOT_OPEN";
+export type SurveyLifecycleState = "DRAFT" | "PUBLISHED" | "CLOSED" | "ARCHIVED";
+
 export interface Survey {
     id: number;
     title: string;
@@ -5,7 +8,7 @@ export interface Survey {
     startDate: string;
     endDate: string;
     createdBy: number;
-    status: "OPEN" | "CLOSED" | "NOT_OPEN";
+    status: SurveyRuntimeStatus;
 }
 
 export interface CreateQuestionData {
@@ -26,14 +29,20 @@ export interface CreateSurveyData {
 export interface ManagedSurveySummary {
     id: number;
     title: string;
-    description: string;
+    description: string | null;
     startDate: string | null;
     endDate: string | null;
-    status: "OPEN" | "CLOSED" | "NOT_OPEN";
+    lifecycleState: SurveyLifecycleState;
+    runtimeStatus: SurveyRuntimeStatus;
     hidden: boolean;
     recipientScope: "ALL_STUDENTS" | "DEPARTMENT";
     recipientDepartmentId: number | null;
+    recipientDepartmentName: string | null;
     responseCount: number;
+    targetedCount: number;
+    openedCount: number;
+    submittedCount: number;
+    responseRate: number;
 }
 
 export interface ManagedSurveyDetail extends ManagedSurveySummary {
@@ -42,4 +51,38 @@ export interface ManagedSurveyDetail extends ManagedSurveySummary {
         content: string;
         type: "RATING" | "TEXT";
     }>;
+    pendingRecipients: Array<{
+        studentId: number;
+        studentName: string;
+        studentCode: string;
+        departmentName: string | null;
+        participationStatus: "ASSIGNED" | "OPENED" | "SUBMITTED";
+        openedAt: string | null;
+        submittedAt: string | null;
+    }>;
+}
+
+export interface ManagedSurveyMetrics {
+    totalSurveys: number;
+    totalDrafts: number;
+    totalPublished: number;
+    totalOpen: number;
+    totalClosed: number;
+    totalHidden: number;
+}
+
+export interface ManagedSurveyPage {
+    items: ManagedSurveySummary[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    metrics: ManagedSurveyMetrics;
+}
+
+export interface CreateSurveyResponse {
+    success: boolean;
+    surveyId: number;
+    code: string;
+    message: string;
 }

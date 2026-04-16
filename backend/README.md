@@ -11,6 +11,9 @@ It handles:
 - Student document upload
 - Admin approval flow
 - Survey listing, detail, submission, and result viewing
+- Admin user management queries and mutations
+- Admin survey management lifecycle actions and operational queries
+- Feedback reply handling for staff roles
 
 ## Stack
 
@@ -84,6 +87,12 @@ Backend runs on:
   Returns survey summaries for the authenticated user.
 - `POST /api/v1/surveys/{surveyId}/submit`
   Submits survey answers for the current student.
+- `GET /api/admin/users`
+  Returns backend-backed paginated user management results with filter and sort support.
+- `GET /api/admin/surveys`
+  Returns backend-backed paginated survey management results with filter and sort support.
+- `GET /api/v1/survey-results`
+  Returns survey result summaries enriched with lifecycle, runtime, and audience metadata.
 
 ## Development Notes
 
@@ -91,3 +100,4 @@ Backend runs on:
 - Business logic stays in `application.domain.service`.
 - External service calls such as Resend stay in `adapter.out`.
 - If you update environment variables, restart the application so Spring picks them up.
+- Department lookup endpoints currently support operational filters for user and survey management screens.

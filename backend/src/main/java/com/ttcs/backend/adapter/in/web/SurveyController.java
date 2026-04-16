@@ -49,8 +49,9 @@ public class SurveyController {
     @GetMapping("/{id}/detail")
     public ResponseEntity<SurveyDetailResponse> getSurveyDetail(@PathVariable("id") Integer surveyId) {
         currentStudentProvider.ensureActiveStudentAccount();
-        getSurveyUseCase.getSurveyById(surveyId, currentStudentProvider.currentUserId());
-        return ResponseEntity.ok(toSurveyDetailResponse(getSurveyDetailUseCase.getSurveyDetail(surveyId)));
+        return ResponseEntity.ok(toSurveyDetailResponse(
+                getSurveyDetailUseCase.getSurveyDetail(surveyId, currentStudentProvider.currentStudentId())
+        ));
     }
 
     @PostMapping("/{surveyId}/submit")

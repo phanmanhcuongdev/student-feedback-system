@@ -1,7 +1,9 @@
 package com.ttcs.backend.adapter.in.web;
 
+import com.ttcs.backend.adapter.in.web.dto.ApproveStudentRequest;
 import com.ttcs.backend.adapter.in.web.dto.ApproveStudentResponse;
 import com.ttcs.backend.adapter.in.web.dto.PendingStudentResponse;
+import com.ttcs.backend.adapter.in.web.dto.RejectStudentRequest;
 import com.ttcs.backend.adapter.in.web.dto.RejectStudentResponse;
 import com.ttcs.backend.application.port.in.admin.ApprovalActionResult;
 import com.ttcs.backend.application.port.in.admin.ApproveStudentUseCase;
@@ -14,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.List;
@@ -26,6 +29,7 @@ public class AdminStudentController {
     private final GetPendingStudentsUseCase getPendingStudentsUseCase;
     private final ApproveStudentUseCase approveStudentUseCase;
     private final RejectStudentUseCase rejectStudentUseCase;
+    private final CurrentStudentProvider currentStudentProvider;
 
     @GetMapping("/pending")
     public ResponseEntity<List<PendingStudentResponse>> getPendingStudents() {
@@ -37,14 +41,29 @@ public class AdminStudentController {
     }
 
     @PostMapping("/{studentId}/approve")
-    public ResponseEntity<ApproveStudentResponse> approveStudent(@PathVariable Integer studentId) {
-        ApprovalActionResult result = approveStudentUseCase.approve(studentId);
+    public ResponseEntity<ApproveStudentResponse> approveStudent(
+            @PathVariable Integer studentId,
+            @RequestBody(required = false) ApproveStudentRequest request
+    ) {
+        ApprovalActionResult result = approveStudentUseCase.approve(
+                studentId,
+                request != null ? request.getReviewNotes() : null,
+                currentStudentProvider.currentUserId()
+        );
         return ResponseEntity.ok(new ApproveStudentResponse(result.success(), result.code(), result.message()));
     }
 
     @PostMapping("/{studentId}/reject")
-    public ResponseEntity<RejectStudentResponse> rejectStudent(@PathVariable Integer studentId) {
-        ApprovalActionResult result = rejectStudentUseCase.reject(studentId);
+    public ResponseEntity<RejectStudentResponse> rejectStudent(
+            @PathVariable Integer studentId,
+            @RequestBody(required = false) RejectStudentRequest request
+    ) {
+        ApprovalActionResult result = rejectStudentUseCase.reject(
+                studentId,
+                request != null ? request.getReviewReason() : null,
+                request != null ? request.getReviewNotes() : null,
+                currentStudentProvider.currentUserId()
+        );
         return ResponseEntity.ok(new RejectStudentResponse(result.success(), result.code(), result.message()));
     }
 
@@ -57,7 +76,10 @@ public class AdminStudentController {
                 result.departmentName(),
                 result.status(),
                 result.studentCardImageUrl(),
-                result.nationalIdImageUrl()
+                result.nationalIdImageUrl(),
+                result.reviewReason(),
+                result.reviewNotes(),
+                result.resubmissionCount()
         );
     }
 }

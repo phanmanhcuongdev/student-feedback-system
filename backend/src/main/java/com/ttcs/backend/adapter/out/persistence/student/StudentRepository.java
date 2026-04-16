@@ -12,4 +12,8 @@ public interface StudentRepository extends JpaRepository<StudentEntity, Integer>
     Optional<StudentEntity> findByUserId(Integer userId);
 
     List<StudentEntity> findByStatusOrderByIdAsc(StatusEntity status);
+
+    List<StudentEntity> findByStatusAndUser_VerifiedTrueOrderByIdAsc(StatusEntity status);
+
+    List<StudentEntity> findByStatusAndDepartment_IdAndUser_VerifiedTrueOrderByIdAsc(StatusEntity status, Integer departmentId);
 }

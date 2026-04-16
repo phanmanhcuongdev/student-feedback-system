@@ -45,6 +45,18 @@ export type UploadDocumentsResponse = {
     message: string;
 };
 
+export type OnboardingStatusResponse = {
+    success: boolean;
+    code: string;
+    message: string;
+    status: string | null;
+    reviewReason: string | null;
+    reviewNotes: string | null;
+    hasUploadedDocuments: boolean;
+    canUploadDocuments: boolean;
+    resubmissionCount: number;
+};
+
 export type ForgotPasswordResponse = {
     success: boolean;
     code: string;

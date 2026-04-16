@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Nationalized;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "Student")
 @Getter
@@ -45,10 +47,30 @@ public class StudentEntity {
     @Nationalized
     private String nationalIdImageUrl;
 
+    @Column(name = "review_reason")
+    @Nationalized
+    private String reviewReason;
+
+    @Column(name = "review_notes")
+    @Nationalized
+    private String reviewNotes;
+
+    @Column(name = "reviewed_by_user_id")
+    private Integer reviewedByUserId;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "resubmission_count", nullable = false)
+    private Integer resubmissionCount;
+
     @PrePersist
     public void prePersist() {
         if (status == null) {
             status = StatusEntity.EMAIL_UNVERIFIED;
+        }
+        if (resubmissionCount == null) {
+            resubmissionCount = 0;
         }
     }
 }

@@ -1,43 +1,84 @@
 package com.ttcs.backend.application.domain.service;
 
+import com.ttcs.backend.application.domain.model.AuditActionType;
+import com.ttcs.backend.application.domain.model.AuditLog;
+import com.ttcs.backend.application.domain.model.AuditTargetType;
 import com.ttcs.backend.application.domain.model.Department;
 import com.ttcs.backend.application.domain.model.ManagedUser;
 import com.ttcs.backend.application.domain.model.Role;
 import com.ttcs.backend.application.domain.model.User;
 import com.ttcs.backend.application.port.in.admin.GetUserDetailUseCase;
+import com.ttcs.backend.application.port.in.admin.GetUserManagementDepartmentsUseCase;
+import com.ttcs.backend.application.port.in.admin.GetUsersQuery;
 import com.ttcs.backend.application.port.in.admin.GetUsersUseCase;
 import com.ttcs.backend.application.port.in.admin.ManagedUserDetailResult;
+import com.ttcs.backend.application.port.in.admin.ManagedUserMetricsResult;
+import com.ttcs.backend.application.port.in.admin.ManagedUserPageResult;
 import com.ttcs.backend.application.port.in.admin.ManagedUserSummaryResult;
 import com.ttcs.backend.application.port.in.admin.SetUserActiveCommand;
 import com.ttcs.backend.application.port.in.admin.SetUserActiveUseCase;
 import com.ttcs.backend.application.port.in.admin.UpdateUserCommand;
 import com.ttcs.backend.application.port.in.admin.UpdateUserUseCase;
 import com.ttcs.backend.application.port.in.admin.UserManagementActionResult;
+import com.ttcs.backend.application.port.out.admin.ManagedUserSearchItem;
+import com.ttcs.backend.application.port.out.admin.ManagedUserSearchPage;
+import com.ttcs.backend.application.port.out.admin.ManageUsersQuery;
+import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.admin.ManageUserPort;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
 import java.util.List;
 
 @UseCase
 @RequiredArgsConstructor
 public class AdminUserManagementService implements
         GetUsersUseCase,
+        GetUserManagementDepartmentsUseCase,
         GetUserDetailUseCase,
         UpdateUserUseCase,
         SetUserActiveUseCase {
 
     private final ManageUserPort manageUserPort;
+    private final SaveAuditLogPort saveAuditLogPort;
 
     @Override
     @Transactional(readOnly = true)
-    public List<ManagedUserSummaryResult> getUsers() {
-        return manageUserPort.loadAll().stream()
-                .sorted(Comparator.comparing(user -> user.getUser().getId()))
-                .map(this::toSummary)
-                .toList();
+    public ManagedUserPageResult getUsers(GetUsersQuery query) {
+        ManagedUserSearchPage page = manageUserPort.loadPage(new ManageUsersQuery(
+                query != null ? query.role() : null,
+                query != null ? query.keyword() : null,
+                query != null ? query.active() : null,
+                query != null ? query.studentStatus() : null,
+                query != null ? query.departmentId() : null,
+                query != null ? query.page() : 0,
+                query != null ? query.size() : 20,
+                query != null ? query.sortBy() : "name",
+                query != null ? query.sortDir() : "asc"
+        ));
+
+        return new ManagedUserPageResult(
+                page.items().stream().map(this::toSummary).toList(),
+                page.page(),
+                page.size(),
+                page.totalElements(),
+                page.totalPages(),
+                new ManagedUserMetricsResult(
+                        page.metrics().totalUsers(),
+                        page.metrics().totalStudents(),
+                        page.metrics().totalTeachers(),
+                        page.metrics().totalAdmins(),
+                        page.metrics().totalInactive(),
+                        page.metrics().totalPending()
+                )
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Department> getDepartments() {
+        return manageUserPort.loadDepartments();
     }
 
     @Override
@@ -53,9 +94,10 @@ public class AdminUserManagementService implements
     public UserManagementActionResult updateUser(UpdateUserCommand command) {
         if (command == null
                 || command.userId() == null
+                || command.actorUserId() == null
                 || isBlank(command.email())
                 || isBlank(command.name())) {
-            return UserManagementActionResult.fail("INVALID_INPUT", "Email and name are required.");
+            return UserManagementActionResult.fail("INVALID_INPUT", "Actor, email, and name are required.");
         }
 
         ManagedUser existing = manageUserPort.loadById(command.userId()).orElse(null);
@@ -113,6 +155,18 @@ public class AdminUserManagementService implements
                 existing.getStudentStatus()
         );
         manageUserPort.save(updated);
+        saveAuditLogPort.save(new AuditLog(
+                null,
+                command.actorUserId(),
+                AuditActionType.USER_PROFILE_UPDATED,
+                AuditTargetType.USER,
+                existing.getUser().getId(),
+                "Updated managed user profile",
+                buildUserUpdateDetails(existing, updated),
+                userStateSummary(existing),
+                userStateSummary(updated),
+                null
+        ));
         return UserManagementActionResult.ok("USER_UPDATED", "User updated successfully.");
     }
 
@@ -146,6 +200,18 @@ public class AdminUserManagementService implements
                 existing.getStudentStatus()
         );
         manageUserPort.save(updated);
+        saveAuditLogPort.save(new AuditLog(
+                null,
+                command.actorUserId(),
+                command.active() ? AuditActionType.USER_ACTIVATED : AuditActionType.USER_DEACTIVATED,
+                AuditTargetType.USER,
+                existing.getUser().getId(),
+                command.active() ? "Activated user account" : "Deactivated user account",
+                "role=" + existing.getUser().getRole().name() + "; email=" + existing.getUser().getEmail(),
+                activeState(Boolean.TRUE.equals(existing.getUser().getVerified())),
+                activeState(command.active()),
+                null
+        ));
 
         return command.active()
                 ? UserManagementActionResult.ok("USER_ACTIVATED", "User activated successfully.")
@@ -158,9 +224,27 @@ public class AdminUserManagementService implements
                 user.getUser().getEmail(),
                 user.getUser().getRole().name(),
                 user.getName(),
+                user.getDepartment() != null ? user.getDepartment().getId() : null,
                 user.getDepartment() != null ? user.getDepartment().getName() : null,
                 user.getStudentStatus() != null ? user.getStudentStatus().name() : null,
-                Boolean.TRUE.equals(user.getUser().getVerified())
+                Boolean.TRUE.equals(user.getUser().getVerified()),
+                user.getStudentCode(),
+                user.getTeacherCode()
+        );
+    }
+
+    private ManagedUserSummaryResult toSummary(ManagedUserSearchItem user) {
+        return new ManagedUserSummaryResult(
+                user.id(),
+                user.email(),
+                user.role(),
+                user.name(),
+                user.departmentId(),
+                user.departmentName(),
+                user.studentStatus(),
+                user.active(),
+                user.studentCode(),
+                user.teacherCode()
         );
     }
 
@@ -181,5 +265,45 @@ public class AdminUserManagementService implements
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private String buildUserUpdateDetails(ManagedUser before, ManagedUser after) {
+        StringBuilder details = new StringBuilder();
+        details.append("role=").append(after.getUser().getRole().name());
+        appendFieldChange(details, "email", before.getUser().getEmail(), after.getUser().getEmail());
+        appendFieldChange(details, "name", before.getName(), after.getName());
+        appendFieldChange(
+                details,
+                "department",
+                before.getDepartment() != null ? before.getDepartment().getName() : null,
+                after.getDepartment() != null ? after.getDepartment().getName() : null
+        );
+        if (after.getStudentCode() != null || before.getStudentCode() != null) {
+            appendFieldChange(details, "studentCode", before.getStudentCode(), after.getStudentCode());
+        }
+        if (after.getTeacherCode() != null || before.getTeacherCode() != null) {
+            appendFieldChange(details, "teacherCode", before.getTeacherCode(), after.getTeacherCode());
+        }
+        return details.toString();
+    }
+
+    private String userStateSummary(ManagedUser user) {
+        return "email=" + user.getUser().getEmail()
+                + ", name=" + user.getName()
+                + ", department=" + (user.getDepartment() != null ? user.getDepartment().getName() : "-")
+                + ", active=" + activeState(Boolean.TRUE.equals(user.getUser().getVerified()));
+    }
+
+    private void appendFieldChange(StringBuilder details, String field, String before, String after) {
+        details.append("; ")
+                .append(field)
+                .append("=")
+                .append(before == null ? "-" : before)
+                .append(" -> ")
+                .append(after == null ? "-" : after);
+    }
+
+    private String activeState(boolean active) {
+        return active ? "ACTIVE" : "INACTIVE";
     }
 }

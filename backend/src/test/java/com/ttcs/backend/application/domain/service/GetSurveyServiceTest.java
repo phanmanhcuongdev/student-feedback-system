@@ -1,0 +1,189 @@
+package com.ttcs.backend.application.domain.service;
+
+import com.ttcs.backend.application.domain.exception.SurveyNotFoundException;
+import com.ttcs.backend.application.domain.model.Department;
+import com.ttcs.backend.application.domain.model.Role;
+import com.ttcs.backend.application.domain.model.Status;
+import com.ttcs.backend.application.domain.model.Student;
+import com.ttcs.backend.application.domain.model.Survey;
+import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
+import com.ttcs.backend.application.domain.model.SurveyRecipient;
+import com.ttcs.backend.application.domain.model.User;
+import com.ttcs.backend.application.port.out.LoadSurveyPort;
+import com.ttcs.backend.application.port.out.LoadSurveyRecipientPort;
+import com.ttcs.backend.application.port.out.SaveSurveyRecipientPort;
+import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+class GetSurveyServiceTest {
+
+    @Test
+    void shouldRejectWhenRecipientRecordDoesNotExist() {
+        GetSurveyService service = new GetSurveyService(
+                surveyPort(survey()),
+                studentPort(),
+                new EmptyRecipientPort(),
+                new RecordingRecipientPort()
+        );
+
+        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyById(1, 3));
+    }
+
+    @Test
+    void shouldMarkRecipientOpenedOnFirstDirectAccess() {
+        RecordingRecipientPort recipientPort = new RecordingRecipientPort();
+        GetSurveyService service = new GetSurveyService(
+                surveyPort(survey()),
+                studentPort(),
+                recipientPort,
+                recipientPort
+        );
+
+        var result = service.getSurveyById(1, 3);
+
+        assertEquals(1, result.id());
+        assertEquals(1, recipientPort.saveCalls);
+    }
+
+    @Test
+    void shouldNotRewriteOpenedAtAfterFirstOpen() {
+        RecordingRecipientPort recipientPort = new RecordingRecipientPort(true);
+        GetSurveyService service = new GetSurveyService(
+                surveyPort(survey()),
+                studentPort(),
+                recipientPort,
+                recipientPort
+        );
+
+        service.getSurveyById(1, 3);
+
+        assertEquals(0, recipientPort.saveCalls);
+    }
+
+    private LoadSurveyPort surveyPort(Survey survey) {
+        return new LoadSurveyPort() {
+            @Override
+            public Optional<Survey> loadById(Integer surveyId) {
+                return Optional.of(survey);
+            }
+
+            @Override
+            public List<Survey> loadAll() {
+                return List.of(survey);
+            }
+        };
+    }
+
+    private LoadStudentByIdPort studentPort() {
+        return new LoadStudentByIdPort() {
+            @Override
+            public Optional<Student> loadById(Integer studentId) {
+                return Optional.of(student(studentId));
+            }
+
+            @Override
+            public Optional<Student> loadByUserId(Integer userId) {
+                return Optional.of(student(userId));
+            }
+        };
+    }
+
+    private Student student(Integer userId) {
+        return new Student(
+                userId,
+                new User(userId, "student@example.com", "pw", Role.STUDENT, true),
+                "Student",
+                "S0001",
+                new Department(1, "Computer Science"),
+                Status.ACTIVE,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0
+        );
+    }
+
+    private Survey survey() {
+        return new Survey(1, "Published Survey", "Desc", LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(1), 1, false, SurveyLifecycleState.PUBLISHED);
+    }
+
+    private static final class EmptyRecipientPort implements LoadSurveyRecipientPort {
+        @Override
+        public Optional<SurveyRecipient> loadBySurveyIdAndStudentId(Integer surveyId, Integer studentId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public List<SurveyRecipient> loadBySurveyId(Integer surveyId) {
+            return List.of();
+        }
+
+        @Override
+        public List<SurveyRecipient> loadByStudentId(Integer studentId) {
+            return List.of();
+        }
+    }
+
+    private static final class RecordingRecipientPort implements LoadSurveyRecipientPort, SaveSurveyRecipientPort {
+        private int saveCalls;
+        private final boolean alreadyOpened;
+
+        private RecordingRecipientPort() {
+            this(false);
+        }
+
+        private RecordingRecipientPort(boolean alreadyOpened) {
+            this.alreadyOpened = alreadyOpened;
+        }
+
+        @Override
+        public Optional<SurveyRecipient> loadBySurveyIdAndStudentId(Integer surveyId, Integer studentId) {
+            return Optional.of(new SurveyRecipient(
+                    1,
+                    surveyId,
+                    studentId,
+                    LocalDateTime.now().minusDays(1),
+                    alreadyOpened ? LocalDateTime.now().minusHours(2) : null,
+                    null
+            ));
+        }
+
+        @Override
+        public List<SurveyRecipient> loadBySurveyId(Integer surveyId) {
+            return List.of();
+        }
+
+        @Override
+        public List<SurveyRecipient> loadByStudentId(Integer studentId) {
+            return List.of(new SurveyRecipient(
+                    1,
+                    1,
+                    studentId,
+                    LocalDateTime.now().minusDays(1),
+                    alreadyOpened ? LocalDateTime.now().minusHours(2) : null,
+                    null
+            ));
+        }
+
+        @Override
+        public SurveyRecipient save(SurveyRecipient recipient) {
+            saveCalls++;
+            return recipient;
+        }
+
+        @Override
+        public List<SurveyRecipient> saveAll(List<SurveyRecipient> recipients) {
+            return recipients;
+        }
+    }
+}

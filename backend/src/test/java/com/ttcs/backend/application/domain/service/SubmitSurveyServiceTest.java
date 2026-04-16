@@ -8,6 +8,8 @@ import com.ttcs.backend.application.domain.model.Role;
 import com.ttcs.backend.application.domain.model.Status;
 import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.domain.model.Survey;
+import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
+import com.ttcs.backend.application.domain.model.SurveyRecipient;
 import com.ttcs.backend.application.domain.model.SurveyResponse;
 import com.ttcs.backend.application.domain.model.User;
 import com.ttcs.backend.application.port.in.command.SubmitSurveyAnswerCommand;
@@ -17,8 +19,10 @@ import com.ttcs.backend.application.port.in.result.SubmitSurveyResultCode;
 import com.ttcs.backend.application.port.out.LoadQuestionPort;
 import com.ttcs.backend.application.port.out.LoadStudentPort;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
+import com.ttcs.backend.application.port.out.LoadSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResponsePort;
 import com.ttcs.backend.application.port.out.SaveResponseDetailPort;
+import com.ttcs.backend.application.port.out.SaveSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.SaveSurveyResponsePort;
 import org.junit.jupiter.api.Test;
 
@@ -43,7 +47,9 @@ class SubmitSurveyServiceTest {
                 questionPort(List.of(ratingQuestion())),
                 surveyResponsePort(false),
                 saveSurveyResponsePort,
-                saveResponseDetailPort
+                saveResponseDetailPort,
+                recipientPort(recipient()),
+                new RecordingSaveSurveyRecipientPort()
         );
 
         SubmitSurveyResult result = service.submitSurvey(new SubmitSurveyCommand(
@@ -68,7 +74,9 @@ class SubmitSurveyServiceTest {
                 questionPort(List.of(ratingQuestion())),
                 surveyResponsePort(false),
                 saveSurveyResponsePort,
-                saveResponseDetailPort
+                saveResponseDetailPort,
+                recipientPort(recipient()),
+                new RecordingSaveSurveyRecipientPort()
         );
 
         SubmitSurveyResult result = service.submitSurvey(new SubmitSurveyCommand(
@@ -87,13 +95,16 @@ class SubmitSurveyServiceTest {
     void shouldPersistSurveyResponseAndDetailsWhenSubmissionIsValid() {
         RecordingSaveSurveyResponsePort saveSurveyResponsePort = new RecordingSaveSurveyResponsePort();
         RecordingSaveResponseDetailPort saveResponseDetailPort = new RecordingSaveResponseDetailPort();
+        RecordingSaveSurveyRecipientPort saveSurveyRecipientPort = new RecordingSaveSurveyRecipientPort();
         SubmitSurveyService service = new SubmitSurveyService(
                 surveyPort(openSurvey()),
                 studentPort(student()),
                 questionPort(List.of(ratingQuestion(), textQuestion())),
                 surveyResponsePort(false),
                 saveSurveyResponsePort,
-                saveResponseDetailPort
+                saveResponseDetailPort,
+                recipientPort(recipient()),
+                saveSurveyRecipientPort
         );
 
         SubmitSurveyResult result = service.submitSurvey(new SubmitSurveyCommand(
@@ -109,7 +120,36 @@ class SubmitSurveyServiceTest {
         assertEquals(SubmitSurveyResultCode.SUBMIT_SUCCESS, result.code());
         assertEquals(1, saveSurveyResponsePort.saveCalls);
         assertEquals(1, saveResponseDetailPort.saveAllCalls);
+        assertEquals(1, saveSurveyRecipientPort.saveCalls);
         assertEquals(2, saveResponseDetailPort.lastSavedDetails.size());
+    }
+
+    @Test
+    void shouldRejectRepeatedSubmissionWithoutChangingRecipientState() {
+        RecordingSaveSurveyResponsePort saveSurveyResponsePort = new RecordingSaveSurveyResponsePort();
+        RecordingSaveResponseDetailPort saveResponseDetailPort = new RecordingSaveResponseDetailPort();
+        RecordingSaveSurveyRecipientPort saveSurveyRecipientPort = new RecordingSaveSurveyRecipientPort();
+        SubmitSurveyService service = new SubmitSurveyService(
+                surveyPort(openSurvey()),
+                studentPort(student()),
+                questionPort(List.of(ratingQuestion())),
+                surveyResponsePort(true),
+                saveSurveyResponsePort,
+                saveResponseDetailPort,
+                recipientPort(recipient()),
+                saveSurveyRecipientPort
+        );
+
+        SubmitSurveyResult result = service.submitSurvey(new SubmitSurveyCommand(
+                1,
+                6,
+                List.of(new SubmitSurveyAnswerCommand(11, 5, null))
+        ));
+
+        assertFalse(result.success());
+        assertEquals(SubmitSurveyResultCode.ALREADY_SUBMITTED, result.code());
+        assertEquals(0, saveSurveyResponsePort.saveCalls);
+        assertEquals(0, saveSurveyRecipientPort.saveCalls);
     }
 
     private LoadSurveyPort surveyPort(Survey survey) {
@@ -142,7 +182,8 @@ class SubmitSurveyServiceTest {
                 LocalDateTime.now().minusDays(1),
                 LocalDateTime.now().plusDays(1),
                 99,
-                false
+                false,
+                SurveyLifecycleState.PUBLISHED
         );
     }
 
@@ -154,7 +195,8 @@ class SubmitSurveyServiceTest {
                 LocalDateTime.now().minusDays(5),
                 LocalDateTime.now().minusDays(1),
                 99,
-                false
+                false,
+                SurveyLifecycleState.CLOSED
         );
     }
 
@@ -181,8 +223,36 @@ class SubmitSurveyServiceTest {
                 new Department(1, "Computer Science"),
                 Status.ACTIVE,
                 null,
-                null
+                null,
+                null,
+                null,
+                null,
+                null,
+                0
         );
+    }
+
+    private LoadSurveyRecipientPort recipientPort(SurveyRecipient recipient) {
+        return new LoadSurveyRecipientPort() {
+            @Override
+            public Optional<SurveyRecipient> loadBySurveyIdAndStudentId(Integer surveyId, Integer studentId) {
+                return Optional.ofNullable(recipient);
+            }
+
+            @Override
+            public List<SurveyRecipient> loadBySurveyId(Integer surveyId) {
+                return recipient == null ? List.of() : List.of(recipient);
+            }
+
+            @Override
+            public List<SurveyRecipient> loadByStudentId(Integer studentId) {
+                return recipient == null ? List.of() : List.of(recipient);
+            }
+        };
+    }
+
+    private SurveyRecipient recipient() {
+        return new SurveyRecipient(1, 1, 6, LocalDateTime.now().minusDays(1), null, null);
     }
 
     private Question ratingQuestion() {
@@ -223,6 +293,21 @@ class SubmitSurveyServiceTest {
             saveAllCalls++;
             lastSavedDetails = responseDetails;
             return responseDetails;
+        }
+    }
+
+    private static final class RecordingSaveSurveyRecipientPort implements SaveSurveyRecipientPort {
+        private int saveCalls;
+
+        @Override
+        public SurveyRecipient save(SurveyRecipient recipient) {
+            saveCalls++;
+            return recipient;
+        }
+
+        @Override
+        public List<SurveyRecipient> saveAll(List<SurveyRecipient> recipients) {
+            return recipients;
         }
     }
 }

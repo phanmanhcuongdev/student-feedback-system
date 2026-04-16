@@ -1,5 +1,8 @@
 package com.ttcs.backend.application.domain.service;
 
+import com.ttcs.backend.application.domain.model.AuditActionType;
+import com.ttcs.backend.application.domain.model.AuditLog;
+import com.ttcs.backend.application.domain.model.AuditTargetType;
 import com.ttcs.backend.application.domain.model.Status;
 import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.port.in.admin.ApprovalActionResult;
@@ -8,12 +11,14 @@ import com.ttcs.backend.application.port.in.admin.GetPendingStudentsUseCase;
 import com.ttcs.backend.application.port.in.admin.PendingStudentResult;
 import com.ttcs.backend.application.port.in.admin.RejectStudentUseCase;
 import com.ttcs.backend.application.port.out.admin.LoadPendingStudentsPort;
+import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
 import com.ttcs.backend.application.port.out.auth.SaveStudentPort;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @UseCase
@@ -27,6 +32,7 @@ public class AdminStudentApprovalService implements
     private final LoadPendingStudentsPort loadPendingStudentsPort;
     private final LoadStudentByIdPort loadStudentByIdPort;
     private final SaveStudentPort saveStudentPort;
+    private final SaveAuditLogPort saveAuditLogPort;
 
     @Override
     @Transactional(readOnly = true)
@@ -40,24 +46,55 @@ public class AdminStudentApprovalService implements
                         student.getDepartment() != null ? student.getDepartment().getName() : null,
                         student.getStatus().name(),
                         student.getStudentCardImageUrl(),
-                        student.getNationalIdImageUrl()
+                        student.getNationalIdImageUrl(),
+                        student.getReviewReason(),
+                        student.getReviewNotes(),
+                        student.getResubmissionCount()
                 ))
                 .toList();
     }
 
     @Override
-    public ApprovalActionResult approve(Integer studentId) {
-        return updateStatus(studentId, Status.ACTIVE, "APPROVE_SUCCESS", "Student approved successfully");
+    public ApprovalActionResult approve(Integer studentId, String reviewNotes, Integer reviewerUserId) {
+        return updateStatus(
+                studentId,
+                Status.ACTIVE,
+                null,
+                reviewNotes,
+                reviewerUserId,
+                "APPROVE_SUCCESS",
+                "Student approved successfully"
+        );
     }
 
     @Override
-    public ApprovalActionResult reject(Integer studentId) {
-        return updateStatus(studentId, Status.REJECTED, "REJECT_SUCCESS", "Student rejected successfully");
+    public ApprovalActionResult reject(Integer studentId, String reviewReason, String reviewNotes, Integer reviewerUserId) {
+        if (isBlank(reviewReason)) {
+            return ApprovalActionResult.fail("REVIEW_REASON_REQUIRED", "Review reason is required");
+        }
+
+        return updateStatus(
+                studentId,
+                Status.REJECTED,
+                reviewReason.trim(),
+                reviewNotes,
+                reviewerUserId,
+                "REJECT_SUCCESS",
+                "Student rejected successfully"
+        );
     }
 
-    private ApprovalActionResult updateStatus(Integer studentId, Status targetStatus, String code, String message) {
-        if (studentId == null) {
-            return ApprovalActionResult.fail("INVALID_INPUT", "Student id is required");
+    private ApprovalActionResult updateStatus(
+            Integer studentId,
+            Status targetStatus,
+            String reviewReason,
+            String reviewNotes,
+            Integer reviewerUserId,
+            String code,
+            String message
+    ) {
+        if (studentId == null || reviewerUserId == null) {
+            return ApprovalActionResult.fail("INVALID_INPUT", "Student id and reviewer id are required");
         }
 
         Student student = loadStudentByIdPort.loadById(studentId).orElse(null);
@@ -77,10 +114,53 @@ public class AdminStudentApprovalService implements
                 student.getDepartment(),
                 targetStatus,
                 student.getStudentCardImageUrl(),
-                student.getNationalIdImageUrl()
+                student.getNationalIdImageUrl(),
+                reviewReason,
+                normalizeNullableText(reviewNotes),
+                reviewerUserId,
+                LocalDateTime.now(),
+                student.getResubmissionCount() == null ? 0 : student.getResubmissionCount()
         );
         saveStudentPort.save(updatedStudent);
+        saveAuditLogPort.save(new AuditLog(
+                null,
+                reviewerUserId,
+                targetStatus == Status.ACTIVE ? AuditActionType.ONBOARDING_APPROVED : AuditActionType.ONBOARDING_REJECTED,
+                AuditTargetType.STUDENT,
+                student.getId(),
+                targetStatus == Status.ACTIVE ? "Approved onboarding review" : "Rejected onboarding review",
+                buildDecisionDetails(student, reviewReason, reviewNotes),
+                student.getStatus().name(),
+                targetStatus.name(),
+                null
+        ));
 
         return ApprovalActionResult.success(code, message);
+    }
+
+    private String buildDecisionDetails(Student student, String reviewReason, String reviewNotes) {
+        StringBuilder details = new StringBuilder();
+        details.append("studentCode=").append(student.getStudentCode());
+        if (student.getDepartment() != null) {
+            details.append("; department=").append(student.getDepartment().getName());
+        }
+        if (!isBlank(reviewReason)) {
+            details.append("; reason=").append(reviewReason.trim());
+        }
+        if (!isBlank(reviewNotes)) {
+            details.append("; notes=").append(reviewNotes.trim());
+        }
+        return details.toString();
+    }
+
+    private String normalizeNullableText(String value) {
+        if (isBlank(value)) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }

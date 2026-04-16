@@ -11,10 +11,13 @@ import com.ttcs.backend.application.port.in.auth.command.ForgotPasswordCommand;
 import com.ttcs.backend.application.port.in.auth.command.LoginCommand;
 import com.ttcs.backend.application.port.in.auth.command.ResetPasswordCommand;
 import com.ttcs.backend.application.port.in.auth.command.ChangePasswordCommand;
+import com.ttcs.backend.application.port.in.auth.command.UploadStudentDocumentsCommand;
 import com.ttcs.backend.application.port.in.auth.result.ChangePasswordResult;
 import com.ttcs.backend.application.port.in.auth.result.ForgotPasswordResult;
 import com.ttcs.backend.application.port.in.auth.result.LoginResult;
 import com.ttcs.backend.application.port.in.auth.result.ResetPasswordResult;
+import com.ttcs.backend.application.port.in.auth.result.StudentOnboardingStatusResult;
+import com.ttcs.backend.application.port.in.auth.result.UploadStudentDocumentsResult;
 import com.ttcs.backend.application.port.out.auth.JwtTokenPort;
 import com.ttcs.backend.application.port.out.auth.LoadDepartmentPort;
 import com.ttcs.backend.application.port.out.auth.LoadPasswordResetTokenPort;
@@ -29,6 +32,7 @@ import com.ttcs.backend.application.port.out.auth.SendPasswordResetEmailPort;
 import com.ttcs.backend.application.port.out.auth.SendVerifyEmailPort;
 import com.ttcs.backend.application.port.out.auth.StoreStudentDocumentPort;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
@@ -78,14 +82,14 @@ class AuthUseCaseServiceTest {
     }
 
     @Test
-    void shouldRejectRejectedStudentLogin() {
+    void shouldAllowRejectedStudentLoginForResubmission() {
         AuthUseCaseService service = createFixture(student(Status.REJECTED, true, true)).service;
 
         LoginResult result = service.login(new LoginCommand("student@example.com", "secret"));
 
-        assertFalse(result.success());
-        assertEquals("ACCOUNT_REJECTED", result.code());
-        assertNull(result.accessToken());
+        assertTrue(result.success());
+        assertEquals("REJECTED", result.studentStatus());
+        assertEquals("jwt-token", result.accessToken());
     }
 
     @Test
@@ -189,6 +193,40 @@ class AuthUseCaseServiceTest {
         assertEquals("CURRENT_PASSWORD_INCORRECT", result.code());
     }
 
+    @Test
+    void shouldAllowRejectedStudentToResubmitDocuments() {
+        AuthFixture fixture = createFixture(student(Status.REJECTED, true, true));
+
+        UploadStudentDocumentsResult result = fixture.service.upload(
+                new UploadStudentDocumentsCommand(
+                        1,
+                        new MockMultipartFile("studentCard", "student-card.png", "image/png", new byte[]{1}),
+                        new MockMultipartFile("nationalId", "national-id.png", "image/png", new byte[]{2})
+                )
+        );
+
+        assertTrue(result.isSuccess());
+        assertEquals("UPLOAD_DOCS_SUCCESS", result.getCode());
+        assertNotNull(fixture.saveStudentPort.lastSavedStudent);
+        assertEquals(Status.PENDING, fixture.saveStudentPort.lastSavedStudent.getStatus());
+        assertEquals(2, fixture.saveStudentPort.lastSavedStudent.getResubmissionCount());
+        assertNull(fixture.saveStudentPort.lastSavedStudent.getReviewReason());
+        assertNull(fixture.saveStudentPort.lastSavedStudent.getReviewNotes());
+    }
+
+    @Test
+    void shouldReturnOnboardingStatusWithReviewContext() {
+        AuthFixture fixture = createFixture(student(Status.REJECTED, true, true));
+
+        StudentOnboardingStatusResult result = fixture.service.getStatus(1);
+
+        assertTrue(result.success());
+        assertEquals("REJECTED", result.status());
+        assertEquals("Document mismatch", result.reviewReason());
+        assertTrue(result.hasUploadedDocuments());
+        assertTrue(result.canUploadDocuments());
+    }
+
     private AuthFixture createFixture(Student student) {
         User user = student != null
                 ? student.getUser()
@@ -202,6 +240,7 @@ class AuthUseCaseServiceTest {
 
     private AuthFixture createFixture(User user, Student student) {
         RecordingSaveUserPort saveUserPort = new RecordingSaveUserPort();
+        RecordingSaveStudentPort saveStudentPort = new RecordingSaveStudentPort();
         RecordingPasswordResetEmailPort passwordResetEmailPort = new RecordingPasswordResetEmailPort();
         InMemoryPasswordResetTokenPort passwordResetTokenPort = new InMemoryPasswordResetTokenPort(user);
         PasswordEncoder passwordEncoder = new PasswordEncoder() {
@@ -268,7 +307,7 @@ class AuthUseCaseServiceTest {
                         return Optional.ofNullable(student);
                     }
                 },
-                new NoOpSaveStudentPort(),
+                saveStudentPort,
                 new NoOpLoadStudentTokenPort(),
                 token -> token,
                 passwordResetTokenPort,
@@ -281,7 +320,7 @@ class AuthUseCaseServiceTest {
                 jwtTokenPort
         );
 
-        return new AuthFixture(service, user, saveUserPort, passwordResetEmailPort, passwordResetTokenPort);
+        return new AuthFixture(service, user, saveUserPort, saveStudentPort, passwordResetEmailPort, passwordResetTokenPort);
     }
 
     private LoadDepartmentPort departmentPort() {
@@ -298,7 +337,12 @@ class AuthUseCaseServiceTest {
                 new Department(1, "Computer Science"),
                 status,
                 withDocuments ? "student-card.png" : null,
-                withDocuments ? "national-id.png" : null
+                withDocuments ? "national-id.png" : null,
+                status == Status.REJECTED ? "Document mismatch" : null,
+                status == Status.REJECTED ? "Please upload clearer identity photos." : null,
+                status == Status.REJECTED ? 99 : null,
+                status == Status.REJECTED ? LocalDateTime.now().minusDays(1) : null,
+                status == Status.REJECTED ? 1 : 0
         );
     }
 
@@ -306,6 +350,7 @@ class AuthUseCaseServiceTest {
             AuthUseCaseService service,
             User user,
             RecordingSaveUserPort saveUserPort,
+            RecordingSaveStudentPort saveStudentPort,
             RecordingPasswordResetEmailPort passwordResetEmailPort,
             InMemoryPasswordResetTokenPort passwordResetTokenPort
     ) {
@@ -326,9 +371,12 @@ class AuthUseCaseServiceTest {
         }
     }
 
-    private static final class NoOpSaveStudentPort implements SaveStudentPort {
+    private static final class RecordingSaveStudentPort implements SaveStudentPort {
+        private Student lastSavedStudent;
+
         @Override
         public Student save(Student student) {
+            lastSavedStudent = student;
             return student;
         }
 

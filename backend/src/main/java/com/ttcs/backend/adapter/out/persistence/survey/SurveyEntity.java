@@ -45,6 +45,9 @@ public class SurveyEntity {
     @Column(name = "hidden", nullable = false)
     private boolean hidden;
 
+    @Column(name = "lifecycle_state", nullable = false)
+    private String lifecycleState;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private AdminEntity createdBy;

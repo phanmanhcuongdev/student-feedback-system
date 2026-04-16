@@ -3,6 +3,7 @@ import type {
     ChangePasswordResponse,
     ForgotPasswordResponse,
     LoginResponse,
+    OnboardingStatusResponse,
     RegisterStudentRequest,
     RegisterStudentResponse,
     ResetPasswordResponse,
@@ -45,6 +46,11 @@ export const uploadDocuments = async (
         },
     });
 
+    return res.data;
+};
+
+export const getOnboardingStatus = async (): Promise<OnboardingStatusResponse> => {
+    const res = await axios.get<OnboardingStatusResponse>("/auth/onboarding-status");
     return res.data;
 };
 
