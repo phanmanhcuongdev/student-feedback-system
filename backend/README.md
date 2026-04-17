@@ -22,20 +22,21 @@ It handles:
 - Spring MVC
 - Spring Security
 - Spring Data JPA
+- Flyway
 - Microsoft SQL Server
 - Resend API for verification emails
 
 ## Project Structure
 
-- [`src/main/java/com/ttcs/backend/adapter/in`](/E:/Lap/TTCS/student-feedback-system/backend/src/main/java/com/ttcs/backend/adapter/in)
+- [`src/main/java/com/ttcs/backend/adapter/in`](src/main/java/com/ttcs/backend/adapter/in)
   Web controllers and security filters
-- [`src/main/java/com/ttcs/backend/application`](/E:/Lap/TTCS/student-feedback-system/backend/src/main/java/com/ttcs/backend/application)
+- [`src/main/java/com/ttcs/backend/application`](src/main/java/com/ttcs/backend/application)
   Domain models, use cases, input ports, output ports
-- [`src/main/java/com/ttcs/backend/adapter/out`](/E:/Lap/TTCS/student-feedback-system/backend/src/main/java/com/ttcs/backend/adapter/out)
+- [`src/main/java/com/ttcs/backend/adapter/out`](src/main/java/com/ttcs/backend/adapter/out)
   Persistence adapters, JWT adapter, Resend adapter
-- [`src/main/java/com/ttcs/backend/config`](/E:/Lap/TTCS/student-feedback-system/backend/src/main/java/com/ttcs/backend/config)
+- [`src/main/java/com/ttcs/backend/config`](src/main/java/com/ttcs/backend/config)
   Spring configuration beans
-- [`src/main/resources/application.yaml`](/E:/Lap/TTCS/student-feedback-system/backend/src/main/resources/application.yaml)
+- [`src/main/resources/application.yaml`](src/main/resources/application.yaml)
   Main Spring configuration
 
 ## Required Configuration
@@ -57,14 +58,46 @@ RESEND_API_URL=https://api.resend.com/emails
 
 Important notes:
 
-- The schema must already exist because JPA validation is enabled.
+- Flyway manages schema creation and migration before Hibernate validation runs.
 - Email verification uses Resend. Registration will not silently fake success if email delivery is unavailable.
 - SQL Server is the only database wired in the current configuration.
+
+## Flyway Integration
+
+Flyway is configured through Spring Boot 4 auto-configuration.
+
+- Dependency path:
+  - `spring-boot-starter-flyway`
+  - `flyway-core`
+  - `flyway-sqlserver`
+- Migration scripts live in [`src/main/resources/db/migration/`](src/main/resources/db/migration/)
+- Current baseline migration:
+  - [`src/main/resources/db/migration/V1__initial_schema.sql`](src/main/resources/db/migration/V1__initial_schema.sql)
+
+The active Flyway properties in [`src/main/resources/application.yaml`](src/main/resources/application.yaml) are:
+
+```yaml
+spring:
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+```
+
+What this means:
+
+- Spring Boot creates and runs Flyway automatically at startup.
+- Flyway uses the main SQL Server datasource from `spring.datasource`.
+- `baseline-on-migrate: true` allows the app to adopt an existing database that already has tables.
+- On first managed run against an existing schema, Flyway creates `flyway_schema_history` and records the baseline version.
+- On a fresh database, Flyway applies the versioned SQL files in order before JPA validation.
+
+There is no custom `FlywayConfig.java` in the project. Manual Flyway bean creation is not part of the supported setup.
 
 ## Run Locally
 
 ```powershell
-cd E:\Lap\TTCS\student-feedback-system\backend
+cd backend
 .\mvnw.cmd test
 .\mvnw.cmd spring-boot:run
 ```
@@ -101,3 +134,4 @@ Backend runs on:
 - External service calls such as Resend stay in `adapter.out`.
 - If you update environment variables, restart the application so Spring picks them up.
 - Department lookup endpoints currently support operational filters for user and survey management screens.
+- Add future schema changes as new versioned files under `src/main/resources/db/migration`, not by editing an already-applied migration.
