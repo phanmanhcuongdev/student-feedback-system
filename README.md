@@ -75,6 +75,36 @@ APP_STORAGE_MINIO_SECRET_KEY=minioadmin
 APP_STORAGE_MINIO_BUCKET=student-documents
 ```
 
+Backend runtime variables currently used in [`backend/.env.dev`](backend/.env.dev):
+
+```env
+DB_URL=jdbc:sqlserver://192.168.10.211;databaseName=SURVEY_SYSTEM_DEV;encrypt=true;trustServerCertificate=true
+DB_USERNAME=sa
+DB_PASSWORD=TTCS@1234
+
+APP_JWT_SECRET=...
+APP_JWT_ACCESS_TOKEN_EXPIRATION_MS=86400000
+
+APP_VERIFY_EMAIL_URL_BASE=https://survey.cuongdso.id.vn
+APP_RESET_PASSWORD_URL_BASE=https://survey.cuongdso.id.vn
+APP_RESET_PASSWORD_EXPIRATION_MINUTES=30
+
+RESEND_API_KEY=re_...
+APP_MAIL_FROM=noreply@cuongdso.id.vn
+RESEND_API_URL=https://api.resend.com/emails
+
+APP_WEB_ALLOWED_ORIGINS=https://survey.cuongdso.id.vn
+
+MINIO_ACCESS_KEY=...
+MINIO_SECRET_KEY=...
+MINIO_BUCKET=student-feedback-bucket
+MINIO_URL=http://minio:9000
+APP_STORAGE_MINIO_ENDPOINT=http://minio:9000
+APP_STORAGE_MINIO_ACCESS_KEY=...
+APP_STORAGE_MINIO_SECRET_KEY=...
+APP_STORAGE_MINIO_BUCKET=student-feedback-bucket
+```
+
 Frontend variables from [`frontend/.env.example`](frontend/.env.example):
 
 ```env
@@ -85,12 +115,50 @@ VITE_API_PROXY_TARGET=http://localhost:8080
 Notes:
 
 - Spring Boot in this repo does not auto-load `.env` files. Export variables in your shell or configure them in your IDE run configuration.
+- The backend document storage configuration is read from `app.storage.minio.*` in [`backend/src/main/resources/application.yaml`](backend/src/main/resources/application.yaml), which means the Spring application needs `APP_STORAGE_MINIO_ENDPOINT`, `APP_STORAGE_MINIO_ACCESS_KEY`, `APP_STORAGE_MINIO_SECRET_KEY`, and optionally `APP_STORAGE_MINIO_BUCKET`.
+- The `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, and `MINIO_URL` values in `backend/.env.dev` are useful for Docker Compose or MinIO container setup. In deployments that keep both naming schemes, set the `APP_STORAGE_MINIO_*` variables from those same values so the backend and the MinIO container stay aligned.
 - `spring.jpa.hibernate.ddl-auto=validate` is enabled, so Flyway is responsible for creating or updating schema state before Hibernate validates entities.
 - Flyway is enabled through `spring.flyway.enabled=true` and scans SQL migrations from `classpath:db/migration`, which maps to `backend/src/main/resources/db/migration/`.
 - `spring.flyway.baseline-on-migrate=true` is enabled so an existing SQL Server database can be brought under Flyway management without replaying the initial schema migration.
 - `backend/src/main/resources/db/migration/V1__initial_schema.sql` is the baseline schema migration used for new environments.
 - For a new database, let Flyway apply the versioned scripts at startup. The legacy `database/full_schema.sql` and `database/migrations/` files are still useful as reference SQL, but the application now runs migrations from the Flyway folder.
 - Resend must be configured if you want registration to send a real verification email. If `RESEND_API_KEY` is missing, registration email delivery will fail by design.
+
+## MinIO Document Storage
+
+Student onboarding documents are stored in MinIO through the backend storage adapter at [MinioStudentDocumentStorageAdapter.java](backend/src/main/java/com/ttcs/backend/adapter/out/persistence/MinioStudentDocumentStorageAdapter.java). The database keeps the bucket/object path, while the binary file itself lives in MinIO.
+
+Variables involved:
+
+- `MINIO_ACCESS_KEY`: access key passed to the MinIO server/container.
+- `MINIO_SECRET_KEY`: secret key passed to the MinIO server/container.
+- `MINIO_BUCKET`: bucket name used for student documents.
+- `MINIO_URL`: MinIO service URL, typically `http://minio:9000` inside Docker networking.
+- `APP_STORAGE_MINIO_ENDPOINT`: Spring Boot endpoint for the MinIO SDK. In most deployments this matches `MINIO_URL`.
+- `APP_STORAGE_MINIO_ACCESS_KEY`: Spring Boot credential used by the backend MinIO client. In most deployments this matches `MINIO_ACCESS_KEY`.
+- `APP_STORAGE_MINIO_SECRET_KEY`: Spring Boot credential used by the backend MinIO client. In most deployments this matches `MINIO_SECRET_KEY`.
+- `APP_STORAGE_MINIO_BUCKET`: optional Spring-side bucket override. If omitted, the backend falls back to `student-documents`.
+
+Recommended mapping in deployment:
+
+```env
+MINIO_ACCESS_KEY=your-access-key
+MINIO_SECRET_KEY=your-secret-key
+MINIO_BUCKET=student-feedback-bucket
+MINIO_URL=http://minio:9000
+
+APP_STORAGE_MINIO_ENDPOINT=${MINIO_URL}
+APP_STORAGE_MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+APP_STORAGE_MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+APP_STORAGE_MINIO_BUCKET=${MINIO_BUCKET}
+```
+
+Operational notes:
+
+- The backend only talks to MinIO through the `APP_STORAGE_MINIO_*` variables.
+- The MinIO container itself only needs the `MINIO_*` variables.
+- If the backend starts without the `APP_STORAGE_MINIO_*` values, document upload and document review endpoints cannot initialize correctly.
+- If MinIO and backend disagree on bucket name, uploads may succeed to one bucket while document review looks in another.
 
 ## Database Migrations
 

@@ -1,0 +1,76 @@
+Technical Roadmap Notes - Environment and MinIO Update
+
+This plain-text companion summarizes the current environment-variable expectations introduced in backend/.env.dev and the current backend storage behavior.
+
+1. Current MinIO-related variables seen in backend/.env.dev
+
+- MINIO_ACCESS_KEY
+- MINIO_SECRET_KEY
+- MINIO_BUCKET
+- MINIO_URL
+- APP_STORAGE_MINIO_ENDPOINT
+- APP_STORAGE_MINIO_ACCESS_KEY
+- APP_STORAGE_MINIO_SECRET_KEY
+- APP_STORAGE_MINIO_BUCKET
+
+2. Why there are two MinIO variable groups
+
+The repository now has two different but related naming groups:
+
+- Raw MinIO service variables:
+  - MINIO_ACCESS_KEY
+  - MINIO_SECRET_KEY
+  - MINIO_BUCKET
+  - MINIO_URL
+
+These are useful for Docker Compose or direct MinIO container configuration.
+
+- Spring Boot backend variables:
+  - APP_STORAGE_MINIO_ENDPOINT
+  - APP_STORAGE_MINIO_ACCESS_KEY
+  - APP_STORAGE_MINIO_SECRET_KEY
+  - APP_STORAGE_MINIO_BUCKET
+
+These are the variables the backend actually reads through application.yaml.
+
+3. How the backend uses MinIO
+
+- The backend config is defined in backend/src/main/resources/application.yaml.
+- The MinIO client bean is created in backend/src/main/java/com/ttcs/backend/config/MinioConfig.java.
+- Student document upload/download is implemented in backend/src/main/java/com/ttcs/backend/adapter/out/persistence/MinioStudentDocumentStorageAdapter.java.
+- Student document paths are stored in the database while the file binaries remain in MinIO.
+
+4. Required deployment rule
+
+The backend will not use MINIO_URL or MINIO_ACCESS_KEY directly unless the deployment maps those values into APP_STORAGE_MINIO_* variables.
+
+Recommended mapping:
+
+MINIO_URL=http://minio:9000
+MINIO_ACCESS_KEY=your-access-key
+MINIO_SECRET_KEY=your-secret-key
+MINIO_BUCKET=student-feedback-bucket
+
+APP_STORAGE_MINIO_ENDPOINT=http://minio:9000
+APP_STORAGE_MINIO_ACCESS_KEY=your-access-key
+APP_STORAGE_MINIO_SECRET_KEY=your-secret-key
+APP_STORAGE_MINIO_BUCKET=student-feedback-bucket
+
+5. Practical meaning of each variable
+
+- MINIO_ACCESS_KEY: credential used by the MinIO server/container.
+- MINIO_SECRET_KEY: secret used by the MinIO server/container.
+- MINIO_BUCKET: bucket intended for student files.
+- MINIO_URL: MinIO service URL inside the deployment network.
+- APP_STORAGE_MINIO_ENDPOINT: endpoint used by the backend MinIO SDK.
+- APP_STORAGE_MINIO_ACCESS_KEY: access key used by Spring Boot to connect to MinIO.
+- APP_STORAGE_MINIO_SECRET_KEY: secret key used by Spring Boot to connect to MinIO.
+- APP_STORAGE_MINIO_BUCKET: bucket name used by the backend when saving and reading documents.
+
+6. Operational caution
+
+If MinIO service variables and backend APP_STORAGE_MINIO_* variables are inconsistent, document upload or review may fail even though the rest of the backend still starts.
+
+7. Current architectural position
+
+MinIO is no longer just a future roadmap item. It is part of the current backend document-storage implementation and must be documented as an active dependency for onboarding document handling.
