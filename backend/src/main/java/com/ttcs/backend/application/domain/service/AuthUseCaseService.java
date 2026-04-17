@@ -1,6 +1,7 @@
 package com.ttcs.backend.application.domain.service;
 
 import com.ttcs.backend.application.domain.exception.VerifyEmailDeliveryException;
+import com.ttcs.backend.application.domain.exception.FileTooLargeException;
 import com.ttcs.backend.application.domain.model.Department;
 import com.ttcs.backend.application.domain.model.PasswordResetToken;
 import com.ttcs.backend.application.domain.model.Role;
@@ -72,6 +73,7 @@ public class AuthUseCaseService implements
         ResetPasswordUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(AuthUseCaseService.class);
+    private static final long MAX_DOCUMENT_SIZE_BYTES = 5L * 1024 * 1024;
 
     private final LoadUserByEmailPort loadUserByEmailPort;
     private final LoadUserByIdPort loadUserByIdPort;
@@ -305,6 +307,8 @@ public class AuthUseCaseService implements
         if (command == null || command.studentCard() == null || command.nationalId() == null) {
             return UploadStudentDocumentsResult.fail("INVALID_INPUT", "Thong tin upload khong hop le");
         }
+        validateDocument(command.studentCard(), "Student card");
+        validateDocument(command.nationalId(), "National ID");
 
         Student student = loadStudentByIdPort.loadById(command.studentId()).orElse(null);
         if (student == null) {
@@ -454,6 +458,15 @@ public class AuthUseCaseService implements
 
     private boolean hasUploadedDocuments(Student student) {
         return !isBlank(student.getStudentCardImageUrl()) && !isBlank(student.getNationalIdImageUrl());
+    }
+
+    private void validateDocument(org.springframework.web.multipart.MultipartFile file, String label) {
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException(label + " file is required.");
+        }
+        if (file.getSize() > MAX_DOCUMENT_SIZE_BYTES) {
+            throw new FileTooLargeException(label + " file size must not exceed 5MB.");
+        }
     }
 
     private boolean canUploadDocuments(Student student) {

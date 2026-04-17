@@ -6,6 +6,8 @@ import AuthShell from "../components/AuthShell";
 import { useAuth } from "../useAuth";
 import type { OnboardingStatusResponse } from "../../../types/auth";
 
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+
 export default function UploadDocumentsPage() {
     const navigate = useNavigate();
     const { session, logout } = useAuth();
@@ -22,6 +24,28 @@ export default function UploadDocumentsPage() {
         () => studentCard !== null && nationalId !== null && !submitting && status?.canUploadDocuments !== false,
         [nationalId, status?.canUploadDocuments, studentCard, submitting]
     );
+
+    function handleFileChange(
+        file: File | null,
+        label: string,
+        assign: (nextFile: File | null) => void
+    ) {
+        setSuccess("");
+
+        if (!file) {
+            assign(null);
+            return;
+        }
+
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            assign(null);
+            setError(`${label} must not exceed 5MB.`);
+            return;
+        }
+
+        setError("");
+        assign(file);
+    }
 
     useEffect(() => {
         async function fetchOnboardingStatus() {
@@ -56,6 +80,10 @@ export default function UploadDocumentsPage() {
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         if (!studentCard || !nationalId) {
+            return;
+        }
+        if (studentCard.size > MAX_FILE_SIZE_BYTES || nationalId.size > MAX_FILE_SIZE_BYTES) {
+            setError("Each uploaded file must not exceed 5MB.");
             return;
         }
 
@@ -130,23 +158,25 @@ export default function UploadDocumentsPage() {
 
             <form className="space-y-4" onSubmit={handleSubmit}>
                 <label className="block space-y-2">
-                    <span className="text-sm font-semibold text-slate-700">Student card image</span>
+                    <span className="text-sm font-semibold text-slate-700">Student card file</span>
                     <input
                         type="file"
-                        accept="image/*"
-                        onChange={(event) => setStudentCard(event.target.files?.[0] ?? null)}
+                        accept="image/*,.pdf,.doc,.docx"
+                        onChange={(event) => handleFileChange(event.target.files?.[0] ?? null, "Student card", setStudentCard)}
                         className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700"
                     />
+                    <span className="block text-xs text-slate-500">Maximum file size: 5MB.</span>
                 </label>
 
                 <label className="block space-y-2">
-                    <span className="text-sm font-semibold text-slate-700">National ID image</span>
+                    <span className="text-sm font-semibold text-slate-700">National ID file</span>
                     <input
                         type="file"
-                        accept="image/*"
-                        onChange={(event) => setNationalId(event.target.files?.[0] ?? null)}
+                        accept="image/*,.pdf,.doc,.docx"
+                        onChange={(event) => handleFileChange(event.target.files?.[0] ?? null, "National ID", setNationalId)}
                         className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700"
                     />
+                    <span className="block text-xs text-slate-500">Maximum file size: 5MB.</span>
                 </label>
 
                 {error ? (

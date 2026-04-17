@@ -7,13 +7,17 @@ import com.ttcs.backend.application.domain.model.Status;
 import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.port.in.admin.ApprovalActionResult;
 import com.ttcs.backend.application.port.in.admin.ApproveStudentUseCase;
+import com.ttcs.backend.application.port.in.admin.GetStudentDocumentUseCase;
 import com.ttcs.backend.application.port.in.admin.GetPendingStudentsUseCase;
 import com.ttcs.backend.application.port.in.admin.PendingStudentResult;
 import com.ttcs.backend.application.port.in.admin.RejectStudentUseCase;
+import com.ttcs.backend.application.port.in.admin.StudentDocumentResult;
 import com.ttcs.backend.application.port.out.admin.LoadPendingStudentsPort;
 import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
 import com.ttcs.backend.application.port.out.auth.SaveStudentPort;
+import com.ttcs.backend.application.port.out.auth.StoreStudentDocumentPort;
+import com.ttcs.backend.application.port.out.auth.StudentDocumentContent;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,12 +31,14 @@ import java.util.List;
 public class AdminStudentApprovalService implements
         GetPendingStudentsUseCase,
         ApproveStudentUseCase,
-        RejectStudentUseCase {
+        RejectStudentUseCase,
+        GetStudentDocumentUseCase {
 
     private final LoadPendingStudentsPort loadPendingStudentsPort;
     private final LoadStudentByIdPort loadStudentByIdPort;
     private final SaveStudentPort saveStudentPort;
     private final SaveAuditLogPort saveAuditLogPort;
+    private final StoreStudentDocumentPort storeStudentDocumentPort;
 
     @Override
     @Transactional(readOnly = true)
@@ -136,6 +142,32 @@ public class AdminStudentApprovalService implements
         ));
 
         return ApprovalActionResult.success(code, message);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StudentDocumentResult getDocument(Integer studentId, String documentType) {
+        if (studentId == null || isBlank(documentType)) {
+            throw new IllegalArgumentException("INVALID_REQUEST");
+        }
+
+        Student student = loadStudentByIdPort.loadById(studentId).orElse(null);
+        if (student == null) {
+            throw new IllegalArgumentException("STUDENT_NOT_FOUND");
+        }
+
+        String documentPath = switch (documentType.trim().toLowerCase()) {
+            case "student-card" -> student.getStudentCardImageUrl();
+            case "national-id" -> student.getNationalIdImageUrl();
+            default -> throw new IllegalArgumentException("INVALID_DOCUMENT_TYPE");
+        };
+
+        if (isBlank(documentPath)) {
+            throw new IllegalArgumentException("DOCUMENT_NOT_FOUND");
+        }
+
+        StudentDocumentContent content = storeStudentDocumentPort.load(documentPath);
+        return new StudentDocumentResult(content.filename(), content.contentType(), content.content());
     }
 
     private String buildDecisionDetails(Student student, String reviewReason, String reviewNotes) {

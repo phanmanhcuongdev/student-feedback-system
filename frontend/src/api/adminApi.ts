@@ -31,6 +31,13 @@ export async function rejectStudent(
     return response.data;
 }
 
+export async function getStudentDocument(studentId: number, documentType: "student-card" | "national-id"): Promise<Blob> {
+    const response = await axios.get<Blob>(`/admin/students/${studentId}/documents/${documentType}`, {
+        responseType: "blob",
+    });
+    return response.data;
+}
+
 export async function createSurvey(data: CreateSurveyData): Promise<CreateSurveyResponse> {
     const response = await axios.post<CreateSurveyResponse>("/admin/surveys", data);
     return response.data;

@@ -7,11 +7,17 @@ import com.ttcs.backend.adapter.in.web.dto.RejectStudentRequest;
 import com.ttcs.backend.adapter.in.web.dto.RejectStudentResponse;
 import com.ttcs.backend.application.port.in.admin.ApprovalActionResult;
 import com.ttcs.backend.application.port.in.admin.ApproveStudentUseCase;
+import com.ttcs.backend.application.port.in.admin.GetStudentDocumentUseCase;
 import com.ttcs.backend.application.port.in.admin.GetPendingStudentsUseCase;
 import com.ttcs.backend.application.port.in.admin.PendingStudentResult;
 import com.ttcs.backend.application.port.in.admin.RejectStudentUseCase;
+import com.ttcs.backend.application.port.in.admin.StudentDocumentResult;
 import com.ttcs.backend.common.WebAdapter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +35,7 @@ public class AdminStudentController {
     private final GetPendingStudentsUseCase getPendingStudentsUseCase;
     private final ApproveStudentUseCase approveStudentUseCase;
     private final RejectStudentUseCase rejectStudentUseCase;
+    private final GetStudentDocumentUseCase getStudentDocumentUseCase;
     private final CurrentStudentProvider currentStudentProvider;
 
     @GetMapping("/pending")
@@ -38,6 +45,23 @@ public class AdminStudentController {
                         .map(this::toPendingStudentResponse)
                         .toList()
         );
+    }
+
+    @GetMapping("/{studentId}/documents/{documentType}")
+    public ResponseEntity<ByteArrayResource> getStudentDocument(
+            @PathVariable Integer studentId,
+            @PathVariable String documentType
+    ) {
+        StudentDocumentResult result = getStudentDocumentUseCase.getDocument(studentId, documentType);
+        MediaType contentType = MediaType.parseMediaType(result.contentType());
+
+        return ResponseEntity.ok()
+                .contentType(contentType)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.inline().filename(result.filename()).build().toString()
+                )
+                .body(new ByteArrayResource(result.content()));
     }
 
     @PostMapping("/{studentId}/approve")

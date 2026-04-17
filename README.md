@@ -52,6 +52,7 @@ The current implementation supports:
 - Node.js 22 and npm
 - Microsoft SQL Server with the application schema already created
 - A Resend account and API key if you want to test the real email verification flow
+- A reachable MinIO instance for document storage
 
 ## Environment Variables
 
@@ -68,6 +69,10 @@ RESEND_API_KEY=re_...
 APP_MAIL_FROM=noreply@cuongdso.id.vn
 APP_WEB_ALLOWED_ORIGINS=http://localhost:5173
 RESEND_API_URL=https://api.resend.com/emails
+APP_STORAGE_MINIO_ENDPOINT=http://localhost:9000
+APP_STORAGE_MINIO_ACCESS_KEY=minioadmin
+APP_STORAGE_MINIO_SECRET_KEY=minioadmin
+APP_STORAGE_MINIO_BUCKET=student-documents
 ```
 
 Frontend variables from [`frontend/.env.example`](frontend/.env.example):
@@ -130,6 +135,10 @@ $env:APP_VERIFY_EMAIL_URL_BASE="http://localhost:5173"
 $env:RESEND_API_KEY="re_..."
 $env:APP_MAIL_FROM="noreply@cuongdso.id.vn"
 $env:APP_WEB_ALLOWED_ORIGINS="http://localhost:5173"
+$env:APP_STORAGE_MINIO_ENDPOINT="http://localhost:9000"
+$env:APP_STORAGE_MINIO_ACCESS_KEY="minioadmin"
+$env:APP_STORAGE_MINIO_SECRET_KEY="minioadmin"
+$env:APP_STORAGE_MINIO_BUCKET="student-documents"
 
 cd backend
 .\mvnw.cmd spring-boot:run
