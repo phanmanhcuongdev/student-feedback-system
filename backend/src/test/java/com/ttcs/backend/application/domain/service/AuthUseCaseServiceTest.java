@@ -215,6 +215,24 @@ class AuthUseCaseServiceTest {
     }
 
     @Test
+    void shouldRejectDocumentLargerThanFiveMegabytes() {
+        AuthFixture fixture = createFixture(student(Status.EMAIL_VERIFIED, true, false));
+
+        byte[] oversizedContent = new byte[(5 * 1024 * 1024) + 1];
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.ttcs.backend.application.domain.exception.FileTooLargeException.class,
+                () -> fixture.service.upload(
+                        new UploadStudentDocumentsCommand(
+                                1,
+                                new MockMultipartFile("studentCard", "student-card.png", "image/png", oversizedContent),
+                                new MockMultipartFile("nationalId", "national-id.png", "image/png", new byte[]{2})
+                        )
+                )
+        );
+    }
+
+    @Test
     void shouldReturnOnboardingStatusWithReviewContext() {
         AuthFixture fixture = createFixture(student(Status.REJECTED, true, true));
 
@@ -403,6 +421,15 @@ class AuthUseCaseServiceTest {
         @Override
         public String save(org.springframework.web.multipart.MultipartFile file, String prefix) {
             return prefix + "-path";
+        }
+
+        @Override
+        public com.ttcs.backend.application.port.out.auth.StudentDocumentContent load(String location) {
+            return new com.ttcs.backend.application.port.out.auth.StudentDocumentContent(
+                    "document.png",
+                    "image/png",
+                    new byte[]{1}
+            );
         }
     }
 

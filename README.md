@@ -23,7 +23,7 @@ The current implementation supports:
 
 ## Tech Stack
 
-- Backend: Java 21, Spring Boot 4, Spring MVC, Spring Security, Spring Data JPA
+- Backend: Java 21, Spring Boot 4, Spring MVC, Spring Security, Spring Data JPA, Flyway
 - Database: Microsoft SQL Server
 - Authentication: JWT bearer tokens
 - Email delivery: Resend API
@@ -33,17 +33,17 @@ The current implementation supports:
 
 ## Repository Structure
 
-- [`backend/`](/E:/Lap/TTCS/student-feedback-system/backend)
+- [`backend/`](backend/)
   Spring Boot API server. Organized around Hexagonal Architecture / Ports and Adapters.
-- [`frontend/`](/E:/Lap/TTCS/student-feedback-system/frontend)
+- [`frontend/`](frontend/)
   React web client that calls the backend API. Uses a shared authenticated `AppShell`, role-aware navigation, shared UI primitives, and reusable operational data-view components.
-- [`API_CONTRACT.md`](/E:/Lap/TTCS/student-feedback-system/API_CONTRACT.md)
+- [`API_CONTRACT.md`](API_CONTRACT.md)
   Implemented API slices and payload expectations.
-- [`database/README.md`](/E:/Lap/TTCS/student-feedback-system/database/README.md)
+- [`database/README.md`](database/README.md)
   Fresh setup, migration path, and demo credential notes.
-- [`.env.example`](/E:/Lap/TTCS/student-feedback-system/.env.example)
+- [`.env.example`](.env.example)
   Backend environment variable template.
-- [`frontend/.env.example`](/E:/Lap/TTCS/student-feedback-system/frontend/.env.example)
+- [`frontend/.env.example`](frontend/.env.example)
   Frontend environment variable template.
 
 ## Prerequisites
@@ -52,10 +52,11 @@ The current implementation supports:
 - Node.js 22 and npm
 - Microsoft SQL Server with the application schema already created
 - A Resend account and API key if you want to test the real email verification flow
+- A reachable MinIO instance for document storage
 
 ## Environment Variables
 
-Backend variables from [`.env.example`](/E:/Lap/TTCS/student-feedback-system/.env.example):
+Backend variables from [`.env.example`](.env.example):
 
 ```env
 DB_URL=jdbc:sqlserver://localhost;databaseName=SURVEY_SYSTEM_DEV;encrypt=true;trustServerCertificate=true
@@ -68,9 +69,13 @@ RESEND_API_KEY=re_...
 APP_MAIL_FROM=noreply@cuongdso.id.vn
 APP_WEB_ALLOWED_ORIGINS=http://localhost:5173
 RESEND_API_URL=https://api.resend.com/emails
+APP_STORAGE_MINIO_ENDPOINT=http://localhost:9000
+APP_STORAGE_MINIO_ACCESS_KEY=minioadmin
+APP_STORAGE_MINIO_SECRET_KEY=minioadmin
+APP_STORAGE_MINIO_BUCKET=student-documents
 ```
 
-Frontend variables from [`frontend/.env.example`](/E:/Lap/TTCS/student-feedback-system/frontend/.env.example):
+Frontend variables from [`frontend/.env.example`](frontend/.env.example):
 
 ```env
 VITE_API_BASE_URL=/api
@@ -80,16 +85,45 @@ VITE_API_PROXY_TARGET=http://localhost:8080
 Notes:
 
 - Spring Boot in this repo does not auto-load `.env` files. Export variables in your shell or configure them in your IDE run configuration.
-- `spring.jpa.hibernate.ddl-auto=validate` is enabled, so the database schema must already exist and match the entities.
-- For a new database, apply `database/full_schema.sql`. For an existing database, apply incremental scripts from `database/migrations/`.
-- The current incremental chain includes onboarding review workflow, survey lifecycle, survey recipient tracking, and privileged-action audit logging.
+- `spring.jpa.hibernate.ddl-auto=validate` is enabled, so Flyway is responsible for creating or updating schema state before Hibernate validates entities.
+- Flyway is enabled through `spring.flyway.enabled=true` and scans SQL migrations from `classpath:db/migration`, which maps to `backend/src/main/resources/db/migration/`.
+- `spring.flyway.baseline-on-migrate=true` is enabled so an existing SQL Server database can be brought under Flyway management without replaying the initial schema migration.
+- `backend/src/main/resources/db/migration/V1__initial_schema.sql` is the baseline schema migration used for new environments.
+- For a new database, let Flyway apply the versioned scripts at startup. The legacy `database/full_schema.sql` and `database/migrations/` files are still useful as reference SQL, but the application now runs migrations from the Flyway folder.
 - Resend must be configured if you want registration to send a real verification email. If `RESEND_API_KEY` is missing, registration email delivery will fail by design.
+
+## Database Migrations
+
+Flyway is the authoritative migration mechanism for the backend.
+
+- Maven dependencies:
+  - `spring-boot-starter-flyway`
+  - `flyway-core`
+  - `flyway-sqlserver`
+- Runtime configuration in [`backend/src/main/resources/application.yaml`](backend/src/main/resources/application.yaml):
+  - `spring.flyway.enabled=true`
+  - `spring.flyway.baseline-on-migrate=true`
+  - `spring.flyway.locations=classpath:db/migration`
+- Migration directory:
+  - [`backend/src/main/resources/db/migration/`](backend/src/main/resources/db/migration/)
+- Naming convention:
+  - `V1__initial_schema.sql`
+  - `V2__...sql`
+  - `V3__...sql`
+
+How it works in this project:
+
+- On backend startup, Spring Boot 4 auto-configures Flyway through the Flyway starter.
+- Flyway connects to the same SQL Server datasource configured by `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`.
+- On a fresh database, Flyway creates `flyway_schema_history` and applies the migration files in version order.
+- On an existing database, Flyway baselines the current schema first, then manages subsequent versioned migrations from that point forward.
+- Hibernate runs in `validate` mode after schema migration, so entity validation happens against the Flyway-managed schema.
 
 ## How to Run Locally
 
 ### 1. Start the backend
 
-From [`backend/`](/E:/Lap/TTCS/student-feedback-system/backend):
+From [`backend/`](backend/):
 
 ```powershell
 $env:DB_URL="jdbc:sqlserver://localhost;databaseName=SURVEY_SYSTEM_DEV;encrypt=true;trustServerCertificate=true"
@@ -101,8 +135,12 @@ $env:APP_VERIFY_EMAIL_URL_BASE="http://localhost:5173"
 $env:RESEND_API_KEY="re_..."
 $env:APP_MAIL_FROM="noreply@cuongdso.id.vn"
 $env:APP_WEB_ALLOWED_ORIGINS="http://localhost:5173"
+$env:APP_STORAGE_MINIO_ENDPOINT="http://localhost:9000"
+$env:APP_STORAGE_MINIO_ACCESS_KEY="minioadmin"
+$env:APP_STORAGE_MINIO_SECRET_KEY="minioadmin"
+$env:APP_STORAGE_MINIO_BUCKET="student-documents"
 
-cd E:\Lap\TTCS\student-feedback-system\backend
+cd backend
 .\mvnw.cmd spring-boot:run
 ```
 
@@ -112,10 +150,10 @@ Backend default URL:
 
 ### 2. Start the frontend
 
-From [`frontend/`](/E:/Lap/TTCS/student-feedback-system/frontend):
+From [`frontend/`](frontend/):
 
 ```powershell
-cd E:\Lap\TTCS\student-feedback-system\frontend
+cd frontend
 npm ci
 npm run dev
 ```
@@ -124,21 +162,21 @@ Frontend default URL:
 
 - `http://localhost:5173`
 
-The Vite dev server proxies `/api` requests to the backend target from [`frontend/vite.config.ts`](/E:/Lap/TTCS/student-feedback-system/frontend/vite.config.ts).
+The Vite dev server proxies `/api` requests to the backend target from [`frontend/vite.config.ts`](frontend/vite.config.ts).
 
 ### 3. Optional verification commands
 
 Backend tests:
 
 ```powershell
-cd E:\Lap\TTCS\student-feedback-system\backend
+cd backend
 .\mvnw.cmd test
 ```
 
 Frontend lint and build:
 
 ```powershell
-cd E:\Lap\TTCS\student-feedback-system\frontend
+cd frontend
 npm run lint
 npm run build
 ```
@@ -215,8 +253,9 @@ Compatibility note:
 - No root Docker Compose setup exists in this repo. Dockerfiles build images only.
 - Registration depends on real email delivery. If verification emails are not arriving, check `RESEND_API_KEY`, `APP_MAIL_FROM`, and that the sender domain is verified in Resend.
 - The frontend does not generate backend URLs on its own. Use `VITE_API_BASE_URL` and `VITE_API_PROXY_TARGET` instead of hardcoding API hosts.
-- Student onboarding relies on the existing SQL Server schema and lookup data. In particular, department names must exist in the `Department` table before registration succeeds.
-- If the backend fails on startup with schema validation errors, the local database does not match the JPA mappings.
+- Student onboarding relies on SQL Server lookup data. In particular, department names must exist in the `Department` table before registration succeeds.
+- If the backend fails on startup with Flyway errors, inspect `backend/src/main/resources/db/migration/` and the `flyway_schema_history` table first.
+- If the backend fails after Flyway succeeds with schema validation errors, the migrated schema still does not match the JPA mappings.
 - Current account overview uses the authenticated session data already available to the frontend. It does not fabricate unsupported profile fields from a separate profile API.
 - User management search, filter, pagination, and sort are backend-backed.
 - Survey management search, filter, pagination, and sort are backend-backed.

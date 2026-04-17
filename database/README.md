@@ -1,11 +1,17 @@
 # Database Setup Notes
 
 ## Fresh setup
-- Use `full_schema.sql` to create a new database from scratch.
-- Use `seed_data.sql` after that if you want demo accounts and sample data.
+- Preferred application path: start the backend and let Flyway apply migrations from `backend/src/main/resources/db/migration/`.
+- Manual SQL path: use `full_schema.sql` only if you need a standalone SQL bootstrap outside the Spring Boot application.
+- Use `seed_data.sql` after schema creation if you want demo accounts and sample data.
 
 ## Incremental update path
-- For an existing database that already contains application data, apply scripts in `database/migrations/` instead of re-running `full_schema.sql`.
+- Primary path: the backend now uses Flyway for runtime migrations.
+- Flyway configuration lives in `backend/src/main/resources/application.yaml` and scans `classpath:db/migration`.
+- The Flyway migration source of truth is `backend/src/main/resources/db/migration/`.
+- `baseline-on-migrate=true` is enabled so an existing database can be adopted into Flyway management safely.
+- The first Flyway migration in this repo is `backend/src/main/resources/db/migration/V1__initial_schema.sql`.
+- The SQL files in `database/migrations/` remain as historical/manual reference scripts for the pre-Flyway migration path.
 - Current onboarding slice migration:
   - `migrations/2026-04-14-onboarding-review-workflow.sql`
 - Current survey lifecycle slice migration:
@@ -21,6 +27,15 @@
 - Students: any seeded `student.*@university.edu` account / `student123`
 
 These passwords are BCrypt-hashed in `seed_data.sql` and are compatible with the runtime `BCryptPasswordEncoder`.
+
+## Flyway Notes
+
+- Flyway runs automatically when the Spring Boot backend starts.
+- SQL Server is supported through the runtime dependencies `flyway-core` and `flyway-sqlserver`.
+- Spring Boot 4 auto-configures Flyway through `spring-boot-starter-flyway`.
+- Applied migrations are tracked in `dbo.flyway_schema_history`.
+- New schema changes should be added as new versioned files such as `V2__feature_name.sql` in `backend/src/main/resources/db/migration/`.
+- Do not re-edit an already-applied Flyway migration in a shared environment.
 
 ## Current survey lifecycle model
 - `Survey.lifecycle_state` stores explicit business lifecycle, separate from the derived runtime open/closed window.

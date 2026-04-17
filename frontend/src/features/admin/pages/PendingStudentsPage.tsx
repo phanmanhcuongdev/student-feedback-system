@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { approveStudent, getPendingStudents, rejectStudent } from "../../../api/adminApi";
+import { approveStudent, getPendingStudents, getStudentDocument, rejectStudent } from "../../../api/adminApi";
 import { getApiErrorMessage } from "../../../api/apiError";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import DataTable, { type DataTableColumn } from "../../../components/data-view/DataTable";
@@ -28,6 +28,12 @@ type ReviewDraft = {
     reviewNotes: string;
 };
 
+type DocumentPreview = {
+    name: string;
+    contentType: string;
+    objectUrl: string;
+};
+
 function getInitialDraft(student: PendingStudent): ReviewDraft {
     return {
         reviewReason: student.reviewReason ?? "",
@@ -49,6 +55,15 @@ export default function PendingStudentsPage() {
     const [page, setPage] = useState(1);
     const [activeStudentId, setActiveStudentId] = useState<number | null>(null);
     const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | null>(null);
+    const [documentPreviews, setDocumentPreviews] = useState<{
+        studentCard: DocumentPreview | null;
+        nationalId: DocumentPreview | null;
+    }>({
+        studentCard: null,
+        nationalId: null,
+    });
+    const [documentLoading, setDocumentLoading] = useState(false);
+    const [documentError, setDocumentError] = useState("");
 
     const pageSize = 10;
 
@@ -196,6 +211,142 @@ export default function PendingStudentsPage() {
         }
     }, [activeStudent, pagedStudents]);
 
+    useEffect(() => {
+        let disposed = false;
+        const objectUrls: string[] = [];
+
+        setDocumentError("");
+        setDocumentPreviews({ studentCard: null, nationalId: null });
+
+        if (!activeStudent) {
+            setDocumentLoading(false);
+            return () => {
+                objectUrls.forEach((url) => URL.revokeObjectURL(url));
+            };
+        }
+
+        async function loadDocuments() {
+            try {
+                setDocumentLoading(true);
+
+                const [studentCardBlob, nationalIdBlob] = await Promise.all([
+                    activeStudent.studentCardImageUrl ? getStudentDocument(activeStudent.id, "student-card") : Promise.resolve(null),
+                    activeStudent.nationalIdImageUrl ? getStudentDocument(activeStudent.id, "national-id") : Promise.resolve(null),
+                ]);
+
+                const nextState = {
+                    studentCard: createPreview(studentCardBlob, activeStudent.studentCardImageUrl),
+                    nationalId: createPreview(nationalIdBlob, activeStudent.nationalIdImageUrl),
+                };
+
+                if (disposed) {
+                    Object.values(nextState)
+                        .filter((value): value is DocumentPreview => value !== null)
+                        .forEach((value) => URL.revokeObjectURL(value.objectUrl));
+                    return;
+                }
+
+                nextState.studentCard ? objectUrls.push(nextState.studentCard.objectUrl) : null;
+                nextState.nationalId ? objectUrls.push(nextState.nationalId.objectUrl) : null;
+                setDocumentPreviews(nextState);
+            } catch (requestError) {
+                if (!disposed) {
+                    setDocumentError(getApiErrorMessage(requestError, "Unable to load student documents."));
+                }
+            } finally {
+                if (!disposed) {
+                    setDocumentLoading(false);
+                }
+            }
+        }
+
+        void loadDocuments();
+
+        return () => {
+            disposed = true;
+            objectUrls.forEach((url) => URL.revokeObjectURL(url));
+        };
+    }, [activeStudent]);
+
+    function createPreview(blob: Blob | null, storedPath: string | null): DocumentPreview | null {
+        if (!blob) {
+            return null;
+        }
+
+        const objectUrl = URL.createObjectURL(blob);
+        return {
+            name: getDocumentName(storedPath),
+            contentType: blob.type || "application/octet-stream",
+            objectUrl,
+        };
+    }
+
+    function getDocumentName(storedPath: string | null): string {
+        if (!storedPath) {
+            return "document";
+        }
+
+        const normalized = storedPath.replace(/\\/g, "/");
+        return normalized.split("/").filter(Boolean).pop() || "document";
+    }
+
+    function renderDocumentPreview(preview: DocumentPreview | null, emptyLabel: string) {
+        if (!preview) {
+            return <span className="text-slate-500">{emptyLabel}</span>;
+        }
+
+        if (preview.contentType.startsWith("image/")) {
+            return (
+                <div className="space-y-3">
+                    <img
+                        src={preview.objectUrl}
+                        alt={preview.name}
+                        className="max-h-80 w-full rounded-2xl border border-slate-200 bg-white object-contain"
+                    />
+                    <a
+                        href={preview.objectUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex text-sm font-semibold text-blue-700 hover:text-blue-800"
+                    >
+                        Open full image
+                    </a>
+                </div>
+            );
+        }
+
+        if (preview.contentType === "application/pdf") {
+            return (
+                <div className="space-y-3">
+                    <iframe
+                        src={preview.objectUrl}
+                        title={preview.name}
+                        className="h-96 w-full rounded-2xl border border-slate-200 bg-white"
+                    />
+                    <a
+                        href={preview.objectUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex text-sm font-semibold text-blue-700 hover:text-blue-800"
+                    >
+                        Open PDF
+                    </a>
+                </div>
+            );
+        }
+
+        return (
+            <a
+                href={preview.objectUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex text-sm font-semibold text-blue-700 hover:text-blue-800"
+            >
+                Open document
+            </a>
+        );
+    }
+
     const columns: DataTableColumn<PendingStudent>[] = [
         {
             key: "student",
@@ -318,10 +469,20 @@ export default function PendingStudentsPage() {
                                         />
 
                                         <div className="space-y-5">
-                                            <SectionCard title="Submitted documents" description="Document URLs are shown as review references in the current system.">
-                                                <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                                                    <div className="flex flex-col gap-1"><span className="font-semibold text-slate-500">Student card image</span><span className="break-all text-slate-900">{activeStudent.studentCardImageUrl ?? "Missing"}</span></div>
-                                                    <div className="flex flex-col gap-1"><span className="font-semibold text-slate-500">National ID image</span><span className="break-all text-slate-900">{activeStudent.nationalIdImageUrl ?? "Missing"}</span></div>
+                                            <SectionCard title="Submitted documents" description="Documents are fetched from the backend and rendered inline when previewable.">
+                                                <div className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                                                    {documentLoading ? <p>Loading submitted documents...</p> : null}
+                                                    {documentError ? <p className="font-medium text-red-700">{documentError}</p> : null}
+                                                    <div className="space-y-3">
+                                                        <span className="font-semibold text-slate-500">Student card</span>
+                                                        <p className="text-xs text-slate-500">{getDocumentName(activeStudent.studentCardImageUrl)}</p>
+                                                        {renderDocumentPreview(documentPreviews.studentCard, "Missing")}
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        <span className="font-semibold text-slate-500">National ID</span>
+                                                        <p className="text-xs text-slate-500">{getDocumentName(activeStudent.nationalIdImageUrl)}</p>
+                                                        {renderDocumentPreview(documentPreviews.nationalId, "Missing")}
+                                                    </div>
                                                 </div>
                                             </SectionCard>
 

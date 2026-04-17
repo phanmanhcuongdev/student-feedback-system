@@ -4,4 +4,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface StoreStudentDocumentPort {
     String save(MultipartFile file, String prefix);
+
+    StudentDocumentContent load(String location);
 }
