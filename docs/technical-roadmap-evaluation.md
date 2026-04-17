@@ -1,27 +1,27 @@
 # Technical Roadmap Evaluation
 
 ## 1. Project Understanding
-This repository is already more than a basic survey CRUD app. It is an internal university workflow system covering student onboarding, survey lifecycle management, survey participation tracking, staff feedback handling, notifications, and role-aware operational dashboards ([README.md](/E:/Lap/TTCS/student-feedback-system/README.md:5), [README.md](/E:/Lap/TTCS/student-feedback-system/README.md:13), [README.md](/E:/Lap/TTCS/student-feedback-system/README.md:20)).
+This repository is already more than a basic survey CRUD app. It is an internal university workflow system covering student onboarding, survey lifecycle management, survey participation tracking, staff feedback handling, notifications, and role-aware operational dashboards ([README.md](../README.md), [README.md](../README.md), [README.md](../README.md)).
 
-The backend is a Spring Boot hexagonal application with clear ports/adapters structure ([README.md](/E:/Lap/TTCS/student-feedback-system/README.md:37), [backend/README.md](/E:/Lap/TTCS/student-feedback-system/backend/README.md:30)). The frontend is a React SPA with shared app shell, role-based navigation, and reusable operational data-view components rather than ad hoc pages ([frontend/README.md](/E:/Lap/TTCS/student-feedback-system/frontend/README.md:89), [frontend/src/components/data-view/DataTable.tsx](/E:/Lap/TTCS/student-feedback-system/frontend/src/components/data-view/DataTable.tsx:3)).
+The backend is a Spring Boot hexagonal application with clear ports/adapters structure ([README.md](../README.md), [backend/README.md](../backend/README.md)). The frontend is a React SPA with shared app shell, role-based navigation, and reusable operational data-view components rather than ad hoc pages ([frontend/README.md](../frontend/README.md), [frontend/src/components/data-view/DataTable.tsx](../frontend/src/components/data-view/DataTable.tsx)).
 
-Operationally, the project is in a solid “production-minded student project” stage: Docker images exist, CI runs tests/lint/build and pushes images, but there is no root Compose stack, no migration tool, no observability stack, no frontend tests, and no security scanning yet ([.github/workflows/ci.yml](/E:/Lap/TTCS/student-feedback-system/.github/workflows/ci.yml:13), [README.md](/E:/Lap/TTCS/student-feedback-system/README.md:215)).
+Operationally, the project is in a solid “production-minded student project” stage: Docker images exist, CI runs tests/lint/build and pushes images, but there is no root Compose stack, no migration tool, no observability stack, no frontend tests, and no security scanning yet ([.github/workflows/ci.yml](../.github/workflows/ci.yml), [README.md](../README.md)).
 
 ## 2. Current Technology Baseline
 | Area | Current state in repo |
 |---|---|
 | Business domain | Student onboarding, survey operations, staff feedback, notifications, survey results |
-| Backend | Java 21, Spring Boot 4.0.3, Spring MVC, Security, Validation, JPA, JWT, springdoc ([backend/pom.xml](/E:/Lap/TTCS/student-feedback-system/backend/pom.xml:32)) |
+| Backend | Java 21, Spring Boot 4.0.3, Spring MVC, Security, Validation, JPA, JWT, springdoc ([backend/pom.xml](../backend/pom.xml)) |
 | Architecture | Hexagonal / Ports and Adapters |
-| Frontend | React 19, TypeScript, Vite 8, React Router 7, Axios, Tailwind 4 ([frontend/package.json](/E:/Lap/TTCS/student-feedback-system/frontend/package.json:12)) |
-| Database | SQL Server, JPA `ddl-auto=validate`, manual SQL schema/migrations ([backend/src/main/resources/application.yaml](/E:/Lap/TTCS/student-feedback-system/backend/src/main/resources/application.yaml:10), [database/README.md](/E:/Lap/TTCS/student-feedback-system/database/README.md:7)) |
-| Storage | Student documents stored on local filesystem now ([backend/src/main/java/com/ttcs/backend/adapter/out/persistence/LocalStudentDocumentStorageAdapter.java](/E:/Lap/TTCS/student-feedback-system/backend/src/main/java/com/ttcs/backend/adapter/out/persistence/LocalStudentDocumentStorageAdapter.java:15)) |
-| Auth | JWT bearer auth, role-based route security, some domain scoping in services; token stored in browser `localStorage` ([backend/src/main/java/com/ttcs/backend/config/SecurityConfig.java](/E:/Lap/TTCS/student-feedback-system/backend/src/main/java/com/ttcs/backend/config/SecurityConfig.java:32), [frontend/src/features/auth/authStorage.ts](/E:/Lap/TTCS/student-feedback-system/frontend/src/features/auth/authStorage.ts:49)) |
-| Deployment | Backend and frontend Dockerfiles; frontend image runs Nginx and proxies `/api` to backend ([frontend/nginx.conf](/E:/Lap/TTCS/student-feedback-system/frontend/nginx.conf:12)) |
-| CI/CD | GitHub Actions quality gate + GHCR image build/push ([.github/workflows/ci.yml](/E:/Lap/TTCS/student-feedback-system/.github/workflows/ci.yml:13), [.github/workflows/ci.yml](/E:/Lap/TTCS/student-feedback-system/.github/workflows/ci.yml:54)) |
+| Frontend | React 19, TypeScript, Vite 8, React Router 7, Axios, Tailwind 4 ([frontend/package.json](../frontend/package.json)) |
+| Database | SQL Server, JPA `ddl-auto=validate`, manual SQL schema/migrations ([backend/src/main/resources/application.yaml](../backend/src/main/resources/application.yaml), [database/README.md](../database/README.md)) |
+| Storage | Student documents stored on local filesystem now ([backend/src/main/java/com/ttcs/backend/adapter/out/persistence/LocalStudentDocumentStorageAdapter.java](../backend/src/main/java/com/ttcs/backend/adapter/out/persistence/LocalStudentDocumentStorageAdapter.java)) |
+| Auth | JWT bearer auth, role-based route security, some domain scoping in services; token stored in browser `localStorage` ([backend/src/main/java/com/ttcs/backend/config/SecurityConfig.java](../backend/src/main/java/com/ttcs/backend/config/SecurityConfig.java), [frontend/src/features/auth/authStorage.ts](../frontend/src/features/auth/authStorage.ts)) |
+| Deployment | Backend and frontend Dockerfiles; frontend image runs Nginx and proxies `/api` to backend ([frontend/nginx.conf](../frontend/nginx.conf)) |
+| CI/CD | GitHub Actions quality gate + GHCR image build/push ([.github/workflows/ci.yml](../.github/workflows/ci.yml), [.github/workflows/ci.yml](../.github/workflows/ci.yml)) |
 | Testing | Backend unit/service tests exist; frontend has no Vitest/RTL/Playwright setup |
 | Security posture | JWT, BCrypt, CORS, audit trail for successful privileged actions, but no rate limiting, no secret/image/dependency scanning, no CSP/security headers strategy |
-| Observability | No Actuator, no health/readiness, no metrics stack; `show-sql: true` is enabled ([backend/src/main/resources/application.yaml](/E:/Lap/TTCS/student-feedback-system/backend/src/main/resources/application.yaml:15)) |
+| Observability | No Actuator, no health/readiness, no metrics stack; `show-sql: true` is enabled ([backend/src/main/resources/application.yaml](../backend/src/main/resources/application.yaml)) |
 
 ## 3. Roadmap Items Extracted from `docs/technical-roadmap.md`
 | Item | Repo status |
@@ -93,7 +93,7 @@ Operationally, the project is in a solid “production-minded student project”
 - Expected benefits: Better table ergonomics for complex operational screens.
 - Risks / drawbacks: Replacing the current simple table may cost more than it returns right now.
 - Integration difficulty: Medium
-- Prerequisites: Decide whether current table requirements are truly outgrowing [DataTable.tsx](/E:/Lap/TTCS/student-feedback-system/frontend/src/components/data-view/DataTable.tsx:16).
+- Prerequisites: Decide whether current table requirements are truly outgrowing [DataTable.tsx](../frontend/src/components/data-view/DataTable.tsx).
 - Concrete use cases in THIS project: Admin users and admin surveys.
 - Final verdict: Useful, but not urgent.
 
@@ -149,7 +149,7 @@ Operationally, the project is in a solid “production-minded student project”
 - Current relevance to project: Already present and useful.
 - Suitable for: Both
 - Recommended timing: Now
-- Why it fits this project: Backend already ships the dependency and exposes Swagger paths publicly ([backend/pom.xml](/E:/Lap/TTCS/student-feedback-system/backend/pom.xml:79), [backend/src/main/java/com/ttcs/backend/config/SecurityConfig.java](/E:/Lap/TTCS/student-feedback-system/backend/src/main/java/com/ttcs/backend/config/SecurityConfig.java:52)).
+- Why it fits this project: Backend already ships the dependency and exposes Swagger paths publicly ([backend/pom.xml](../backend/pom.xml), [backend/src/main/java/com/ttcs/backend/config/SecurityConfig.java](../backend/src/main/java/com/ttcs/backend/config/SecurityConfig.java)).
 - Expected benefits: Better integration discipline, easier academic documentation.
 - Risks / drawbacks: Low; main risk is leaving docs poorly tagged or stale.
 - Integration difficulty: Low
@@ -221,7 +221,7 @@ Operationally, the project is in a solid “production-minded student project”
 - Current relevance to project: Very high.
 - Suitable for: Both
 - Recommended timing: Near future
-- Why it fits this project: Student documents are currently written to local disk ([LocalStudentDocumentStorageAdapter.java](/E:/Lap/TTCS/student-feedback-system/backend/src/main/java/com/ttcs/backend/adapter/out/persistence/LocalStudentDocumentStorageAdapter.java:17)).
+- Why it fits this project: Student documents are currently written to local disk ([LocalStudentDocumentStorageAdapter.java](../backend/src/main/java/com/ttcs/backend/adapter/out/persistence/LocalStudentDocumentStorageAdapter.java)).
 - Expected benefits: Better deployment portability, safer document handling, future report export storage.
 - Risks / drawbacks: Requires metadata model, access rules, cleanup, and secure download flow.
 - Integration difficulty: Medium
@@ -245,7 +245,7 @@ Operationally, the project is in a solid “production-minded student project”
 - Current relevance to project: Very high.
 - Suitable for: Existing feature enhancement
 - Recommended timing: Now
-- Why it fits this project: Database changes are currently manual SQL files and JPA validates against pre-existing schema ([database/README.md](/E:/Lap/TTCS/student-feedback-system/database/README.md:7), [backend/src/main/resources/application.yaml](/E:/Lap/TTCS/student-feedback-system/backend/src/main/resources/application.yaml:12)).
+- Why it fits this project: Database changes are currently manual SQL files and JPA validates against pre-existing schema ([database/README.md](../database/README.md), [backend/src/main/resources/application.yaml](../backend/src/main/resources/application.yaml)).
 - Expected benefits: Safer schema evolution, reproducible environments, easier CI/demo setup.
 - Risks / drawbacks: Need to baseline current schema carefully.
 - Integration difficulty: Medium
@@ -257,7 +257,7 @@ Operationally, the project is in a solid “production-minded student project”
 - Current relevance to project: High
 - Suitable for: Both
 - Recommended timing: Compose now, Docker/Nginx continue now
-- Why it fits this project: Images already exist; Nginx already serves the SPA and proxies `/api`; only the orchestration layer is missing ([frontend/nginx.conf](/E:/Lap/TTCS/student-feedback-system/frontend/nginx.conf:12), [README.md](/E:/Lap/TTCS/student-feedback-system/README.md:215)).
+- Why it fits this project: Images already exist; Nginx already serves the SPA and proxies `/api`; only the orchestration layer is missing ([frontend/nginx.conf](../frontend/nginx.conf), [README.md](../README.md)).
 - Expected benefits: One-command local/demo environment, easier Playwright, easier Redis/MinIO adoption.
 - Risks / drawbacks: Extra setup and environment templating work.
 - Integration difficulty: Low to medium
@@ -281,7 +281,7 @@ Operationally, the project is in a solid “production-minded student project”
 - Current relevance to project: Very high
 - Suitable for: Existing feature enhancement
 - Recommended timing: Now
-- Why it fits this project: CI currently has no security scanning despite building container images ([.github/workflows/ci.yml](/E:/Lap/TTCS/student-feedback-system/.github/workflows/ci.yml:87)).
+- Why it fits this project: CI currently has no security scanning despite building container images ([.github/workflows/ci.yml](../.github/workflows/ci.yml)).
 - Expected benefits: Better DevSecOps story, catches accidental secrets and vulnerable dependencies early.
 - Risks / drawbacks: Noise from false positives until tuned.
 - Integration difficulty: Low
@@ -293,7 +293,7 @@ Operationally, the project is in a solid “production-minded student project”
 - Current relevance to project: High and already partially implemented.
 - Suitable for: Existing feature enhancement
 - Recommended timing: Now
-- Why it fits this project: `Audit_Log` already exists and captures important privileged actions, but not denied attempts or full review history ([database/README.md](/E:/Lap/TTCS/student-feedback-system/database/README.md:85)).
+- Why it fits this project: `Audit_Log` already exists and captures important privileged actions, but not denied attempts or full review history ([database/README.md](../database/README.md)).
 - Expected benefits: Better governance, clearer admin accountability.
 - Risks / drawbacks: Over-logging or sensitive data leakage if expanded carelessly.
 - Integration difficulty: Low to medium
@@ -305,7 +305,7 @@ Operationally, the project is in a solid “production-minded student project”
 - Current relevance to project: High
 - Suitable for: Both
 - Recommended timing: Now
-- Why it fits this project: The repo already has some service-layer scoping for teacher survey-result access, but it is ad hoc rather than a reusable policy layer ([backend/src/main/java/com/ttcs/backend/application/domain/service/GetSurveyResultService.java](/E:/Lap/TTCS/student-feedback-system/backend/src/main/java/com/ttcs/backend/application/domain/service/GetSurveyResultService.java:33)).
+- Why it fits this project: The repo already has some service-layer scoping for teacher survey-result access, but it is ad hoc rather than a reusable policy layer ([backend/src/main/java/com/ttcs/backend/application/domain/service/GetSurveyResultService.java](../backend/src/main/java/com/ttcs/backend/application/domain/service/GetSurveyResultService.java)).
 - Expected benefits: More consistent security decisions, better maintainability as roles/scope rules grow.
 - Risks / drawbacks: Can become over-engineered if turned into a mini authorization framework too early.
 - Integration difficulty: Medium
@@ -450,3 +450,4 @@ Overall, the roadmap is realistic if phased properly. It becomes unrealistic onl
 - Redis for rate limiting first: directly hardens the most exposed public endpoints.
 - MinIO / S3-compatible storage: fixes the clearest production-readiness gap in current onboarding document handling.
 - Vitest/RTL plus a small Playwright suite: best protection against regressions across the project’s many user flows.
+
