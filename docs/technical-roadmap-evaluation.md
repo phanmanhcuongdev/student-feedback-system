@@ -15,7 +15,7 @@ Operationally, the project is in a solid “production-minded student project”
 | Architecture | Hexagonal / Ports and Adapters |
 | Frontend | React 19, TypeScript, Vite 8, React Router 7, Axios, Tailwind 4 ([frontend/package.json](../frontend/package.json)) |
 | Database | SQL Server, JPA `ddl-auto=validate`, manual SQL schema/migrations ([backend/src/main/resources/application.yaml](../backend/src/main/resources/application.yaml), [database/README.md](../database/README.md)) |
-| Storage | Student documents stored on local filesystem now ([backend/src/main/java/com/ttcs/backend/adapter/out/persistence/LocalStudentDocumentStorageAdapter.java](../backend/src/main/java/com/ttcs/backend/adapter/out/persistence/LocalStudentDocumentStorageAdapter.java)) |
+| Storage | Student documents are now stored through a MinIO-backed adapter, with Spring Boot reading `APP_STORAGE_MINIO_*` and deployment env commonly also carrying raw `MINIO_*` values for the MinIO service itself ([backend/src/main/java/com/ttcs/backend/adapter/out/persistence/MinioStudentDocumentStorageAdapter.java](../backend/src/main/java/com/ttcs/backend/adapter/out/persistence/MinioStudentDocumentStorageAdapter.java), [backend/src/main/resources/application.yaml](../backend/src/main/resources/application.yaml), [backend/.env.dev](../backend/.env.dev)) |
 | Auth | JWT bearer auth, role-based route security, some domain scoping in services; token stored in browser `localStorage` ([backend/src/main/java/com/ttcs/backend/config/SecurityConfig.java](../backend/src/main/java/com/ttcs/backend/config/SecurityConfig.java), [frontend/src/features/auth/authStorage.ts](../frontend/src/features/auth/authStorage.ts)) |
 | Deployment | Backend and frontend Dockerfiles; frontend image runs Nginx and proxies `/api` to backend ([frontend/nginx.conf](../frontend/nginx.conf)) |
 | CI/CD | GitHub Actions quality gate + GHCR image build/push ([.github/workflows/ci.yml](../.github/workflows/ci.yml), [.github/workflows/ci.yml](../.github/workflows/ci.yml)) |
@@ -40,7 +40,7 @@ Operationally, the project is in a solid “production-minded student project”
 | Spring Boot Actuator | Missing |
 | SQL Server | Already baseline |
 | Redis | Missing |
-| MinIO / S3 storage | Missing |
+| MinIO / S3 storage | Implemented for onboarding document storage; docs and deployment env need to keep Spring-side `APP_STORAGE_MINIO_*` aligned with service-side `MINIO_*` values |
 | Elasticsearch / OpenSearch | Missing |
 | Flyway / Liquibase | Missing |
 | Docker | Already present |
@@ -218,16 +218,38 @@ Operationally, the project is in a solid “production-minded student project”
 - Final verdict: Strong recommendation, but be disciplined: rate limiting first, not generic “session cache”.
 
 ### MinIO / S3-Compatible Storage
-- Current relevance to project: Very high.
+- Current relevance to project: Very high and already active in the codebase.
 - Suitable for: Both
-- Recommended timing: Near future
-- Why it fits this project: Student documents are currently written to local disk ([LocalStudentDocumentStorageAdapter.java](../backend/src/main/java/com/ttcs/backend/adapter/out/persistence/LocalStudentDocumentStorageAdapter.java)).
-- Expected benefits: Better deployment portability, safer document handling, future report export storage.
-- Risks / drawbacks: Requires metadata model, access rules, cleanup, and secure download flow.
+- Recommended timing: Continue now as hardening/documentation work rather than adoption work.
+- Why it fits this project: Student documents are now stored through a MinIO-backed adapter and loaded back through backend-controlled document endpoints ([MinioStudentDocumentStorageAdapter.java](../backend/src/main/java/com/ttcs/backend/adapter/out/persistence/MinioStudentDocumentStorageAdapter.java), [AdminStudentController.java](../backend/src/main/java/com/ttcs/backend/adapter/in/web/AdminStudentController.java)).
+- Expected benefits: Better deployment portability, safer document handling, backend-mediated document review, and a storage foundation for future exports.
+- Risks / drawbacks: The deployment now has two naming groups to keep aligned: raw MinIO service variables (`MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, `MINIO_URL`) and Spring Boot client variables (`APP_STORAGE_MINIO_ENDPOINT`, `APP_STORAGE_MINIO_ACCESS_KEY`, `APP_STORAGE_MINIO_SECRET_KEY`, `APP_STORAGE_MINIO_BUCKET`).
 - Integration difficulty: Medium
-- Prerequisites: File metadata schema, download authorization rules, storage adapter abstraction.
-- Concrete use cases in THIS project: Student card/NID uploads, exported Excel/PDF reports.
-- Final verdict: One of the most justified roadmap items.
+- Prerequisites: Correct env mapping in deployment files, bucket naming consistency, and secure document access rules.
+- Concrete use cases in THIS project: Student card/NID uploads, admin document review, future exported Excel/PDF reports.
+- Final verdict: Still one of the most justified roadmap items, but it should now be described as implemented and needing deployment discipline rather than as a missing technology.
+
+### MinIO Environment Mapping
+- Current relevance to project: Immediate operational concern.
+- Suitable for: Existing deployment hardening
+- Recommended timing: Now
+- Why it fits this project: [`backend/.env.dev`](../backend/.env.dev) now carries MinIO-related values that must be understood in two layers.
+- Spring Boot variables used by the backend:
+  - `APP_STORAGE_MINIO_ENDPOINT`
+  - `APP_STORAGE_MINIO_ACCESS_KEY`
+  - `APP_STORAGE_MINIO_SECRET_KEY`
+  - `APP_STORAGE_MINIO_BUCKET`
+- Raw service variables commonly used for the MinIO container or Compose:
+  - `MINIO_URL`
+  - `MINIO_ACCESS_KEY`
+  - `MINIO_SECRET_KEY`
+  - `MINIO_BUCKET`
+- Expected benefits: Clearer deployment docs, fewer backend startup mistakes, fewer broken upload/review flows.
+- Risks / drawbacks: Name drift between the two variable families can break document storage while the rest of the system still appears healthy.
+- Integration difficulty: Low
+- Prerequisites: Shared env template or explicit mapping in Compose/deployment manifests.
+- Concrete use cases in THIS project: Backend document upload, admin document preview, MinIO server initialization.
+- Final verdict: Documentation and deployment alignment are required now.
 
 ### Elasticsearch / OpenSearch
 - Current relevance to project: Low to moderate.
@@ -427,14 +449,14 @@ Operationally, the project is in a solid “production-minded student project”
 - Add now or later: Now, alongside Actuator
 
 ## 6. Priority Recommendation
-- Must do now: Flyway/Liquibase, Actuator, CI security scanning, Redis-backed rate limiting, Vitest/RTL, Testcontainers.
-- Good next step: Docker Compose, MinIO, Spring Scheduler reminder jobs, TanStack Query, reporting read models, structured logging.
+- Must do now: Flyway/Liquibase, Actuator, CI security scanning, Redis-backed rate limiting, Vitest/RTL, Testcontainers, and explicit MinIO env alignment in deployment docs.
+- Good next step: Docker Compose, Spring Scheduler reminder jobs, TanStack Query, reporting read models, structured logging, and richer MinIO file metadata.
 - Valuable later: Recharts, export pipeline, Spring AI + Gemini, SSE, Prometheus/Grafana, simple feature flags.
 - Skip for now: OpenSearch, OAuth2/OIDC unless a real IdP exists, Quartz, RabbitMQ, Kubernetes, Kafka, microservices.
 
 ## 7. Suggested Evolution Path
 - Phase 1: Add Flyway, Actuator, security scanning, frontend tests, Testcontainers, and auth/rate-limit hardening.
-- Phase 2: Add Compose, Redis, MinIO, Scheduler-based reminders, policy services, and reporting summaries.
+- Phase 2: Add Compose, Redis, Scheduler-based reminders, policy services, richer file metadata around the existing MinIO integration, and reporting summaries.
 - Phase 3: Add exports, charts, AI insight workflows, SSE for job status, and optional monitoring stack.
 
 ## 8. Final Conclusion

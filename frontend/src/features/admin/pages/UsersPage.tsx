@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
     activateUser,
@@ -57,7 +57,7 @@ export default function UsersPage() {
 
     const pageSize = 20;
 
-    async function loadUsers() {
+    const loadUsers = useCallback(async () => {
         try {
             setLoading(true);
             setError("");
@@ -86,7 +86,7 @@ export default function UsersPage() {
         } finally {
             setLoading(false);
         }
-    }
+    }, [debouncedQuery, departmentFilter, page, roleTab, sortBy, sortDir, statusFilter, studentStatusFilter]);
 
     useEffect(() => {
         const timeout = window.setTimeout(() => {
@@ -98,7 +98,7 @@ export default function UsersPage() {
 
     useEffect(() => {
         void loadUsers();
-    }, [debouncedQuery, roleTab, statusFilter, studentStatusFilter, departmentFilter, page, sortBy, sortDir]);
+    }, [loadUsers]);
 
     useEffect(() => {
         async function loadDepartments() {

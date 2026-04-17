@@ -12,6 +12,8 @@ import com.ttcs.backend.application.port.out.admin.LoadPendingStudentsPort;
 import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
 import com.ttcs.backend.application.port.out.auth.SaveStudentPort;
+import com.ttcs.backend.application.port.out.auth.StoreStudentDocumentPort;
+import com.ttcs.backend.application.port.out.auth.StudentDocumentContent;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -35,7 +37,8 @@ class AdminStudentApprovalServiceTest {
                 pendingPort(List.of(pendingStudent)),
                 loadStudentPort(pendingStudent),
                 saveStudentPort,
-                auditLogPort
+                auditLogPort,
+                noOpDocumentPort()
         );
 
         ApprovalActionResult result = service.reject(5, "Photo unreadable", "Student card edges are cut off.", 1);
@@ -64,7 +67,8 @@ class AdminStudentApprovalServiceTest {
                 pendingPort(List.of(pendingStudent)),
                 loadStudentPort(pendingStudent),
                 saveStudentPort,
-                auditLogPort
+                auditLogPort,
+                noOpDocumentPort()
         );
 
         ApprovalActionResult result = service.reject(5, "   ", "Missing reason", 1);
@@ -84,7 +88,8 @@ class AdminStudentApprovalServiceTest {
                 pendingPort(List.of(pendingStudent)),
                 loadStudentPort(pendingStudent),
                 saveStudentPort,
-                auditLogPort
+                auditLogPort,
+                noOpDocumentPort()
         );
 
         ApprovalActionResult result = service.approve(5, "Identity documents verified.", 2);
@@ -110,7 +115,8 @@ class AdminStudentApprovalServiceTest {
                 pendingPort(List.of(pendingStudent)),
                 loadStudentPort(pendingStudent),
                 saveStudentPort,
-                auditLogPort
+                auditLogPort,
+                noOpDocumentPort()
         );
 
         ApprovalActionResult result = service.approve(5, "Identity documents verified.", null);
@@ -135,6 +141,20 @@ class AdminStudentApprovalServiceTest {
             @Override
             public Optional<Student> loadByUserId(Integer userId) {
                 return Optional.ofNullable(student);
+            }
+        };
+    }
+
+    private StoreStudentDocumentPort noOpDocumentPort() {
+        return new StoreStudentDocumentPort() {
+            @Override
+            public String save(org.springframework.web.multipart.MultipartFile file, String prefix) {
+                return prefix + "-path";
+            }
+
+            @Override
+            public StudentDocumentContent load(String location) {
+                return new StudentDocumentContent("document.png", "image/png", new byte[]{1});
             }
         };
     }
