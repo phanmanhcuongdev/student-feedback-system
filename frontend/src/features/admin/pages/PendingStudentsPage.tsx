@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { approveStudent, getPendingStudents, getStudentDocument, rejectStudent } from "../../../api/adminApi";
 import { getApiErrorMessage } from "../../../api/apiError";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
@@ -211,6 +211,28 @@ export default function PendingStudentsPage() {
         }
     }, [activeStudent, pagedStudents]);
 
+    const getDocumentName = useCallback((storedPath: string | null): string => {
+        if (!storedPath) {
+            return "document";
+        }
+
+        const normalized = storedPath.replace(/\\/g, "/");
+        return normalized.split("/").filter(Boolean).pop() || "document";
+    }, []);
+
+    const createPreview = useCallback((blob: Blob | null, storedPath: string | null): DocumentPreview | null => {
+        if (!blob) {
+            return null;
+        }
+
+        const objectUrl = URL.createObjectURL(blob);
+        return {
+            name: getDocumentName(storedPath),
+            contentType: blob.type || "application/octet-stream",
+            objectUrl,
+        };
+    }, [getDocumentName]);
+
     useEffect(() => {
         let disposed = false;
         const objectUrls: string[] = [];
@@ -246,8 +268,12 @@ export default function PendingStudentsPage() {
                     return;
                 }
 
-                nextState.studentCard ? objectUrls.push(nextState.studentCard.objectUrl) : null;
-                nextState.nationalId ? objectUrls.push(nextState.nationalId.objectUrl) : null;
+                if (nextState.studentCard) {
+                    objectUrls.push(nextState.studentCard.objectUrl);
+                }
+                if (nextState.nationalId) {
+                    objectUrls.push(nextState.nationalId.objectUrl);
+                }
                 setDocumentPreviews(nextState);
             } catch (requestError) {
                 if (!disposed) {
@@ -266,29 +292,7 @@ export default function PendingStudentsPage() {
             disposed = true;
             objectUrls.forEach((url) => URL.revokeObjectURL(url));
         };
-    }, [activeStudent]);
-
-    function createPreview(blob: Blob | null, storedPath: string | null): DocumentPreview | null {
-        if (!blob) {
-            return null;
-        }
-
-        const objectUrl = URL.createObjectURL(blob);
-        return {
-            name: getDocumentName(storedPath),
-            contentType: blob.type || "application/octet-stream",
-            objectUrl,
-        };
-    }
-
-    function getDocumentName(storedPath: string | null): string {
-        if (!storedPath) {
-            return "document";
-        }
-
-        const normalized = storedPath.replace(/\\/g, "/");
-        return normalized.split("/").filter(Boolean).pop() || "document";
-    }
+    }, [activeStudent, createPreview]);
 
     function renderDocumentPreview(preview: DocumentPreview | null, emptyLabel: string) {
         if (!preview) {

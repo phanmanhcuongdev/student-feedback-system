@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { archiveSurvey, closeSurvey, getManagedSurveys, publishSurvey, setSurveyVisibility } from "../../../api/adminApi";
 import { getApiErrorMessage } from "../../../api/apiError";
@@ -95,7 +95,7 @@ export default function AdminSurveysPage() {
 
     const pageSize = 20;
 
-    async function loadSurveys() {
+    const loadSurveys = useCallback(async () => {
         try {
             setLoading(true);
             setError("");
@@ -121,7 +121,7 @@ export default function AdminSurveysPage() {
         } finally {
             setLoading(false);
         }
-    }
+    }, [debouncedQuery, endDateTo, lifecycleFilter, page, runtimeFilter, scopeFilter, sortBy, sortDir, startDateFrom, visibilityFilter]);
 
     useEffect(() => {
         const timeout = window.setTimeout(() => {
@@ -133,7 +133,7 @@ export default function AdminSurveysPage() {
 
     useEffect(() => {
         void loadSurveys();
-    }, [debouncedQuery, lifecycleFilter, runtimeFilter, visibilityFilter, scopeFilter, startDateFrom, endDateTo, page, sortBy, sortDir]);
+    }, [loadSurveys]);
 
     useEffect(() => {
         setPage(0);
