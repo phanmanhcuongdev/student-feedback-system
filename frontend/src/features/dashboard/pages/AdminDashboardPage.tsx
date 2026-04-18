@@ -11,11 +11,19 @@ import SectionCard from "../../../components/ui/SectionCard";
 import StatCard from "../../../components/ui/StatCard";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import type { PendingStudent } from "../../../types/admin";
-import type { SurveyResultSummary } from "../../../types/surveyResult";
+import type { SurveyResultMetrics, SurveyResultSummary } from "../../../types/surveyResult";
 
 export default function AdminDashboardPage() {
     const [pendingStudents, setPendingStudents] = useState<PendingStudent[]>([]);
     const [surveyResults, setSurveyResults] = useState<SurveyResultSummary[]>([]);
+    const [surveyMetrics, setSurveyMetrics] = useState<SurveyResultMetrics>({
+        total: 0,
+        open: 0,
+        closed: 0,
+        averageResponseRate: 0,
+        totalSubmitted: 0,
+        totalResponses: 0,
+    });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -23,9 +31,13 @@ export default function AdminDashboardPage() {
         try {
             setLoading(true);
             setError("");
-            const [students, results] = await Promise.all([getPendingStudents(), getSurveyResults()]);
-            setPendingStudents(students);
-            setSurveyResults(results);
+            const [students, results] = await Promise.all([
+                getPendingStudents({ page: 0, size: 4 }),
+                getSurveyResults({ page: 0, size: 3, sortBy: "responseCount", sortDir: "desc" }),
+            ]);
+            setPendingStudents(students.items);
+            setSurveyResults(results.items);
+            setSurveyMetrics(results.metrics);
         } catch (requestError) {
             setError(getApiErrorMessage(requestError, "Unable to load dashboard data."));
         } finally {
@@ -37,9 +49,7 @@ export default function AdminDashboardPage() {
         void load();
     }, []);
 
-    const totalResponses = surveyResults.reduce((sum, survey) => sum + survey.responseCount, 0);
-    const openSurveys = surveyResults.filter((survey) => survey.status === "OPEN");
-    const recentlyActive = surveyResults.slice().sort((a, b) => b.responseCount - a.responseCount).slice(0, 3);
+    const recentlyActive = surveyResults.slice(0, 3);
 
     return (
         <main className="bg-slate-100">
@@ -61,8 +71,8 @@ export default function AdminDashboardPage() {
                         <>
                             <div className="grid gap-5 md:grid-cols-3">
                                 <StatCard label="Pending students" value={pendingStudents.length} tone="amber" />
-                                <StatCard label="Tracked surveys" value={surveyResults.length} tone="sky" />
-                                <StatCard label="Total responses" value={totalResponses} tone="emerald" />
+                                <StatCard label="Tracked surveys" value={surveyMetrics.total} tone="sky" />
+                                <StatCard label="Total responses" value={surveyMetrics.totalResponses} tone="emerald" />
                             </div>
 
                             <div className="mt-8 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
@@ -108,10 +118,10 @@ export default function AdminDashboardPage() {
                                 <div className="space-y-6">
                                     <SectionCard title="Survey status" description="Simple activity counters from live result data.">
                                         <div className="grid gap-4 sm:grid-cols-2">
-                                            <StatCard label="Open surveys" value={openSurveys.length} tone="sky" />
+                                            <StatCard label="Open surveys" value={surveyMetrics.open} tone="sky" />
                                             <StatCard
                                                 label="Average responses"
-                                                value={surveyResults.length === 0 ? 0 : Math.round(totalResponses / surveyResults.length)}
+                                                value={surveyMetrics.total === 0 ? 0 : Math.round(surveyMetrics.totalResponses / surveyMetrics.total)}
                                                 tone="slate"
                                             />
                                         </div>

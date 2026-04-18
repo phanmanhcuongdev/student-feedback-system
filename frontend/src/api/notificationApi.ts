@@ -1,7 +1,10 @@
 import axios from "./axios";
-import type { StudentNotification } from "../types/notification";
+import type { StudentNotificationPage } from "../types/notification";
 
-export async function getStudentNotifications(): Promise<StudentNotification[]> {
-    const response = await axios.get<StudentNotification[]>("/v1/notifications");
+export async function getStudentNotifications(params: {
+    page?: number;
+    size?: number;
+}): Promise<StudentNotificationPage> {
+    const response = await axios.get<StudentNotificationPage>("/v1/notifications", { params });
     return response.data;
 }

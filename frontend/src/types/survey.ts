@@ -11,6 +11,14 @@ export interface Survey {
     status: SurveyRuntimeStatus;
 }
 
+export interface StudentSurveyPage {
+    items: Survey[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+}
+
 export interface CreateQuestionData {
     content: string;
     type: "RATING" | "TEXT";

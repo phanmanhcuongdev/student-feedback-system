@@ -24,7 +24,8 @@ export default function StudentDashboardPage() {
             try {
                 setLoading(true);
                 setError("");
-                setSurveys(await getAllSurveys());
+                const response = await getAllSurveys({ page: 0, size: 100, sortBy: "endDate", sortDir: "asc" });
+                setSurveys(response.items);
             } catch (requestError) {
                 setError(getApiErrorMessage(requestError, "Unable to load dashboard data."));
             } finally {
@@ -32,7 +33,7 @@ export default function StudentDashboardPage() {
             }
         }
 
-        load();
+        void load();
     }, []);
 
     const openSurveys = surveys.filter((survey) => survey.status === "OPEN");

@@ -65,14 +65,19 @@ DB_PASSWORD=your-password
 APP_JWT_SECRET=change-me-local-dev-secret-key-32b
 APP_JWT_ACCESS_TOKEN_EXPIRATION_MS=86400000
 APP_VERIFY_EMAIL_URL_BASE=http://localhost:5173
+APP_RESET_PASSWORD_URL_BASE=http://localhost:5173
+APP_RESET_PASSWORD_EXPIRATION_MINUTES=30
 RESEND_API_KEY=re_...
 APP_MAIL_FROM=noreply@cuongdso.id.vn
-APP_WEB_ALLOWED_ORIGINS=http://localhost:5173
 RESEND_API_URL=https://api.resend.com/emails
+APP_WEB_ALLOWED_ORIGINS=http://localhost:5173
+MINIO_ACCESS_KEY=your-access-key
+MINIO_SECRET_KEY=your-secret-key
+MINIO_BUCKET=student-feedback-bucket
+MINIO_URL=http://localhost:9000
+APP_STORAGE_MINIO_ACCESS_KEY=your-access-key
+APP_STORAGE_MINIO_SECRET_KEY=your-secret-key
 APP_STORAGE_MINIO_ENDPOINT=http://localhost:9000
-APP_STORAGE_MINIO_ACCESS_KEY=minioadmin
-APP_STORAGE_MINIO_SECRET_KEY=minioadmin
-APP_STORAGE_MINIO_BUCKET=student-documents
 ```
 
 Backend runtime variables currently used in [`backend/.env.dev`](backend/.env.dev):
@@ -99,10 +104,9 @@ MINIO_ACCESS_KEY=...
 MINIO_SECRET_KEY=...
 MINIO_BUCKET=student-feedback-bucket
 MINIO_URL=http://minio:9000
-APP_STORAGE_MINIO_ENDPOINT=http://minio:9000
 APP_STORAGE_MINIO_ACCESS_KEY=...
 APP_STORAGE_MINIO_SECRET_KEY=...
-APP_STORAGE_MINIO_BUCKET=student-feedback-bucket
+APP_STORAGE_MINIO_ENDPOINT=http://minio:9000
 ```
 
 Frontend variables from [`frontend/.env.example`](frontend/.env.example):
@@ -115,8 +119,9 @@ VITE_API_PROXY_TARGET=http://localhost:8080
 Notes:
 
 - Spring Boot in this repo does not auto-load `.env` files. Export variables in your shell or configure them in your IDE run configuration.
-- The backend document storage configuration is read from `app.storage.minio.*` in [`backend/src/main/resources/application.yaml`](backend/src/main/resources/application.yaml), which means the Spring application needs `APP_STORAGE_MINIO_ENDPOINT`, `APP_STORAGE_MINIO_ACCESS_KEY`, `APP_STORAGE_MINIO_SECRET_KEY`, and optionally `APP_STORAGE_MINIO_BUCKET`.
-- The `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, and `MINIO_URL` values in `backend/.env.dev` are useful for Docker Compose or MinIO container setup. In deployments that keep both naming schemes, set the `APP_STORAGE_MINIO_*` variables from those same values so the backend and the MinIO container stay aligned.
+- `backend/.env.dev` is the canonical backend env reference in this repo. Root `.env.example`, `.env.dev`, and `.env.prod` should follow its variable names and ordering.
+- The backend document storage configuration is read from `app.storage.minio.*` in [`backend/src/main/resources/application.yaml`](backend/src/main/resources/application.yaml), which means the Spring application needs `APP_STORAGE_MINIO_ENDPOINT`, `APP_STORAGE_MINIO_ACCESS_KEY`, and `APP_STORAGE_MINIO_SECRET_KEY`.
+- `backend/.env.dev` also keeps `MINIO_*` values alongside `APP_STORAGE_MINIO_*` so MinIO service/container config and Spring Boot client config stay aligned from one source of truth.
 - `spring.jpa.hibernate.ddl-auto=validate` is enabled, so Flyway is responsible for creating or updating schema state before Hibernate validates entities.
 - Flyway is enabled through `spring.flyway.enabled=true` and scans SQL migrations from `classpath:db/migration`, which maps to `backend/src/main/resources/db/migration/`.
 - `spring.flyway.baseline-on-migrate=true` is enabled so an existing SQL Server database can be brought under Flyway management without replaying the initial schema migration.
@@ -137,7 +142,6 @@ Variables involved:
 - `APP_STORAGE_MINIO_ENDPOINT`: Spring Boot endpoint for the MinIO SDK. In most deployments this matches `MINIO_URL`.
 - `APP_STORAGE_MINIO_ACCESS_KEY`: Spring Boot credential used by the backend MinIO client. In most deployments this matches `MINIO_ACCESS_KEY`.
 - `APP_STORAGE_MINIO_SECRET_KEY`: Spring Boot credential used by the backend MinIO client. In most deployments this matches `MINIO_SECRET_KEY`.
-- `APP_STORAGE_MINIO_BUCKET`: optional Spring-side bucket override. If omitted, the backend falls back to `student-documents`.
 
 Recommended mapping in deployment:
 
@@ -150,15 +154,14 @@ MINIO_URL=http://minio:9000
 APP_STORAGE_MINIO_ENDPOINT=${MINIO_URL}
 APP_STORAGE_MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
 APP_STORAGE_MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
-APP_STORAGE_MINIO_BUCKET=${MINIO_BUCKET}
 ```
 
 Operational notes:
 
 - The backend only talks to MinIO through the `APP_STORAGE_MINIO_*` variables.
-- The MinIO container itself only needs the `MINIO_*` variables.
+- The MinIO container/service itself only needs the `MINIO_*` variables.
 - If the backend starts without the `APP_STORAGE_MINIO_*` values, document upload and document review endpoints cannot initialize correctly.
-- If MinIO and backend disagree on bucket name, uploads may succeed to one bucket while document review looks in another.
+- `MINIO_BUCKET` is still part of the canonical env file because the MinIO service setup needs it, even though Spring Boot reads credentials/endpoint from `APP_STORAGE_MINIO_*`.
 
 ## Database Migrations
 
@@ -200,13 +203,19 @@ $env:DB_PASSWORD="your-password"
 $env:APP_JWT_SECRET="change-me-local-dev-secret-key-32b"
 $env:APP_JWT_ACCESS_TOKEN_EXPIRATION_MS="86400000"
 $env:APP_VERIFY_EMAIL_URL_BASE="http://localhost:5173"
+$env:APP_RESET_PASSWORD_URL_BASE="http://localhost:5173"
+$env:APP_RESET_PASSWORD_EXPIRATION_MINUTES="30"
 $env:RESEND_API_KEY="re_..."
 $env:APP_MAIL_FROM="noreply@cuongdso.id.vn"
+$env:RESEND_API_URL="https://api.resend.com/emails"
 $env:APP_WEB_ALLOWED_ORIGINS="http://localhost:5173"
+$env:MINIO_ACCESS_KEY="your-access-key"
+$env:MINIO_SECRET_KEY="your-secret-key"
+$env:MINIO_BUCKET="student-feedback-bucket"
+$env:MINIO_URL="http://localhost:9000"
+$env:APP_STORAGE_MINIO_ACCESS_KEY="your-access-key"
+$env:APP_STORAGE_MINIO_SECRET_KEY="your-secret-key"
 $env:APP_STORAGE_MINIO_ENDPOINT="http://localhost:9000"
-$env:APP_STORAGE_MINIO_ACCESS_KEY="minioadmin"
-$env:APP_STORAGE_MINIO_SECRET_KEY="minioadmin"
-$env:APP_STORAGE_MINIO_BUCKET="student-documents"
 
 cd backend
 .\mvnw.cmd spring-boot:run
@@ -327,8 +336,8 @@ Compatibility note:
 - Current account overview uses the authenticated session data already available to the frontend. It does not fabricate unsupported profile fields from a separate profile API.
 - User management search, filter, pagination, and sort are backend-backed.
 - Survey management search, filter, pagination, and sort are backend-backed.
-- Survey results now expose richer metadata such as lifecycle, runtime status, and audience scope.
-- Feedback management and pending-student queues still use frontend-side filtering and pagination in the current implementation.
+- Pending-student review, staff feedback review, student surveys, student feedback history, notifications, and survey results now use backend-backed pagination.
+- Survey results also use backend-backed filtering, sorting, and metrics while exposing lifecycle, runtime status, and audience scope.
 - Seed accounts in `database/seed_data.sql` are BCrypt-compatible and can be used directly after import:
   - `admin@university.edu` / `admin123`
   - `teacher@university.edu` / `teacher123`

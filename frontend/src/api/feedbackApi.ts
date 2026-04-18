@@ -1,8 +1,13 @@
 import axios from "./axios";
-import type { CreateFeedbackResponse, RespondToFeedbackResponse, StaffFeedback, StudentFeedback } from "../types/feedback";
+import type { CreateFeedbackResponse, RespondToFeedbackResponse, StaffFeedbackPage, StudentFeedbackPage } from "../types/feedback";
 
-export async function getStudentFeedback(): Promise<StudentFeedback[]> {
-    const response = await axios.get<StudentFeedback[]>("/v1/feedback");
+export async function getStudentFeedback(params: {
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+}): Promise<StudentFeedbackPage> {
+    const response = await axios.get<StudentFeedbackPage>("/v1/feedback", { params });
     return response.data;
 }
 
@@ -11,8 +16,16 @@ export async function createFeedback(title: string, content: string): Promise<Cr
     return response.data;
 }
 
-export async function getAllFeedback(): Promise<StaffFeedback[]> {
-    const response = await axios.get<StaffFeedback[]>("/v1/feedback/staff");
+export async function getAllFeedback(params: {
+    keyword?: string;
+    status?: string;
+    createdDate?: string;
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+}): Promise<StaffFeedbackPage> {
+    const response = await axios.get<StaffFeedbackPage>("/v1/feedback/staff", { params });
     return response.data;
 }
 

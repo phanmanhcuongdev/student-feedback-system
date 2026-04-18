@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { getSurveyResults } from "../../../api/surveyResultApi";
@@ -15,7 +15,7 @@ import PageHeader from "../../../components/ui/PageHeader";
 import StatCard from "../../../components/ui/StatCard";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { useAuth } from "../../auth/useAuth";
-import type { SurveyResultSummary } from "../../../types/surveyResult";
+import type { SurveyResultMetrics, SurveyResultSummary } from "../../../types/surveyResult";
 
 function formatDate(date: string) {
     return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(date));
@@ -39,93 +39,77 @@ function getAudienceLabel(survey: SurveyResultSummary) {
 export default function SurveyResultsPage() {
     const { session } = useAuth();
     const [surveys, setSurveys] = useState<SurveyResultSummary[]>([]);
+    const [metrics, setMetrics] = useState<SurveyResultMetrics>({
+        total: 0,
+        open: 0,
+        closed: 0,
+        averageResponseRate: 0,
+        totalSubmitted: 0,
+        totalResponses: 0,
+    });
+    const [totalElements, setTotalElements] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [query, setQuery] = useState("");
+    const [debouncedQuery, setDebouncedQuery] = useState("");
     const [lifecycleFilter, setLifecycleFilter] = useState("ALL");
     const [runtimeFilter, setRuntimeFilter] = useState("ALL");
     const [audienceFilter, setAudienceFilter] = useState("ALL");
     const [startDateFrom, setStartDateFrom] = useState("");
     const [endDateTo, setEndDateTo] = useState("");
-    const [sortBy, setSortBy] = useState("responseRate:desc");
-    const [page, setPage] = useState(1);
+    const [sortBy, setSortBy] = useState("responseRate");
+    const [sortDir, setSortDir] = useState("desc");
+    const [page, setPage] = useState(0);
 
     const pageSize = 12;
 
     useEffect(() => {
-        async function fetchSurveyResults() {
-            try {
-                setLoading(true);
-                setError("");
-                setSurveys(await getSurveyResults());
-            } catch (requestError) {
-                setError(getApiErrorMessage(requestError, "Unable to load survey results."));
-            } finally {
-                setLoading(false);
+        const timeout = window.setTimeout(() => {
+            setDebouncedQuery(query.trim());
+        }, 300);
+
+        return () => window.clearTimeout(timeout);
+    }, [query]);
+
+    const loadSurveyResults = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError("");
+            const response = await getSurveyResults({
+                keyword: debouncedQuery || undefined,
+                lifecycleState: lifecycleFilter === "ALL" ? undefined : lifecycleFilter,
+                runtimeStatus: runtimeFilter === "ALL" ? undefined : runtimeFilter,
+                recipientScope: audienceFilter === "ALL" ? undefined : audienceFilter,
+                startDateFrom: startDateFrom || undefined,
+                endDateTo: endDateTo || undefined,
+                page,
+                size: pageSize,
+                sortBy,
+                sortDir,
+            });
+            if (response.items.length === 0 && response.totalPages > 0 && page >= response.totalPages) {
+                setPage(response.totalPages - 1);
+                return;
             }
+            setSurveys(response.items);
+            setMetrics(response.metrics);
+            setTotalElements(response.totalElements);
+            setTotalPages(response.totalPages);
+        } catch (requestError) {
+            setError(getApiErrorMessage(requestError, "Unable to load survey results."));
+        } finally {
+            setLoading(false);
         }
-
-        void fetchSurveyResults();
-    }, []);
-
-    const filteredSurveys = useMemo(() => {
-        const normalizedQuery = query.trim().toLowerCase();
-        const [sortField, sortDirection] = sortBy.split(":");
-
-        const result = surveys.filter((survey) => {
-            if (normalizedQuery && !survey.title.toLowerCase().includes(normalizedQuery)) {
-                return false;
-            }
-            if (lifecycleFilter !== "ALL" && survey.lifecycleState !== lifecycleFilter) {
-                return false;
-            }
-            if (runtimeFilter !== "ALL" && survey.runtimeStatus !== runtimeFilter) {
-                return false;
-            }
-            if (audienceFilter !== "ALL" && survey.recipientScope !== audienceFilter) {
-                return false;
-            }
-            if (startDateFrom && new Date(survey.startDate) < new Date(startDateFrom)) {
-                return false;
-            }
-            if (endDateTo && new Date(survey.endDate) > new Date(`${endDateTo}T23:59:59`)) {
-                return false;
-            }
-            return true;
-        });
-
-        result.sort((left, right) => {
-            const direction = sortDirection === "asc" ? 1 : -1;
-            switch (sortField) {
-                case "submittedCount":
-                    return (left.submittedCount - right.submittedCount) * direction;
-                case "targetedCount":
-                    return (left.targetedCount - right.targetedCount) * direction;
-                case "startDate":
-                    return (new Date(left.startDate).getTime() - new Date(right.startDate).getTime()) * direction;
-                case "endDate":
-                    return (new Date(left.endDate).getTime() - new Date(right.endDate).getTime()) * direction;
-                default:
-                    return (left.responseRate - right.responseRate) * direction;
-            }
-        });
-
-        return result;
-    }, [audienceFilter, endDateTo, lifecycleFilter, query, runtimeFilter, sortBy, startDateFrom, surveys]);
+    }, [audienceFilter, debouncedQuery, endDateTo, lifecycleFilter, page, runtimeFilter, sortBy, sortDir, startDateFrom]);
 
     useEffect(() => {
-        setPage(1);
-    }, [query, lifecycleFilter, runtimeFilter, audienceFilter, startDateFrom, endDateTo, sortBy]);
+        void loadSurveyResults();
+    }, [loadSurveyResults]);
 
-    const pageCount = Math.max(1, Math.ceil(filteredSurveys.length / pageSize));
-    const pagedSurveys = filteredSurveys.slice((page - 1) * pageSize, page * pageSize);
-
-    const metrics = useMemo(() => ({
-        total: filteredSurveys.length,
-        open: filteredSurveys.filter((survey) => survey.runtimeStatus === "OPEN").length,
-        avgRate: filteredSurveys.length === 0 ? 0 : filteredSurveys.reduce((total, survey) => total + survey.responseRate, 0) / filteredSurveys.length,
-        totalSubmitted: filteredSurveys.reduce((total, survey) => total + survey.submittedCount, 0),
-    }), [filteredSurveys]);
+    useEffect(() => {
+        setPage(0);
+    }, [audienceFilter, debouncedQuery, endDateTo, lifecycleFilter, runtimeFilter, sortBy, sortDir, startDateFrom]);
 
     const columns: DataTableColumn<SurveyResultSummary>[] = [
         {
@@ -194,14 +178,14 @@ export default function SurveyResultsPage() {
                     eyebrow="Result Review"
                     title="Survey statistics"
                     description="Review participation and question-level outcomes through an operational results list instead of a visual card wall."
-                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{filteredSurveys.length} matching survey result{filteredSurveys.length === 1 ? "" : "s"}</div>}
+                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{totalElements} matching survey result{totalElements === 1 ? "" : "s"}</div>}
                 />
 
                 <div className="mt-6 space-y-6">
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                         <StatCard label="Visible results" value={metrics.total} />
                         <StatCard label="Open now" value={metrics.open} tone="blue" />
-                        <StatCard label="Average response rate" value={formatRate(metrics.avgRate)} tone="emerald" />
+                        <StatCard label="Average response rate" value={formatRate(metrics.averageResponseRate)} tone="emerald" />
                         <StatCard label="Submitted responses" value={metrics.totalSubmitted} tone="slate" />
                     </div>
 
@@ -220,16 +204,33 @@ export default function SurveyResultsPage() {
                                     <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">End by</span>
                                     <input type="date" value={endDateTo} onChange={(event) => setEndDateTo(event.target.value)} className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none" />
                                 </label>
-                                <SelectFilter label="Sort" value={sortBy} onChange={setSortBy} options={[{ label: "Response rate high-low", value: "responseRate:desc" }, { label: "Response rate low-high", value: "responseRate:asc" }, { label: "Submitted high-low", value: "submittedCount:desc" }, { label: "Targeted high-low", value: "targetedCount:desc" }, { label: "Start date newest", value: "startDate:desc" }, { label: "End date latest", value: "endDate:desc" }]} />
+                                <SelectFilter
+                                    label="Sort"
+                                    value={`${sortBy}:${sortDir}`}
+                                    onChange={(value) => {
+                                        const [nextSortBy, nextSortDir] = value.split(":");
+                                        setSortBy(nextSortBy);
+                                        setSortDir(nextSortDir);
+                                    }}
+                                    options={[
+                                        { label: "Response rate high-low", value: "responseRate:desc" },
+                                        { label: "Response rate low-high", value: "responseRate:asc" },
+                                        { label: "Submitted high-low", value: "submittedCount:desc" },
+                                        { label: "Targeted high-low", value: "targetedCount:desc" },
+                                        { label: "Start date newest", value: "startDate:desc" },
+                                        { label: "End date latest", value: "endDate:desc" },
+                                    ]}
+                                />
                             </>
                         )}
+                        actions={<div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">{surveys.length} row{surveys.length === 1 ? "" : "s"} on page</div>}
                     />
 
                     {error ? (
-                        <ErrorState description={error} />
+                        <ErrorState description={error} onRetry={() => void loadSurveyResults()} />
                     ) : loading ? (
                         <LoadingState label="Loading survey results..." />
-                    ) : filteredSurveys.length === 0 ? (
+                    ) : surveys.length === 0 ? (
                         <EmptyState
                             title="No survey results found"
                             description={session?.role === "TEACHER" ? "No results match your department scope and current filters." : "Adjust the filters to find the survey analytics you need."}
@@ -238,11 +239,11 @@ export default function SurveyResultsPage() {
                     ) : (
                         <>
                             <div className="hidden lg:block">
-                                <DataTable columns={columns} items={pagedSurveys} getRowKey={(survey) => survey.id} />
+                                <DataTable columns={columns} items={surveys} getRowKey={(survey) => survey.id} />
                             </div>
 
                             <ResponsiveDataList
-                                items={pagedSurveys}
+                                items={surveys}
                                 getKey={(survey) => survey.id}
                                 renderItem={(survey) => (
                                     <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
@@ -266,7 +267,7 @@ export default function SurveyResultsPage() {
                                 )}
                             />
 
-                            <PaginationControls page={page} pageCount={pageCount} onPageChange={setPage} />
+                            <PaginationControls page={page + 1} pageCount={Math.max(totalPages, 1)} onPageChange={(nextPage) => setPage(nextPage - 1)} />
                         </>
                     )}
                 </div>

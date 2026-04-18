@@ -24,10 +24,16 @@ import com.ttcs.backend.application.port.out.auth.SaveStudentPort;
 import com.ttcs.backend.application.port.out.auth.SaveStudentTokenPort;
 import com.ttcs.backend.application.port.out.auth.SaveUserPort;
 import com.ttcs.backend.application.port.out.admin.LoadPendingStudentsPort;
+import com.ttcs.backend.application.port.out.admin.ManagePendingStudentsQuery;
+import com.ttcs.backend.application.port.out.admin.PendingStudentSearchItem;
+import com.ttcs.backend.application.port.out.admin.PendingStudentSearchPage;
 import com.ttcs.backend.common.PersistenceAdapter;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,6 +56,7 @@ public class AuthPersistenceAdapter implements
     private final StudentTokenRepository studentTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final DepartmentRepository departmentRepository;
+    private final EntityManager entityManager;
 
     @Override
     public Optional<User> loadByEmail(String email) {
@@ -107,10 +114,49 @@ public class AuthPersistenceAdapter implements
     }
 
     @Override
-    public List<Student> loadPendingStudents() {
-        return studentRepository.findByStatusOrderByIdAsc(StatusEntity.PENDING).stream()
-                .map(StudentMapper::toDomain)
-                .toList();
+    public PendingStudentSearchPage loadPage(ManagePendingStudentsQuery query) {
+        int page = Math.max(query.page(), 0);
+        int size = Math.min(Math.max(query.size(), 1), 100);
+
+        String whereClause = buildPendingStudentsWhereClause(query);
+        String orderClause = buildPendingStudentsOrderClause(query.sortBy(), query.sortDir());
+
+        Query itemsQuery = entityManager.createNativeQuery("""
+                SELECT
+                    s.user_id,
+                    s.name,
+                    u.email,
+                    s.student_code,
+                    d.name,
+                    s.status,
+                    s.student_card_img,
+                    s.national_id_img,
+                    s.review_reason,
+                    s.review_notes,
+                    s.resubmission_count
+                FROM Student s
+                INNER JOIN [User] u ON u.user_id = s.user_id
+                LEFT JOIN Department d ON d.dept_id = s.dept_id
+                """ + whereClause + orderClause + " OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY");
+        applyPendingStudentsQueryParameters(itemsQuery, query);
+        itemsQuery.setParameter("offset", page * size);
+        itemsQuery.setParameter("size", size);
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = itemsQuery.getResultList();
+        List<PendingStudentSearchItem> items = rows.stream().map(this::toPendingStudentSearchItem).toList();
+
+        Query countQuery = entityManager.createNativeQuery("""
+                SELECT COUNT(*)
+                FROM Student s
+                INNER JOIN [User] u ON u.user_id = s.user_id
+                LEFT JOIN Department d ON d.dept_id = s.dept_id
+                """ + whereClause);
+        applyPendingStudentsQueryParameters(countQuery, query);
+        long totalElements = ((Number) countQuery.getSingleResult()).longValue();
+        int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
+
+        return new PendingStudentSearchPage(items, page, size, totalElements, totalPages);
     }
 
     @Override
@@ -190,5 +236,74 @@ public class AuthPersistenceAdapter implements
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         entity.setUser(userEntity);
         return entity;
+    }
+
+    private void applyPendingStudentsQueryParameters(Query query, ManagePendingStudentsQuery request) {
+        if (request.keyword() != null && !request.keyword().isBlank()) {
+            query.setParameter("keyword", "%" + request.keyword().trim().toLowerCase() + "%");
+        }
+        if (request.departmentId() != null) {
+            query.setParameter("departmentId", request.departmentId());
+        }
+        if (request.submissionType() != null && !request.submissionType().isBlank()) {
+            query.setParameter("submissionType", request.submissionType().trim().toUpperCase());
+        }
+    }
+
+    private String buildPendingStudentsWhereClause(ManagePendingStudentsQuery query) {
+        List<String> clauses = new ArrayList<>();
+        clauses.add("s.status = 'PENDING'");
+
+        if (query.keyword() != null && !query.keyword().isBlank()) {
+            clauses.add("""
+                    (
+                        LOWER(COALESCE(s.name, '')) LIKE :keyword
+                        OR LOWER(COALESCE(u.email, '')) LIKE :keyword
+                        OR LOWER(COALESCE(s.student_code, '')) LIKE :keyword
+                    )
+                    """);
+        }
+        if (query.departmentId() != null) {
+            clauses.add("s.dept_id = :departmentId");
+        }
+        if (query.submissionType() != null && !query.submissionType().isBlank()) {
+            clauses.add("""
+                    (
+                        (:submissionType = 'RESUBMITTED' AND COALESCE(s.resubmission_count, 0) > 0)
+                        OR (:submissionType = 'FIRST_SUBMISSION' AND COALESCE(s.resubmission_count, 0) = 0)
+                    )
+                    """);
+        }
+
+        return " WHERE " + String.join(" AND ", clauses);
+    }
+
+    private String buildPendingStudentsOrderClause(String sortBy, String sortDir) {
+        String normalizedSortBy = sortBy == null ? "resubmissionCount" : sortBy.trim();
+        String direction = "asc".equalsIgnoreCase(sortDir) ? "ASC" : "DESC";
+
+        String expression = switch (normalizedSortBy) {
+            case "name" -> "s.name";
+            case "department" -> "d.name";
+            default -> "COALESCE(s.resubmission_count, 0)";
+        };
+
+        return " ORDER BY " + expression + " " + direction + ", s.user_id ASC";
+    }
+
+    private PendingStudentSearchItem toPendingStudentSearchItem(Object[] row) {
+        return new PendingStudentSearchItem(
+                ((Number) row[0]).intValue(),
+                (String) row[1],
+                (String) row[2],
+                (String) row[3],
+                (String) row[4],
+                row[5] != null ? row[5].toString() : null,
+                (String) row[6],
+                (String) row[7],
+                (String) row[8],
+                (String) row[9],
+                row[10] == null ? 0 : ((Number) row[10]).intValue()
+        );
     }
 }

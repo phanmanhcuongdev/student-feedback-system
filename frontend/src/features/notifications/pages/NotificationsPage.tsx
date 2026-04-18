@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { getStudentNotifications } from "../../../api/notificationApi";
+import PaginationControls from "../../../components/data-view/PaginationControls";
 import type { StudentNotification } from "../../../types/notification";
 
 function formatDate(date: string) {
@@ -39,6 +40,8 @@ function getTarget(notification: StudentNotification) {
 
 export default function NotificationsPage() {
     const [notifications, setNotifications] = useState<StudentNotification[]>([]);
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -47,7 +50,13 @@ export default function NotificationsPage() {
             try {
                 setLoading(true);
                 setError("");
-                setNotifications(await getStudentNotifications());
+                const response = await getStudentNotifications({ page, size: 6 });
+                if (response.items.length === 0 && response.totalPages > 0 && page >= response.totalPages) {
+                    setPage(response.totalPages - 1);
+                    return;
+                }
+                setNotifications(response.items);
+                setTotalPages(response.totalPages);
             } catch (requestError) {
                 setError(getApiErrorMessage(requestError, "Unable to load notifications."));
             } finally {
@@ -55,8 +64,8 @@ export default function NotificationsPage() {
             }
         }
 
-        fetchNotifications();
-    }, []);
+        void fetchNotifications();
+    }, [page]);
 
     return (
         <main className="bg-[linear-gradient(180deg,#f4f8ff_0%,#eef3f8_44%,#f7fafc_100%)]">
@@ -135,6 +144,11 @@ export default function NotificationsPage() {
                                     </div>
                                 </article>
                             ))}
+                            <PaginationControls
+                                page={page + 1}
+                                pageCount={Math.max(totalPages, 1)}
+                                onPageChange={(nextPage) => setPage(nextPage - 1)}
+                            />
                         </div>
                     )}
             </div>

@@ -3,9 +3,12 @@ package com.ttcs.backend.application.domain.service;
 import com.ttcs.backend.application.domain.model.Survey;
 import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
 import com.ttcs.backend.application.domain.model.SurveyRecipient;
+import com.ttcs.backend.application.port.in.resultview.GetStudentNotificationsQuery;
 import com.ttcs.backend.application.port.in.resultview.StudentNotificationResult;
+import com.ttcs.backend.application.port.out.LoadStudentSurveysQuery;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.application.port.out.LoadSurveyRecipientPort;
+import com.ttcs.backend.application.port.out.StudentSurveySearchPage;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -34,7 +37,7 @@ class GetStudentNotificationsServiceTest {
                 recipientPort(new SurveyRecipient(1, 1, 10, LocalDateTime.now().minusDays(1), null, null))
         );
 
-        List<StudentNotificationResult> results = service.getNotifications(10);
+        List<StudentNotificationResult> results = service.getNotifications(new GetStudentNotificationsQuery(0, 10), 10).items();
 
         assertEquals(2, results.size());
         assertTrue(results.stream().anyMatch(item -> item.type().equals("NEW_SURVEY")));
@@ -58,7 +61,7 @@ class GetStudentNotificationsServiceTest {
                 recipientPort(new SurveyRecipient(1, 1, 10, LocalDateTime.now().minusDays(1), LocalDateTime.now().minusHours(6), LocalDateTime.now().minusHours(1)))
         );
 
-        List<StudentNotificationResult> results = service.getNotifications(10);
+        List<StudentNotificationResult> results = service.getNotifications(new GetStudentNotificationsQuery(0, 10), 10).items();
 
         assertTrue(results.isEmpty());
     }
@@ -80,7 +83,7 @@ class GetStudentNotificationsServiceTest {
                 recipientPort(new SurveyRecipient(1, 2, 10, LocalDateTime.now().minusDays(1), null, null))
         );
 
-        List<StudentNotificationResult> results = service.getNotifications(10);
+        List<StudentNotificationResult> results = service.getNotifications(new GetStudentNotificationsQuery(0, 10), 10).items();
 
         assertEquals(1, results.size());
         assertEquals("OPENING_SOON", results.getFirst().type());
@@ -96,6 +99,11 @@ class GetStudentNotificationsServiceTest {
             @Override
             public List<Survey> loadAll() {
                 return surveys;
+            }
+
+            @Override
+            public StudentSurveySearchPage loadStudentSurveyPage(LoadStudentSurveysQuery query) {
+                return new StudentSurveySearchPage(List.of(), 0, 0, 0, 0);
             }
         };
     }

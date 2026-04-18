@@ -5,13 +5,21 @@ import type {
     DepartmentOption,
     ManagedUserDetail,
     ManagedUserPage,
-    PendingStudent,
+    PendingStudentPage,
     RejectStudentRequest,
 } from "../types/admin";
 import type { CreateSurveyData, CreateSurveyResponse, ManagedSurveyDetail, ManagedSurveyPage } from "../types/survey";
 
-export async function getPendingStudents(): Promise<PendingStudent[]> {
-    const response = await axios.get<PendingStudent[]>("/admin/students/pending");
+export async function getPendingStudents(params: {
+    keyword?: string;
+    departmentId?: number;
+    submissionType?: string;
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+}): Promise<PendingStudentPage> {
+    const response = await axios.get<PendingStudentPage>("/admin/students/pending", { params });
     return response.data;
 }
 

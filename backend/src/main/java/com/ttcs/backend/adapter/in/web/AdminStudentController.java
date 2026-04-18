@@ -2,13 +2,16 @@ package com.ttcs.backend.adapter.in.web;
 
 import com.ttcs.backend.adapter.in.web.dto.ApproveStudentRequest;
 import com.ttcs.backend.adapter.in.web.dto.ApproveStudentResponse;
+import com.ttcs.backend.adapter.in.web.dto.PendingStudentPageResponse;
 import com.ttcs.backend.adapter.in.web.dto.PendingStudentResponse;
 import com.ttcs.backend.adapter.in.web.dto.RejectStudentRequest;
 import com.ttcs.backend.adapter.in.web.dto.RejectStudentResponse;
 import com.ttcs.backend.application.port.in.admin.ApprovalActionResult;
 import com.ttcs.backend.application.port.in.admin.ApproveStudentUseCase;
+import com.ttcs.backend.application.port.in.admin.GetPendingStudentsQuery;
 import com.ttcs.backend.application.port.in.admin.GetStudentDocumentUseCase;
 import com.ttcs.backend.application.port.in.admin.GetPendingStudentsUseCase;
+import com.ttcs.backend.application.port.in.admin.PendingStudentPageResult;
 import com.ttcs.backend.application.port.in.admin.PendingStudentResult;
 import com.ttcs.backend.application.port.in.admin.RejectStudentUseCase;
 import com.ttcs.backend.application.port.in.admin.StudentDocumentResult;
@@ -24,8 +27,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @WebAdapter
 @RequestMapping("/api/admin/students")
@@ -39,12 +41,32 @@ public class AdminStudentController {
     private final CurrentStudentProvider currentStudentProvider;
 
     @GetMapping("/pending")
-    public ResponseEntity<List<PendingStudentResponse>> getPendingStudents() {
-        return ResponseEntity.ok(
-                getPendingStudentsUseCase.getPendingStudents().stream()
-                        .map(this::toPendingStudentResponse)
-                        .toList()
-        );
+    public ResponseEntity<PendingStudentPageResponse> getPendingStudents(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer departmentId,
+            @RequestParam(required = false) String submissionType,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "resubmissionCount") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) {
+        PendingStudentPageResult result = getPendingStudentsUseCase.getPendingStudents(new GetPendingStudentsQuery(
+                keyword,
+                departmentId,
+                submissionType,
+                page,
+                size,
+                sortBy,
+                sortDir
+        ));
+
+        return ResponseEntity.ok(new PendingStudentPageResponse(
+                result.items().stream().map(this::toPendingStudentResponse).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        ));
     }
 
     @GetMapping("/{studentId}/documents/{documentType}")

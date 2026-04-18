@@ -25,6 +25,22 @@ export type StaffFeedback = {
     responses: FeedbackResponse[];
 };
 
+export type StudentFeedbackPage = {
+    items: StudentFeedback[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+};
+
+export type StaffFeedbackPage = {
+    items: StaffFeedback[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+};
+
 export type CreateFeedbackResponse = {
     success: boolean;
     code: string;
