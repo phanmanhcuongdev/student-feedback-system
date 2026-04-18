@@ -11,10 +11,15 @@ import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
 import com.ttcs.backend.application.domain.model.Teacher;
 import com.ttcs.backend.application.domain.model.User;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultDetailResult;
+import com.ttcs.backend.application.port.in.resultview.GetSurveyResultsQuery;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultSummaryResult;
 import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResultPort;
+import com.ttcs.backend.application.port.out.LoadSurveyResultsQuery;
 import com.ttcs.backend.application.port.out.LoadTeacherByUserIdPort;
+import com.ttcs.backend.application.port.out.SurveyResultMetrics;
+import com.ttcs.backend.application.port.out.SurveyResultSearchItem;
+import com.ttcs.backend.application.port.out.SurveyResultSearchPage;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -32,7 +37,7 @@ class GetSurveyResultServiceTest {
     void shouldAllowAdminToViewAllSurveyResults() {
         GetSurveyResultService service = service();
 
-        List<SurveyResultSummaryResult> results = service.getSurveyResults(99, Role.ADMIN);
+        List<SurveyResultSummaryResult> results = service.getSurveyResults(defaultQuery(), 99, Role.ADMIN).items();
 
         assertEquals(3, results.size());
     }
@@ -41,7 +46,7 @@ class GetSurveyResultServiceTest {
     void shouldRestrictTeacherListToOwnDepartmentSurveys() {
         GetSurveyResultService service = service();
 
-        List<SurveyResultSummaryResult> results = service.getSurveyResults(10, Role.TEACHER);
+        List<SurveyResultSummaryResult> results = service.getSurveyResults(defaultQuery(), 10, Role.TEACHER).items();
 
         assertEquals(1, results.size());
         assertEquals(1, results.getFirst().id());
@@ -90,7 +95,7 @@ class GetSurveyResultServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> service.getSurveyResults(10, Role.TEACHER)
+                () -> service.getSurveyResults(defaultQuery(), 10, Role.TEACHER)
         );
 
         assertEquals(403, exception.getStatusCode().value());
@@ -112,7 +117,7 @@ class GetSurveyResultServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> service.getSurveyResults(10, Role.TEACHER)
+                () -> service.getSurveyResults(defaultQuery(), 10, Role.TEACHER)
         );
 
         assertEquals(403, exception.getStatusCode().value());
@@ -165,16 +170,36 @@ class GetSurveyResultServiceTest {
         );
     }
 
+    private GetSurveyResultsQuery defaultQuery() {
+        return new GetSurveyResultsQuery(null, null, null, null, null, null, 0, 20, "responseRate", "desc");
+    }
+
     private static final class InMemorySurveyResultPort implements LoadSurveyResultPort {
-        private final List<SurveyResultSummaryResult> summaries = List.of(
+        private final List<SurveyResultSearchItem> summaries = List.of(
                 summary(1, "Dept 1 Survey"),
                 summary(2, "Dept 2 Survey"),
                 summary(3, "All Students Survey")
         );
 
         @Override
-        public List<SurveyResultSummaryResult> loadSurveyResults() {
-            return summaries;
+        public SurveyResultSearchPage loadPage(LoadSurveyResultsQuery query) {
+            List<SurveyResultSearchItem> filtered = summaries.stream()
+                    .filter(item -> {
+                        if (query.teacherDepartmentId() == null) {
+                            return true;
+                        }
+                        return (query.teacherDepartmentId().equals(1) && item.id().equals(1))
+                                || (query.teacherDepartmentId().equals(2) && item.id().equals(2));
+                    })
+                    .toList();
+            return new SurveyResultSearchPage(
+                    filtered,
+                    query.page(),
+                    query.size(),
+                    filtered.size(),
+                    filtered.isEmpty() ? 0 : 1,
+                    new SurveyResultMetrics(filtered.size(), 0, filtered.size(), 60.0, filtered.size() * 12L, filtered.size() * 12L)
+            );
         }
 
         @Override
@@ -202,8 +227,8 @@ class GetSurveyResultServiceTest {
                     ));
         }
 
-        private static SurveyResultSummaryResult summary(Integer id, String title) {
-            return new SurveyResultSummaryResult(
+        private static SurveyResultSearchItem summary(Integer id, String title) {
+            return new SurveyResultSearchItem(
                     id,
                     title,
                     "Description",

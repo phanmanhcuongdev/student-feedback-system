@@ -9,6 +9,8 @@ import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.domain.model.User;
 import com.ttcs.backend.application.port.in.admin.ApprovalActionResult;
 import com.ttcs.backend.application.port.out.admin.LoadPendingStudentsPort;
+import com.ttcs.backend.application.port.out.admin.PendingStudentSearchItem;
+import com.ttcs.backend.application.port.out.admin.PendingStudentSearchPage;
 import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
 import com.ttcs.backend.application.port.out.auth.SaveStudentPort;
@@ -128,7 +130,27 @@ class AdminStudentApprovalServiceTest {
     }
 
     private LoadPendingStudentsPort pendingPort(List<Student> students) {
-        return () -> students;
+        return query -> new PendingStudentSearchPage(
+                students.stream()
+                        .map(student -> new PendingStudentSearchItem(
+                                student.getId(),
+                                student.getName(),
+                                student.getUser().getEmail(),
+                                student.getStudentCode(),
+                                student.getDepartment() == null ? null : student.getDepartment().getName(),
+                                student.getStatus().name(),
+                                student.getStudentCardImageUrl(),
+                                student.getNationalIdImageUrl(),
+                                student.getReviewReason(),
+                                student.getReviewNotes(),
+                                student.getResubmissionCount()
+                        ))
+                        .toList(),
+                0,
+                students.size(),
+                students.size(),
+                students.isEmpty() ? 0 : 1
+        );
     }
 
     private LoadStudentByIdPort loadStudentPort(Student student) {

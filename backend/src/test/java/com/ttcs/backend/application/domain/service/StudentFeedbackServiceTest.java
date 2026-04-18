@@ -8,13 +8,18 @@ import com.ttcs.backend.application.domain.model.Status;
 import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.domain.model.User;
 import com.ttcs.backend.application.port.in.feedback.command.CreateFeedbackCommand;
+import com.ttcs.backend.application.port.in.feedback.GetStudentFeedbackQuery;
 import com.ttcs.backend.application.port.in.feedback.command.RespondToFeedbackCommand;
 import com.ttcs.backend.application.port.in.feedback.result.CreateFeedbackResult;
 import com.ttcs.backend.application.port.in.feedback.result.RespondToFeedbackResult;
 import com.ttcs.backend.application.port.in.feedback.result.StudentFeedbackResult;
 import com.ttcs.backend.application.port.out.LoadFeedbackPort;
+import com.ttcs.backend.application.port.out.LoadFeedbackQuery;
 import com.ttcs.backend.application.port.out.LoadFeedbackResponsePort;
 import com.ttcs.backend.application.port.out.LoadStudentPort;
+import com.ttcs.backend.application.port.out.StaffFeedbackSearchPage;
+import com.ttcs.backend.application.port.out.StudentFeedbackSearchItem;
+import com.ttcs.backend.application.port.out.StudentFeedbackSearchPage;
 import com.ttcs.backend.application.port.out.SaveFeedbackPort;
 import com.ttcs.backend.application.port.out.SaveFeedbackResponsePort;
 import com.ttcs.backend.application.port.out.auth.LoadUserByIdPort;
@@ -96,7 +101,10 @@ class StudentFeedbackServiceTest {
                 responsePort
         );
 
-        List<StudentFeedbackResult> result = service.getStudentFeedback(student.getId());
+        List<StudentFeedbackResult> result = service.getStudentFeedback(
+                new GetStudentFeedbackQuery(0, 10, "createdAt", "desc"),
+                student.getId()
+        ).items();
 
         assertEquals(2, result.size());
         assertEquals("Second", result.get(0).title());
@@ -188,10 +196,23 @@ class StudentFeedbackServiceTest {
         }
 
         @Override
-        public List<Feedback> loadAll() {
-            return saved.stream()
+        public StudentFeedbackSearchPage loadStudentPage(com.ttcs.backend.application.port.out.LoadStudentFeedbackQuery query) {
+            List<StudentFeedbackSearchItem> items = saved.stream()
+                    .filter(item -> item.getStudent().getId().equals(query.studentId()))
                     .sorted(Comparator.comparing(Feedback::getCreatedAt).reversed())
+                    .map(item -> new StudentFeedbackSearchItem(
+                            item.getId(),
+                            item.getTitle(),
+                            item.getContent(),
+                            item.getCreatedAt()
+                    ))
                     .toList();
+            return new StudentFeedbackSearchPage(items, query.page(), query.size(), items.size(), items.isEmpty() ? 0 : 1);
+        }
+
+        @Override
+        public StaffFeedbackSearchPage loadPage(LoadFeedbackQuery query) {
+            return new StaffFeedbackSearchPage(List.of(), query.page(), query.size(), 0, 0);
         }
 
         @Override

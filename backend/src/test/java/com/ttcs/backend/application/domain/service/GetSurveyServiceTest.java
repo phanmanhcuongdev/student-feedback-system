@@ -9,9 +9,11 @@ import com.ttcs.backend.application.domain.model.Survey;
 import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
 import com.ttcs.backend.application.domain.model.SurveyRecipient;
 import com.ttcs.backend.application.domain.model.User;
+import com.ttcs.backend.application.port.out.LoadStudentSurveysQuery;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.application.port.out.LoadSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.SaveSurveyRecipientPort;
+import com.ttcs.backend.application.port.out.StudentSurveySearchPage;
 import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
 import org.junit.jupiter.api.Test;
 
@@ -77,6 +79,11 @@ class GetSurveyServiceTest {
             @Override
             public List<Survey> loadAll() {
                 return List.of(survey);
+            }
+
+            @Override
+            public StudentSurveySearchPage loadStudentSurveyPage(LoadStudentSurveysQuery query) {
+                return new StudentSurveySearchPage(List.of(), 0, 0, 0, 0);
             }
         };
     }

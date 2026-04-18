@@ -47,13 +47,27 @@ Variables used by the backend:
 DB_URL=
 DB_USERNAME=
 DB_PASSWORD=
+
 APP_JWT_SECRET=
 APP_JWT_ACCESS_TOKEN_EXPIRATION_MS=86400000
+
 APP_VERIFY_EMAIL_URL_BASE=http://localhost:5173
+APP_RESET_PASSWORD_URL_BASE=http://localhost:5173
+APP_RESET_PASSWORD_EXPIRATION_MINUTES=30
+
 RESEND_API_KEY=
 APP_MAIL_FROM=noreply@cuongdso.id.vn
-APP_WEB_ALLOWED_ORIGINS=http://localhost:5173
 RESEND_API_URL=https://api.resend.com/emails
+APP_WEB_ALLOWED_ORIGINS=http://localhost:5173
+
+MINIO_ACCESS_KEY=
+MINIO_SECRET_KEY=
+MINIO_BUCKET=student-feedback-bucket
+MINIO_URL=http://localhost:9000
+
+APP_STORAGE_MINIO_ACCESS_KEY=
+APP_STORAGE_MINIO_SECRET_KEY=
+APP_STORAGE_MINIO_ENDPOINT=http://localhost:9000
 ```
 
 Important notes:
@@ -61,6 +75,8 @@ Important notes:
 - Flyway manages schema creation and migration before Hibernate validation runs.
 - Email verification uses Resend. Registration will not silently fake success if email delivery is unavailable.
 - SQL Server is the only database wired in the current configuration.
+- `backend/.env.dev` is the canonical env reference for backend variable names in this repo.
+- Spring Boot reads MinIO client config from `APP_STORAGE_MINIO_*`, while the same canonical env file also carries `MINIO_*` values for MinIO service/container setup.
 
 ## Flyway Integration
 

@@ -15,7 +15,7 @@ Operationally, the project is in a solid “production-minded student project”
 | Architecture | Hexagonal / Ports and Adapters |
 | Frontend | React 19, TypeScript, Vite 8, React Router 7, Axios, Tailwind 4 ([frontend/package.json](../frontend/package.json)) |
 | Database | SQL Server, JPA `ddl-auto=validate`, manual SQL schema/migrations ([backend/src/main/resources/application.yaml](../backend/src/main/resources/application.yaml), [database/README.md](../database/README.md)) |
-| Storage | Student documents are now stored through a MinIO-backed adapter, with Spring Boot reading `APP_STORAGE_MINIO_*` and deployment env commonly also carrying raw `MINIO_*` values for the MinIO service itself ([backend/src/main/java/com/ttcs/backend/adapter/out/persistence/MinioStudentDocumentStorageAdapter.java](../backend/src/main/java/com/ttcs/backend/adapter/out/persistence/MinioStudentDocumentStorageAdapter.java), [backend/src/main/resources/application.yaml](../backend/src/main/resources/application.yaml), [backend/.env.dev](../backend/.env.dev)) |
+| Storage | Student documents are now stored through a MinIO-backed adapter. The canonical env reference is [`backend/.env.dev`](../backend/.env.dev), which keeps Spring-side `APP_STORAGE_MINIO_*` values alongside raw `MINIO_*` values for MinIO service/container setup ([backend/src/main/java/com/ttcs/backend/adapter/out/persistence/MinioStudentDocumentStorageAdapter.java](../backend/src/main/java/com/ttcs/backend/adapter/out/persistence/MinioStudentDocumentStorageAdapter.java), [backend/src/main/resources/application.yaml](../backend/src/main/resources/application.yaml), [backend/.env.dev](../backend/.env.dev)) |
 | Auth | JWT bearer auth, role-based route security, some domain scoping in services; token stored in browser `localStorage` ([backend/src/main/java/com/ttcs/backend/config/SecurityConfig.java](../backend/src/main/java/com/ttcs/backend/config/SecurityConfig.java), [frontend/src/features/auth/authStorage.ts](../frontend/src/features/auth/authStorage.ts)) |
 | Deployment | Backend and frontend Dockerfiles; frontend image runs Nginx and proxies `/api` to backend ([frontend/nginx.conf](../frontend/nginx.conf)) |
 | CI/CD | GitHub Actions quality gate + GHCR image build/push ([.github/workflows/ci.yml](../.github/workflows/ci.yml), [.github/workflows/ci.yml](../.github/workflows/ci.yml)) |
@@ -40,7 +40,7 @@ Operationally, the project is in a solid “production-minded student project”
 | Spring Boot Actuator | Missing |
 | SQL Server | Already baseline |
 | Redis | Missing |
-| MinIO / S3 storage | Implemented for onboarding document storage; docs and deployment env need to keep Spring-side `APP_STORAGE_MINIO_*` aligned with service-side `MINIO_*` values |
+| MinIO / S3 storage | Implemented for onboarding document storage; docs and env templates should follow [`backend/.env.dev`](../backend/.env.dev) as the canonical variable set |
 | Elasticsearch / OpenSearch | Missing |
 | Flyway / Liquibase | Missing |
 | Docker | Already present |
@@ -223,7 +223,7 @@ Operationally, the project is in a solid “production-minded student project”
 - Recommended timing: Continue now as hardening/documentation work rather than adoption work.
 - Why it fits this project: Student documents are now stored through a MinIO-backed adapter and loaded back through backend-controlled document endpoints ([MinioStudentDocumentStorageAdapter.java](../backend/src/main/java/com/ttcs/backend/adapter/out/persistence/MinioStudentDocumentStorageAdapter.java), [AdminStudentController.java](../backend/src/main/java/com/ttcs/backend/adapter/in/web/AdminStudentController.java)).
 - Expected benefits: Better deployment portability, safer document handling, backend-mediated document review, and a storage foundation for future exports.
-- Risks / drawbacks: The deployment now has two naming groups to keep aligned: raw MinIO service variables (`MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, `MINIO_URL`) and Spring Boot client variables (`APP_STORAGE_MINIO_ENDPOINT`, `APP_STORAGE_MINIO_ACCESS_KEY`, `APP_STORAGE_MINIO_SECRET_KEY`, `APP_STORAGE_MINIO_BUCKET`).
+- Risks / drawbacks: The canonical env file intentionally carries two MinIO naming groups that must stay aligned: raw MinIO service variables (`MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, `MINIO_URL`) and Spring Boot client variables (`APP_STORAGE_MINIO_ENDPOINT`, `APP_STORAGE_MINIO_ACCESS_KEY`, `APP_STORAGE_MINIO_SECRET_KEY`).
 - Integration difficulty: Medium
 - Prerequisites: Correct env mapping in deployment files, bucket naming consistency, and secure document access rules.
 - Concrete use cases in THIS project: Student card/NID uploads, admin document review, future exported Excel/PDF reports.
@@ -238,7 +238,6 @@ Operationally, the project is in a solid “production-minded student project”
   - `APP_STORAGE_MINIO_ENDPOINT`
   - `APP_STORAGE_MINIO_ACCESS_KEY`
   - `APP_STORAGE_MINIO_SECRET_KEY`
-  - `APP_STORAGE_MINIO_BUCKET`
 - Raw service variables commonly used for the MinIO container or Compose:
   - `MINIO_URL`
   - `MINIO_ACCESS_KEY`
