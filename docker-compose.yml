@@ -1,6 +1,8 @@
 services:
   backend:
     image: ghcr.io/phanmanhcuongdev/student-feedback-system/backend:latest
+    env_file:
+      - stack.env
     container_name: backend
     restart: unless-stopped
     ports:
