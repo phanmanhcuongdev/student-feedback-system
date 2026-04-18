@@ -4,8 +4,11 @@ import com.ttcs.backend.application.domain.exception.SurveyNotFoundException;
 import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.domain.model.Survey;
 import com.ttcs.backend.application.domain.model.SurveyRecipient;
+import com.ttcs.backend.application.port.in.GetStudentSurveysQuery;
 import com.ttcs.backend.application.port.in.GetSurveyUseCase;
+import com.ttcs.backend.application.port.in.result.StudentSurveyPageResult;
 import com.ttcs.backend.application.port.in.result.SurveySummaryResult;
+import com.ttcs.backend.application.port.out.LoadStudentSurveysQuery;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.application.port.out.LoadSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.SaveSurveyRecipientPort;
@@ -14,8 +17,6 @@ import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
-
 @RequiredArgsConstructor
 @UseCase
 public class GetSurveyService implements GetSurveyUseCase {
@@ -49,22 +50,32 @@ public class GetSurveyService implements GetSurveyUseCase {
     }
 
     @Override
-    public List<SurveySummaryResult> getAllSurveys(Integer studentUserId) {
+    public StudentSurveyPageResult getAllSurveys(GetStudentSurveysQuery query, Integer studentUserId) {
         Student student = loadStudentByIdPort.loadByUserId(studentUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Student profile not found"));
-        return loadSurveyRecipientPort.loadByStudentId(student.getId()).stream()
-                .map(recipient -> loadSurveyPort.loadById(recipient.getSurveyId()).orElse(null))
-                .filter(survey -> survey != null && survey.isPublished() && !survey.isHidden())
-                .map(survey -> new SurveySummaryResult(
-                    survey.getId(),
-                    survey.getTitle(),
-                    survey.getDescription(),
-                    survey.getStartDate(),
-                    survey.getEndDate(),
-                    survey.getCreatedBy(),
-                    survey.status()
-                ))
-                .toList();
+        var page = loadSurveyPort.loadStudentSurveyPage(new LoadStudentSurveysQuery(
+                student.getId(),
+                query == null ? null : query.status(),
+                query == null ? 0 : query.page(),
+                query == null ? 12 : query.size(),
+                query == null ? "endDate" : query.sortBy(),
+                query == null ? "asc" : query.sortDir()
+        ));
+        return new StudentSurveyPageResult(
+                page.items().stream().map(item -> new SurveySummaryResult(
+                        item.id(),
+                        item.title(),
+                        item.description(),
+                        item.startDate(),
+                        item.endDate(),
+                        item.createdBy(),
+                        item.status()
+                )).toList(),
+                page.page(),
+                page.size(),
+                page.totalElements(),
+                page.totalPages()
+        );
     }
 
     private void markOpenedIfNecessary(SurveyRecipient recipient) {

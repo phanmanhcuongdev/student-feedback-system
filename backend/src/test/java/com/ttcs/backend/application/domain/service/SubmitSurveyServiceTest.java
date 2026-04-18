@@ -18,12 +18,14 @@ import com.ttcs.backend.application.port.in.result.SubmitSurveyResult;
 import com.ttcs.backend.application.port.in.result.SubmitSurveyResultCode;
 import com.ttcs.backend.application.port.out.LoadQuestionPort;
 import com.ttcs.backend.application.port.out.LoadStudentPort;
+import com.ttcs.backend.application.port.out.LoadStudentSurveysQuery;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.application.port.out.LoadSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResponsePort;
 import com.ttcs.backend.application.port.out.SaveResponseDetailPort;
 import com.ttcs.backend.application.port.out.SaveSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.SaveSurveyResponsePort;
+import com.ttcs.backend.application.port.out.StudentSurveySearchPage;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -162,6 +164,11 @@ class SubmitSurveyServiceTest {
             @Override
             public List<Survey> loadAll() {
                 return List.of(survey);
+            }
+
+            @Override
+            public StudentSurveySearchPage loadStudentSurveyPage(LoadStudentSurveysQuery query) {
+                return new StudentSurveySearchPage(List.of(), 0, 0, 0, 0);
             }
         };
     }

@@ -2,10 +2,18 @@ import { type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { getSurveyResults } from "../../../api/surveyResultApi";
-import type { SurveyResultSummary } from "../../../types/surveyResult";
+import type { SurveyResultMetrics, SurveyResultSummary } from "../../../types/surveyResult";
 
 export default function LecturerDashboardPage() {
     const [results, setResults] = useState<SurveyResultSummary[]>([]);
+    const [metrics, setMetrics] = useState<SurveyResultMetrics>({
+        total: 0,
+        open: 0,
+        closed: 0,
+        averageResponseRate: 0,
+        totalSubmitted: 0,
+        totalResponses: 0,
+    });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -14,7 +22,9 @@ export default function LecturerDashboardPage() {
             try {
                 setLoading(true);
                 setError("");
-                setResults(await getSurveyResults());
+                const response = await getSurveyResults({ page: 0, size: 4, sortBy: "responseCount", sortDir: "desc" });
+                setResults(response.items);
+                setMetrics(response.metrics);
             } catch (requestError) {
                 setError(getApiErrorMessage(requestError, "Unable to load dashboard data."));
             } finally {
@@ -25,10 +35,7 @@ export default function LecturerDashboardPage() {
         load();
     }, []);
 
-    const totalResponses = results.reduce((sum, item) => sum + item.responseCount, 0);
-    const openResults = results.filter((item) => item.status === "OPEN");
-    const closedResults = results.filter((item) => item.status === "CLOSED");
-    const topResponseSurveys = results.slice().sort((a, b) => b.responseCount - a.responseCount).slice(0, 4);
+    const topResponseSurveys = results.slice(0, 4);
 
     return (
         <main className="bg-[linear-gradient(180deg,#f5fbff_0%,#eef6fb_45%,#f8fbfd_100%)]">
@@ -58,9 +65,9 @@ export default function LecturerDashboardPage() {
                     ) : (
                         <>
                             <div className="grid gap-5 md:grid-cols-3">
-                                <Metric label="Tracked surveys" value={results.length} tone="sky" />
-                                <Metric label="Total responses" value={totalResponses} tone="emerald" />
-                                <Metric label="Closed surveys" value={closedResults.length} tone="slate" />
+                                <Metric label="Tracked surveys" value={metrics.total} tone="sky" />
+                                <Metric label="Total responses" value={metrics.totalResponses} tone="emerald" />
+                                <Metric label="Closed surveys" value={metrics.closed} tone="slate" />
                             </div>
 
                             <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -113,11 +120,11 @@ export default function LecturerDashboardPage() {
 
                                 <section className="space-y-6">
                                     <Panel title="Open surveys" subtitle="Result entries that are still collecting responses.">
-                                        <StatText value={openResults.length} label="survey runs still open" />
+                                        <StatText value={metrics.open} label="survey runs still open" />
                                     </Panel>
                                     <Panel title="Coverage" subtitle="Average response count across all visible surveys.">
                                         <StatText
-                                            value={results.length === 0 ? 0 : Math.round(totalResponses / results.length)}
+                                            value={metrics.total === 0 ? 0 : Math.round(metrics.totalResponses / metrics.total)}
                                             label="responses per survey"
                                         />
                                     </Panel>

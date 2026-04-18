@@ -7,19 +7,26 @@ import com.ttcs.backend.application.domain.model.Status;
 import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.port.in.admin.ApprovalActionResult;
 import com.ttcs.backend.application.port.in.admin.ApproveStudentUseCase;
+import com.ttcs.backend.application.port.in.admin.GetPendingStudentsQuery;
+import com.ttcs.backend.application.port.in.admin.GetStudentDocumentUseCase;
 import com.ttcs.backend.application.port.in.admin.GetPendingStudentsUseCase;
+import com.ttcs.backend.application.port.in.admin.PendingStudentPageResult;
 import com.ttcs.backend.application.port.in.admin.PendingStudentResult;
 import com.ttcs.backend.application.port.in.admin.RejectStudentUseCase;
+import com.ttcs.backend.application.port.in.admin.StudentDocumentResult;
 import com.ttcs.backend.application.port.out.admin.LoadPendingStudentsPort;
+import com.ttcs.backend.application.port.out.admin.ManagePendingStudentsQuery;
+import com.ttcs.backend.application.port.out.admin.PendingStudentSearchItem;
 import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
 import com.ttcs.backend.application.port.out.auth.SaveStudentPort;
+import com.ttcs.backend.application.port.out.auth.StoreStudentDocumentPort;
+import com.ttcs.backend.application.port.out.auth.StudentDocumentContent;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @UseCase
 @RequiredArgsConstructor
@@ -27,31 +34,35 @@ import java.util.List;
 public class AdminStudentApprovalService implements
         GetPendingStudentsUseCase,
         ApproveStudentUseCase,
-        RejectStudentUseCase {
+        RejectStudentUseCase,
+        GetStudentDocumentUseCase {
 
     private final LoadPendingStudentsPort loadPendingStudentsPort;
     private final LoadStudentByIdPort loadStudentByIdPort;
     private final SaveStudentPort saveStudentPort;
     private final SaveAuditLogPort saveAuditLogPort;
+    private final StoreStudentDocumentPort storeStudentDocumentPort;
 
     @Override
     @Transactional(readOnly = true)
-    public List<PendingStudentResult> getPendingStudents() {
-        return loadPendingStudentsPort.loadPendingStudents().stream()
-                .map(student -> new PendingStudentResult(
-                        student.getId(),
-                        student.getName(),
-                        student.getUser() != null ? student.getUser().getEmail() : null,
-                        student.getStudentCode(),
-                        student.getDepartment() != null ? student.getDepartment().getName() : null,
-                        student.getStatus().name(),
-                        student.getStudentCardImageUrl(),
-                        student.getNationalIdImageUrl(),
-                        student.getReviewReason(),
-                        student.getReviewNotes(),
-                        student.getResubmissionCount()
-                ))
-                .toList();
+    public PendingStudentPageResult getPendingStudents(GetPendingStudentsQuery query) {
+        var page = loadPendingStudentsPort.loadPage(new ManagePendingStudentsQuery(
+                query == null ? null : query.keyword(),
+                query == null ? null : query.departmentId(),
+                query == null ? null : query.submissionType(),
+                query == null ? 0 : query.page(),
+                query == null ? 10 : query.size(),
+                query == null ? "resubmissionCount" : query.sortBy(),
+                query == null ? "desc" : query.sortDir()
+        ));
+
+        return new PendingStudentPageResult(
+                page.items().stream().map(this::toPendingStudentResult).toList(),
+                page.page(),
+                page.size(),
+                page.totalElements(),
+                page.totalPages()
+        );
     }
 
     @Override
@@ -138,6 +149,32 @@ public class AdminStudentApprovalService implements
         return ApprovalActionResult.success(code, message);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public StudentDocumentResult getDocument(Integer studentId, String documentType) {
+        if (studentId == null || isBlank(documentType)) {
+            throw new IllegalArgumentException("INVALID_REQUEST");
+        }
+
+        Student student = loadStudentByIdPort.loadById(studentId).orElse(null);
+        if (student == null) {
+            throw new IllegalArgumentException("STUDENT_NOT_FOUND");
+        }
+
+        String documentPath = switch (documentType.trim().toLowerCase()) {
+            case "student-card" -> student.getStudentCardImageUrl();
+            case "national-id" -> student.getNationalIdImageUrl();
+            default -> throw new IllegalArgumentException("INVALID_DOCUMENT_TYPE");
+        };
+
+        if (isBlank(documentPath)) {
+            throw new IllegalArgumentException("DOCUMENT_NOT_FOUND");
+        }
+
+        StudentDocumentContent content = storeStudentDocumentPort.load(documentPath);
+        return new StudentDocumentResult(content.filename(), content.contentType(), content.content());
+    }
+
     private String buildDecisionDetails(Student student, String reviewReason, String reviewNotes) {
         StringBuilder details = new StringBuilder();
         details.append("studentCode=").append(student.getStudentCode());
@@ -162,5 +199,21 @@ public class AdminStudentApprovalService implements
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private PendingStudentResult toPendingStudentResult(PendingStudentSearchItem item) {
+        return new PendingStudentResult(
+                item.id(),
+                item.name(),
+                item.email(),
+                item.studentCode(),
+                item.departmentName(),
+                item.status(),
+                item.studentCardImageUrl(),
+                item.nationalIdImageUrl(),
+                item.reviewReason(),
+                item.reviewNotes(),
+                item.resubmissionCount()
+        );
     }
 }

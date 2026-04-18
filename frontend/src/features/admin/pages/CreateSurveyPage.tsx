@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
     archiveSurvey,
@@ -129,7 +129,7 @@ export default function CreateSurveyPage() {
         return "Archived surveys remain read-only historical records.";
     }, [isClosed, isDraft, isEditMode, isPublished]);
 
-    async function loadSurveyData() {
+    const loadSurveyData = useCallback(async () => {
         if (!isEditMode || !surveyId) {
             return;
         }
@@ -158,7 +158,7 @@ export default function CreateSurveyPage() {
         } finally {
             setLoadingSurvey(false);
         }
-    }
+    }, [isEditMode, surveyId]);
 
     useEffect(() => {
         const navigationState = location.state as { feedback?: string } | null;
@@ -170,7 +170,7 @@ export default function CreateSurveyPage() {
 
     useEffect(() => {
         void loadSurveyData();
-    }, [isEditMode, surveyId]);
+    }, [loadSurveyData]);
 
     useEffect(() => {
         async function loadDepartments() {

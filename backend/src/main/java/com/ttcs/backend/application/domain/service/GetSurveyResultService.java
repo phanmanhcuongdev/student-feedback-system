@@ -7,9 +7,13 @@ import com.ttcs.backend.application.domain.model.SurveyAssignment;
 import com.ttcs.backend.application.domain.model.Teacher;
 import com.ttcs.backend.application.domain.exception.SurveyNotFoundException;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultDetailUseCase;
+import com.ttcs.backend.application.port.in.resultview.GetSurveyResultsQuery;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultListUseCase;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultDetailResult;
+import com.ttcs.backend.application.port.in.resultview.SurveyResultMetricsResult;
+import com.ttcs.backend.application.port.in.resultview.SurveyResultPageResult;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultSummaryResult;
+import com.ttcs.backend.application.port.out.LoadSurveyResultsQuery;
 import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResultPort;
 import com.ttcs.backend.application.port.out.LoadTeacherByUserIdPort;
@@ -30,20 +34,63 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
     private final LoadTeacherByUserIdPort loadTeacherByUserIdPort;
 
     @Override
-    public List<SurveyResultSummaryResult> getSurveyResults(Integer viewerUserId, Role viewerRole) {
-        if (viewerRole == Role.ADMIN) {
-            return loadSurveyResultPort.loadSurveyResults();
+    public SurveyResultPageResult getSurveyResults(GetSurveyResultsQuery query, Integer viewerUserId, Role viewerRole) {
+        Integer teacherDepartmentId = null;
+        if (viewerRole != Role.ADMIN) {
+            Teacher teacher = requireTeacher(viewerUserId, viewerRole);
+            teacherDepartmentId = teacher.getDepartment() != null ? teacher.getDepartment().getId() : null;
+            if (teacherDepartmentId == null) {
+                throw new ResponseStatusException(FORBIDDEN, "Teacher department scope is unavailable");
+            }
         }
 
-        Teacher teacher = requireTeacher(viewerUserId, viewerRole);
-        Integer teacherDepartmentId = teacher.getDepartment() != null ? teacher.getDepartment().getId() : null;
-        if (teacherDepartmentId == null) {
-            throw new ResponseStatusException(FORBIDDEN, "Teacher department scope is unavailable");
-        }
+        var page = loadSurveyResultPort.loadPage(new LoadSurveyResultsQuery(
+                query == null ? null : query.keyword(),
+                query == null ? null : query.lifecycleState(),
+                query == null ? null : query.runtimeStatus(),
+                query == null ? null : query.recipientScope(),
+                query == null ? null : query.startDateFrom(),
+                query == null ? null : query.endDateTo(),
+                teacherDepartmentId,
+                query == null ? 0 : query.page(),
+                query == null ? 12 : query.size(),
+                query == null ? "responseRate" : query.sortBy(),
+                query == null ? "desc" : query.sortDir()
+        ));
 
-        return loadSurveyResultPort.loadSurveyResults().stream()
-                .filter(result -> isTeacherInScope(result.id(), teacherDepartmentId))
-                .toList();
+        return new SurveyResultPageResult(
+                page.items().stream()
+                        .map(item -> new SurveyResultSummaryResult(
+                                item.id(),
+                                item.title(),
+                                item.description(),
+                                item.startDate(),
+                                item.endDate(),
+                                item.status(),
+                                item.lifecycleState(),
+                                item.runtimeStatus(),
+                                item.recipientScope(),
+                                item.recipientDepartmentName(),
+                                item.responseCount(),
+                                item.targetedCount(),
+                                item.openedCount(),
+                                item.submittedCount(),
+                                item.responseRate()
+                        ))
+                        .toList(),
+                page.page(),
+                page.size(),
+                page.totalElements(),
+                page.totalPages(),
+                new SurveyResultMetricsResult(
+                        page.metrics().total(),
+                        page.metrics().open(),
+                        page.metrics().closed(),
+                        page.metrics().averageResponseRate(),
+                        page.metrics().totalSubmitted(),
+                        page.metrics().totalResponses()
+                )
+        );
     }
 
     @Override

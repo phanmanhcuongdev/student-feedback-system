@@ -13,7 +13,8 @@ export function useSurveyList() {
             try {
                 setLoading(true);
                 setError("");
-                setSurveys(await getAllSurveys());
+                const response = await getAllSurveys({ page: 0, size: 12, sortBy: "endDate", sortDir: "asc" });
+                setSurveys(response.items);
             } catch (error) {
                 setError(getApiErrorMessage(error, "Khong the tai danh sach khao sat."));
             } finally {
@@ -21,7 +22,7 @@ export function useSurveyList() {
             }
         }
 
-        fetchSurveys();
+        void fetchSurveys();
     }, []);
 
     return {

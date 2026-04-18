@@ -1,9 +1,15 @@
 import axiosInstance from "./axios";
-import type { Survey } from "../types/survey";
+import type { StudentSurveyPage, Survey } from "../types/survey";
 import type { SurveyDetail, SubmitSurveyRequest, SubmitSurveyResponse } from "../types/surveyDetail";
 
-export const getAllSurveys = async (): Promise<Survey[]> => {
-    const response = await axiosInstance.get<Survey[]>("/v1/surveys");
+export const getAllSurveys = async (params: {
+    status?: string;
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+}): Promise<StudentSurveyPage> => {
+    const response = await axiosInstance.get<StudentSurveyPage>("/v1/surveys", { params });
     return response.data;
 };
 

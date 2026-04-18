@@ -43,7 +43,7 @@ Notes:
 ## Run Locally
 
 ```powershell
-cd E:\Lap\TTCS\student-feedback-system\frontend
+cd frontend
 npm ci
 npm run dev
 ```

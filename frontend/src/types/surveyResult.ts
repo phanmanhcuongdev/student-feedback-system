@@ -31,6 +31,24 @@ export type SurveyResultSummary = {
     responseRate: number;
 };
 
+export type SurveyResultMetrics = {
+    total: number;
+    open: number;
+    closed: number;
+    averageResponseRate: number;
+    totalSubmitted: number;
+    totalResponses: number;
+};
+
+export type SurveyResultPage = {
+    items: SurveyResultSummary[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    metrics: SurveyResultMetrics;
+};
+
 export type SurveyResultDetail = SurveyResultSummary & {
     questions: QuestionStatistics[];
 };

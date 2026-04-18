@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import DataTable, { type DataTableColumn } from "../../../components/data-view/DataTable";
 import DataToolbar from "../../../components/data-view/DataToolbar";
 import PaginationControls from "../../../components/data-view/PaginationControls";
@@ -33,36 +33,69 @@ function getFeedbackStatus(item: StaffFeedback) {
 
 export default function ManageFeedbackPage() {
     const [items, setItems] = useState<StaffFeedback[]>([]);
+    const [totalElements, setTotalElements] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [query, setQuery] = useState("");
+    const [debouncedQuery, setDebouncedQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [dateFilter, setDateFilter] = useState("");
-    const [sortOrder, setSortOrder] = useState("newest");
-    const [page, setPage] = useState(1);
+    const [sortBy, setSortBy] = useState("createdAt");
+    const [sortDir, setSortDir] = useState("desc");
+    const [page, setPage] = useState(0);
     const [activeFeedbackId, setActiveFeedbackId] = useState<number | null>(null);
     const [drafts, setDrafts] = useState<Record<number, string>>({});
     const [submittingId, setSubmittingId] = useState<number | null>(null);
 
     const pageSize = 10;
 
-    async function loadFeedback() {
+    const loadFeedback = useCallback(async () => {
         try {
             setLoading(true);
             setError("");
-            const feedback = await getAllFeedback();
-            setItems(feedback);
-            setActiveFeedbackId((current) => current ?? feedback[0]?.id ?? null);
+            const response = await getAllFeedback({
+                keyword: debouncedQuery || undefined,
+                status: statusFilter === "ALL" ? undefined : statusFilter,
+                createdDate: dateFilter || undefined,
+                page,
+                size: pageSize,
+                sortBy,
+                sortDir,
+            });
+
+            if (response.items.length === 0 && response.totalPages > 0 && page >= response.totalPages) {
+                setPage(response.totalPages - 1);
+                return;
+            }
+
+            setItems(response.items);
+            setTotalElements(response.totalElements);
+            setTotalPages(response.totalPages);
+            setActiveFeedbackId((current) => {
+                if (current != null && response.items.some((item) => item.id === current)) {
+                    return current;
+                }
+                return response.items[0]?.id ?? null;
+            });
         } catch (requestError) {
             setError(getApiErrorMessage(requestError, "Unable to load feedback."));
         } finally {
             setLoading(false);
         }
-    }
+    }, [dateFilter, debouncedQuery, page, sortBy, sortDir, statusFilter]);
+
+    useEffect(() => {
+        const timeout = window.setTimeout(() => {
+            setDebouncedQuery(query.trim());
+        }, 300);
+
+        return () => window.clearTimeout(timeout);
+    }, [query]);
 
     useEffect(() => {
         void loadFeedback();
-    }, []);
+    }, [loadFeedback]);
 
     async function handleRespond(feedbackId: number) {
         const content = drafts[feedbackId]?.trim() ?? "";
@@ -91,52 +124,17 @@ export default function ManageFeedbackPage() {
         }
     }
 
-    const filteredItems = useMemo(() => {
-        const normalizedQuery = query.trim().toLowerCase();
-        const result = items.filter((item) => {
-            if (normalizedQuery) {
-                const haystack = [item.studentName, item.studentEmail || "", item.title, item.content].join(" ").toLowerCase();
-                if (!haystack.includes(normalizedQuery)) {
-                    return false;
-                }
-            }
-            if (statusFilter !== "ALL" && getFeedbackStatus(item) !== statusFilter) {
-                return false;
-            }
-            if (dateFilter) {
-                const createdDate = new Date(item.createdAt);
-                const filterDate = new Date(`${dateFilter}T00:00:00`);
-                if (
-                    createdDate.getFullYear() !== filterDate.getFullYear()
-                    || createdDate.getMonth() !== filterDate.getMonth()
-                    || createdDate.getDate() !== filterDate.getDate()
-                ) {
-                    return false;
-                }
-            }
-            return true;
-        });
+    useEffect(() => {
+        setPage(0);
+    }, [debouncedQuery, statusFilter, dateFilter, sortBy, sortDir]);
 
-        result.sort((left, right) => sortOrder === "oldest"
-            ? new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
-            : new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
-
-        return result;
-    }, [dateFilter, items, query, sortOrder, statusFilter]);
+    const activeItem = items.find((item) => item.id === activeFeedbackId) ?? items[0] ?? null;
 
     useEffect(() => {
-        setPage(1);
-    }, [query, statusFilter, dateFilter, sortOrder]);
-
-    const pageCount = Math.max(1, Math.ceil(filteredItems.length / pageSize));
-    const pagedItems = filteredItems.slice((page - 1) * pageSize, page * pageSize);
-    const activeItem = filteredItems.find((item) => item.id === activeFeedbackId) ?? pagedItems[0] ?? null;
-
-    useEffect(() => {
-        if (!activeItem && pagedItems[0]) {
-            setActiveFeedbackId(pagedItems[0].id);
+        if (!activeItem && items[0]) {
+            setActiveFeedbackId(items[0].id);
         }
-    }, [activeItem, pagedItems]);
+    }, [activeItem, items]);
 
     const columns: DataTableColumn<StaffFeedback>[] = [
         {
@@ -190,7 +188,7 @@ export default function ManageFeedbackPage() {
                     eyebrow="Staff Feedback"
                     title="Review student feedback"
                     description="Work feedback as a queue with clear response status, searchable student context, and an in-place reply panel."
-                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{filteredItems.length} queue item{filteredItems.length === 1 ? "" : "s"}</div>}
+                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{totalElements} queue item{totalElements === 1 ? "" : "s"}</div>}
                 />
 
                 <div className="mt-6 space-y-6">
@@ -203,7 +201,19 @@ export default function ManageFeedbackPage() {
                                     <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Date</span>
                                     <input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none" />
                                 </label>
-                                <SelectFilter label="Sort" value={sortOrder} onChange={setSortOrder} options={[{ label: "Newest first", value: "newest" }, { label: "Oldest first", value: "oldest" }]} />
+                                <SelectFilter
+                                    label="Sort"
+                                    value={`${sortBy}:${sortDir}`}
+                                    onChange={(value) => {
+                                        const [nextSortBy, nextSortDir] = value.split(":");
+                                        setSortBy(nextSortBy);
+                                        setSortDir(nextSortDir);
+                                    }}
+                                    options={[
+                                        { label: "Newest first", value: "createdAt:desc" },
+                                        { label: "Oldest first", value: "createdAt:asc" },
+                                    ]}
+                                />
                             </>
                         )}
                     />
@@ -212,16 +222,16 @@ export default function ManageFeedbackPage() {
                         <ErrorState description={error} onRetry={() => void loadFeedback()} />
                     ) : loading ? (
                         <LoadingState label="Loading feedback..." />
-                    ) : filteredItems.length === 0 ? (
+                    ) : items.length === 0 ? (
                         <EmptyState title="No feedback in this queue view" description="Adjust the filters or search terms to find the student feedback item you need." icon="forum" />
                     ) : (
                         <>
                             <div className="hidden lg:block">
-                                <DataTable columns={columns} items={pagedItems} getRowKey={(item) => item.id} />
+                                <DataTable columns={columns} items={items} getRowKey={(item) => item.id} />
                             </div>
 
                             <ResponsiveDataList
-                                items={pagedItems}
+                                items={items}
                                 getKey={(item) => item.id}
                                 renderItem={(item) => (
                                     <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
@@ -241,7 +251,7 @@ export default function ManageFeedbackPage() {
                                 )}
                             />
 
-                            <PaginationControls page={page} pageCount={pageCount} onPageChange={setPage} />
+                            <PaginationControls page={page + 1} pageCount={Math.max(totalPages, 1)} onPageChange={(nextPage) => setPage(nextPage - 1)} />
 
                             {activeItem ? (
                                 <SectionCard title="Feedback detail" description="Respond in the same queue context without losing the list position.">

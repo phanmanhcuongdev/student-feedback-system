@@ -25,6 +25,7 @@ import com.ttcs.backend.application.port.out.LoadSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResponsePort;
+import com.ttcs.backend.application.port.out.LoadStudentSurveysQuery;
 import com.ttcs.backend.application.port.out.LoadStudentPort;
 import com.ttcs.backend.application.port.out.SaveQuestionPort;
 import com.ttcs.backend.application.port.out.SaveAuditLogPort;
@@ -36,6 +37,8 @@ import com.ttcs.backend.application.port.out.admin.ManagedSurveyMetrics;
 import com.ttcs.backend.application.port.out.admin.ManagedSurveySearchItem;
 import com.ttcs.backend.application.port.out.admin.ManagedSurveySearchPage;
 import com.ttcs.backend.application.port.out.admin.ManageSurveysQuery;
+import com.ttcs.backend.application.port.out.StudentSurveySearchItem;
+import com.ttcs.backend.application.port.out.StudentSurveySearchPage;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -383,6 +386,25 @@ class AdminSurveyManagementServiceTest {
         @Override
         public List<Survey> loadAll() {
             return List.of(state.survey);
+        }
+
+        @Override
+        public StudentSurveySearchPage loadStudentSurveyPage(LoadStudentSurveysQuery query) {
+            return new StudentSurveySearchPage(
+                    List.of(new StudentSurveySearchItem(
+                            state.survey.getId(),
+                            state.survey.getTitle(),
+                            state.survey.getDescription(),
+                            state.survey.getStartDate(),
+                            state.survey.getEndDate(),
+                            state.survey.getCreatedBy(),
+                            state.survey.status()
+                    )),
+                    0,
+                    1,
+                    1,
+                    1
+            );
         }
 
         @Override

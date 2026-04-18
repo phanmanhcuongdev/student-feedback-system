@@ -103,10 +103,19 @@ Identity ownership:
 
 Returns a list of survey summaries.
 
+Supports query parameters:
+
+- `status`
+- `page`
+- `size`
+- `sortBy`
+- `sortDir`
+
 Rules:
 
 - Only surveys with an existing recipient row for the current active student are returned
 - `DRAFT`, hidden, and archived surveys do not appear
+- Response is a paged envelope with `items`, `page`, `size`, `totalElements`, and `totalPages`
 
 ### `GET /api/v1/surveys/{surveyId}`
 
@@ -164,6 +173,60 @@ Business response codes currently used by the frontend:
 - `INVALID_INPUT`
 - `SURVEY_NOT_FOUND`
 - `STUDENT_NOT_FOUND`
+
+## Feedback
+
+### `GET /api/v1/feedback`
+
+Returns student-scoped feedback history for the authenticated active student.
+
+Supports query parameters:
+
+- `page`
+- `size`
+- `sortBy`
+- `sortDir`
+
+Rules:
+
+- Results are scoped to the current student server-side
+- Response is a paged envelope with `items`, `page`, `size`, `totalElements`, and `totalPages`
+
+### `GET /api/v1/feedback/staff`
+
+Returns the staff feedback queue for admin and teacher review flows.
+
+Supports query parameters:
+
+- `keyword`
+- `status`
+- `createdDate`
+- `page`
+- `size`
+- `sortBy`
+- `sortDir`
+
+Rules:
+
+- `status` currently supports `UNRESOLVED` and `RESPONDED`
+- `createdDate` is an exact day filter
+- Response is a paged envelope with `items`, `page`, `size`, `totalElements`, and `totalPages`
+
+## Notifications
+
+### `GET /api/v1/notifications`
+
+Returns student notifications for the authenticated active student.
+
+Supports query parameters:
+
+- `page`
+- `size`
+
+Rules:
+
+- Notifications remain computed on read in this phase
+- Response is a paged envelope with `items`, `page`, `size`, `totalElements`, and `totalPages`
 
 ## Admin Survey Management
 
@@ -332,9 +395,21 @@ Detail payloads also include:
 
 Returns pending student onboarding records for admin review.
 
-Current frontend note:
+Supports query parameters:
 
-- queue search, filter, sort, and pagination are currently frontend-side over this payload
+- `keyword`
+- `departmentId`
+- `submissionType`
+- `page`
+- `size`
+- `sortBy`
+- `sortDir`
+
+Rules:
+
+- Response is a paged envelope with `items`, `page`, `size`, `totalElements`, and `totalPages`
+- `submissionType` currently supports `RESUBMITTED` and `FIRST_SUBMISSION`
+- queue search, filter, sort, and pagination are backend-driven in the current implementation
 
 ### `POST /api/admin/students/{studentId}/approve`
 
@@ -377,6 +452,19 @@ Rules:
 
 Returns survey result summaries for admin and teacher roles.
 
+Supports query parameters:
+
+- `keyword`
+- `lifecycleState`
+- `runtimeStatus`
+- `recipientScope`
+- `startDateFrom`
+- `endDateTo`
+- `page`
+- `size`
+- `sortBy`
+- `sortDir`
+
 Authorization semantics in this phase:
 
 - `ADMIN` can view all survey results
@@ -395,6 +483,11 @@ Summary rows now include denominator-based participation metrics:
 - `openedCount`
 - `submittedCount`
 - `responseRate`
+
+Response shape:
+
+- paged envelope with `items`, `page`, `size`, `totalElements`, `totalPages`
+- `metrics` summary including `total`, `open`, `closed`, `averageResponseRate`, `totalSubmitted`, and `totalResponses`
 
 ### `GET /api/v1/survey-results/{surveyId}`
 
