@@ -1,8 +1,19 @@
 import axios from "./axios";
-import type { SurveyResultDetail, SurveyResultSummary } from "../types/surveyResult";
+import type { SurveyResultDetail, SurveyResultPage } from "../types/surveyResult";
 
-export async function getSurveyResults(): Promise<SurveyResultSummary[]> {
-    const response = await axios.get<SurveyResultSummary[]>("/v1/survey-results");
+export async function getSurveyResults(params?: {
+    keyword?: string;
+    lifecycleState?: string;
+    runtimeStatus?: string;
+    recipientScope?: string;
+    startDateFrom?: string;
+    endDateTo?: string;
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+}): Promise<SurveyResultPage> {
+    const response = await axios.get<SurveyResultPage>("/v1/survey-results", { params });
     return response.data;
 }
 

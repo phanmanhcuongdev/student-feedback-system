@@ -5,12 +5,18 @@ import com.ttcs.backend.adapter.in.web.dto.CreateFeedbackResponse;
 import com.ttcs.backend.adapter.in.web.dto.FeedbackResponseView;
 import com.ttcs.backend.adapter.in.web.dto.RespondToFeedbackRequest;
 import com.ttcs.backend.adapter.in.web.dto.RespondToFeedbackResponse;
+import com.ttcs.backend.adapter.in.web.dto.StaffFeedbackPageResponse;
 import com.ttcs.backend.adapter.in.web.dto.StaffFeedbackResponse;
+import com.ttcs.backend.adapter.in.web.dto.StudentFeedbackPageResponse;
 import com.ttcs.backend.adapter.in.web.dto.StudentFeedbackResponse;
 import com.ttcs.backend.application.port.in.feedback.CreateFeedbackUseCase;
+import com.ttcs.backend.application.port.in.feedback.GetAllFeedbackQuery;
 import com.ttcs.backend.application.port.in.feedback.GetAllFeedbackUseCase;
+import com.ttcs.backend.application.port.in.feedback.GetStudentFeedbackQuery;
 import com.ttcs.backend.application.port.in.feedback.GetStudentFeedbackUseCase;
 import com.ttcs.backend.application.port.in.feedback.RespondToFeedbackUseCase;
+import com.ttcs.backend.application.port.in.feedback.StaffFeedbackPageResult;
+import com.ttcs.backend.application.port.in.feedback.StudentFeedbackPageResult;
 import com.ttcs.backend.application.port.in.feedback.command.CreateFeedbackCommand;
 import com.ttcs.backend.application.port.in.feedback.command.RespondToFeedbackCommand;
 import com.ttcs.backend.application.port.in.feedback.result.CreateFeedbackResult;
@@ -27,7 +33,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @WebAdapter
@@ -42,21 +50,53 @@ public class FeedbackController {
     private final CurrentStudentProvider currentStudentProvider;
 
     @GetMapping
-    public ResponseEntity<List<StudentFeedbackResponse>> getFeedback() {
+    public ResponseEntity<StudentFeedbackPageResponse> getFeedback(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) {
         currentStudentProvider.ensureActiveStudentAccount();
         Integer studentId = currentStudentProvider.currentStudentId();
-        List<StudentFeedbackResponse> body = getStudentFeedbackUseCase.getStudentFeedback(studentId).stream()
-                .map(this::toResponse)
-                .toList();
-        return ResponseEntity.ok(body);
+        StudentFeedbackPageResult result = getStudentFeedbackUseCase.getStudentFeedback(
+                new GetStudentFeedbackQuery(page, size, sortBy, sortDir),
+                studentId
+        );
+        return ResponseEntity.ok(new StudentFeedbackPageResponse(
+                result.items().stream().map(this::toResponse).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        ));
     }
 
     @GetMapping("/staff")
-    public ResponseEntity<List<StaffFeedbackResponse>> getAllFeedback() {
-        List<StaffFeedbackResponse> body = getAllFeedbackUseCase.getAllFeedback().stream()
-                .map(this::toStaffResponse)
-                .toList();
-        return ResponseEntity.ok(body);
+    public ResponseEntity<StaffFeedbackPageResponse> getAllFeedback(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) LocalDate createdDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) {
+        StaffFeedbackPageResult result = getAllFeedbackUseCase.getAllFeedback(new GetAllFeedbackQuery(
+                keyword,
+                status,
+                createdDate,
+                page,
+                size,
+                sortBy,
+                sortDir
+        ));
+        return ResponseEntity.ok(new StaffFeedbackPageResponse(
+                result.items().stream().map(this::toStaffResponse).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        ));
     }
 
     @PostMapping

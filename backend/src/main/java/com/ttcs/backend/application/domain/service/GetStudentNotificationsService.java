@@ -3,7 +3,9 @@ package com.ttcs.backend.application.domain.service;
 import com.ttcs.backend.application.domain.model.Survey;
 import com.ttcs.backend.application.domain.model.SurveyRecipient;
 import com.ttcs.backend.application.domain.model.SurveyStatus;
+import com.ttcs.backend.application.port.in.resultview.GetStudentNotificationsQuery;
 import com.ttcs.backend.application.port.in.resultview.GetStudentNotificationsUseCase;
+import com.ttcs.backend.application.port.in.resultview.StudentNotificationPageResult;
 import com.ttcs.backend.application.port.in.resultview.StudentNotificationResult;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.application.port.out.LoadSurveyRecipientPort;
@@ -29,7 +31,7 @@ public class GetStudentNotificationsService implements GetStudentNotificationsUs
     private final LoadSurveyRecipientPort loadSurveyRecipientPort;
 
     @Override
-    public List<StudentNotificationResult> getNotifications(Integer studentId) {
+    public StudentNotificationPageResult getNotifications(GetStudentNotificationsQuery query, Integer studentId) {
         LocalDateTime now = LocalDateTime.now();
         List<StudentNotificationResult> notifications = new ArrayList<>();
 
@@ -41,9 +43,23 @@ public class GetStudentNotificationsService implements GetStudentNotificationsUs
             notifications.addAll(toNotifications(survey, recipient, now));
         }
 
-        return notifications.stream()
+        List<StudentNotificationResult> sorted = notifications.stream()
                 .sorted(Comparator.comparing(StudentNotificationResult::eventAt).reversed())
                 .toList();
+        int page = Math.max(query == null ? 0 : query.page(), 0);
+        int size = Math.min(Math.max(query == null ? 6 : query.size(), 1), 100);
+        long totalElements = sorted.size();
+        int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
+        int fromIndex = Math.min(page * size, sorted.size());
+        int toIndex = Math.min(fromIndex + size, sorted.size());
+
+        return new StudentNotificationPageResult(
+                sorted.subList(fromIndex, toIndex),
+                page,
+                size,
+                totalElements,
+                totalPages
+        );
     }
 
     private List<StudentNotificationResult> toNotifications(Survey survey, SurveyRecipient recipient, LocalDateTime now) {

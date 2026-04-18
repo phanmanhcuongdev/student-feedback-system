@@ -12,6 +12,14 @@ export type PendingStudent = {
     resubmissionCount: number;
 };
 
+export type PendingStudentPage = {
+    items: PendingStudent[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+};
+
 export type ManagedUserSummary = {
     id: number;
     email: string;

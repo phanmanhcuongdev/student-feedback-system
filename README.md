@@ -327,8 +327,8 @@ Compatibility note:
 - Current account overview uses the authenticated session data already available to the frontend. It does not fabricate unsupported profile fields from a separate profile API.
 - User management search, filter, pagination, and sort are backend-backed.
 - Survey management search, filter, pagination, and sort are backend-backed.
-- Survey results now expose richer metadata such as lifecycle, runtime status, and audience scope.
-- Feedback management and pending-student queues still use frontend-side filtering and pagination in the current implementation.
+- Pending-student review, staff feedback review, student surveys, student feedback history, notifications, and survey results now use backend-backed pagination.
+- Survey results also use backend-backed filtering, sorting, and metrics while exposing lifecycle, runtime status, and audience scope.
 - Seed accounts in `database/seed_data.sql` are BCrypt-compatible and can be used directly after import:
   - `admin@university.edu` / `admin123`
   - `teacher@university.edu` / `teacher123`

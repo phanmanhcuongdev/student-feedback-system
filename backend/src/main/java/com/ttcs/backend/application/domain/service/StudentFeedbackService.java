@@ -7,8 +7,12 @@ import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.domain.model.User;
 import com.ttcs.backend.application.port.in.feedback.GetAllFeedbackUseCase;
 import com.ttcs.backend.application.port.in.feedback.CreateFeedbackUseCase;
+import com.ttcs.backend.application.port.in.feedback.GetAllFeedbackQuery;
+import com.ttcs.backend.application.port.in.feedback.GetStudentFeedbackQuery;
 import com.ttcs.backend.application.port.in.feedback.GetStudentFeedbackUseCase;
 import com.ttcs.backend.application.port.in.feedback.RespondToFeedbackUseCase;
+import com.ttcs.backend.application.port.in.feedback.StaffFeedbackPageResult;
+import com.ttcs.backend.application.port.in.feedback.StudentFeedbackPageResult;
 import com.ttcs.backend.application.port.in.feedback.command.CreateFeedbackCommand;
 import com.ttcs.backend.application.port.in.feedback.command.RespondToFeedbackCommand;
 import com.ttcs.backend.application.port.in.feedback.result.CreateFeedbackResult;
@@ -17,8 +21,12 @@ import com.ttcs.backend.application.port.in.feedback.result.RespondToFeedbackRes
 import com.ttcs.backend.application.port.in.feedback.result.StaffFeedbackResult;
 import com.ttcs.backend.application.port.in.feedback.result.StudentFeedbackResult;
 import com.ttcs.backend.application.port.out.LoadFeedbackPort;
+import com.ttcs.backend.application.port.out.LoadFeedbackQuery;
 import com.ttcs.backend.application.port.out.LoadFeedbackResponsePort;
+import com.ttcs.backend.application.port.out.LoadStudentFeedbackQuery;
 import com.ttcs.backend.application.port.out.LoadStudentPort;
+import com.ttcs.backend.application.port.out.StaffFeedbackSearchItem;
+import com.ttcs.backend.application.port.out.StudentFeedbackSearchItem;
 import com.ttcs.backend.application.port.out.SaveFeedbackPort;
 import com.ttcs.backend.application.port.out.SaveFeedbackResponsePort;
 import com.ttcs.backend.application.port.out.auth.LoadUserByIdPort;
@@ -27,10 +35,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @UseCase
@@ -76,40 +82,69 @@ public class StudentFeedbackService implements
 
     @Override
     @Transactional(readOnly = true)
-    public List<StudentFeedbackResult> getStudentFeedback(Integer studentId) {
-        List<Feedback> feedback = loadFeedbackPort.loadByStudentId(studentId);
-        Map<Integer, List<FeedbackResponseResult>> responsesByFeedbackId = mapResponses(feedback);
+    public StudentFeedbackPageResult getStudentFeedback(GetStudentFeedbackQuery query, Integer studentId) {
+        var page = loadFeedbackPort.loadStudentPage(new LoadStudentFeedbackQuery(
+                studentId,
+                query == null ? 0 : query.page(),
+                query == null ? 5 : query.size(),
+                query == null ? "createdAt" : query.sortBy(),
+                query == null ? "desc" : query.sortDir()
+        ));
+        Map<Integer, List<FeedbackResponseResult>> responsesByFeedbackId = mapResponsesByFeedbackIds(
+                page.items().stream().map(StudentFeedbackSearchItem::id).toList()
+        );
 
-        return feedback.stream()
-                .map(item -> new StudentFeedbackResult(
-                        item.getId(),
-                        item.getTitle(),
-                        item.getContent(),
-                        item.getCreatedAt(),
-                        responsesByFeedbackId.getOrDefault(item.getId(), List.of())
-                ))
-                .toList();
+        return new StudentFeedbackPageResult(
+                page.items().stream()
+                        .map(item -> new StudentFeedbackResult(
+                                item.id(),
+                                item.title(),
+                                item.content(),
+                                item.createdAt(),
+                                responsesByFeedbackId.getOrDefault(item.id(), List.of())
+                        ))
+                        .toList(),
+                page.page(),
+                page.size(),
+                page.totalElements(),
+                page.totalPages()
+        );
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<StaffFeedbackResult> getAllFeedback() {
-        List<Feedback> feedback = loadFeedbackPort.loadAll();
-        Map<Integer, List<FeedbackResponseResult>> responsesByFeedbackId = mapResponses(feedback);
+    public StaffFeedbackPageResult getAllFeedback(GetAllFeedbackQuery query) {
+        var page = loadFeedbackPort.loadPage(new LoadFeedbackQuery(
+                query == null ? null : query.keyword(),
+                query == null ? null : query.status(),
+                query == null ? null : query.createdDate(),
+                query == null ? 0 : query.page(),
+                query == null ? 10 : query.size(),
+                query == null ? "createdAt" : query.sortBy(),
+                query == null ? "desc" : query.sortDir()
+        ));
+        Map<Integer, List<FeedbackResponseResult>> responsesByFeedbackId = mapResponsesByFeedbackIds(
+                page.items().stream().map(StaffFeedbackSearchItem::id).toList()
+        );
 
-        return feedback.stream()
-                .sorted(Comparator.comparing(Feedback::getCreatedAt).reversed())
-                .map(item -> new StaffFeedbackResult(
-                        item.getId(),
-                        item.getStudent().getId(),
-                        item.getStudent().getName(),
-                        item.getStudent().getUser() != null ? item.getStudent().getUser().getEmail() : null,
-                        item.getTitle(),
-                        item.getContent(),
-                        item.getCreatedAt(),
-                        responsesByFeedbackId.getOrDefault(item.getId(), List.of())
-                ))
-                .toList();
+        return new StaffFeedbackPageResult(
+                page.items().stream()
+                        .map(item -> new StaffFeedbackResult(
+                                item.id(),
+                                item.studentId(),
+                                item.studentName(),
+                                item.studentEmail(),
+                                item.title(),
+                                item.content(),
+                                item.createdAt(),
+                                responsesByFeedbackId.getOrDefault(item.id(), List.of())
+                        ))
+                        .toList(),
+                page.page(),
+                page.size(),
+                page.totalElements(),
+                page.totalPages()
+        );
     }
 
     @Override
@@ -150,12 +185,10 @@ public class StudentFeedbackService implements
         return value == null || value.trim().isEmpty();
     }
 
-    private Map<Integer, List<FeedbackResponseResult>> mapResponses(List<Feedback> feedback) {
-        if (feedback.isEmpty()) {
+    private Map<Integer, List<FeedbackResponseResult>> mapResponsesByFeedbackIds(List<Integer> ids) {
+        if (ids.isEmpty()) {
             return Map.of();
         }
-
-        List<Integer> ids = feedback.stream().map(Feedback::getId).toList();
         return loadFeedbackResponsePort.loadByFeedbackIds(ids).stream()
                 .map(this::toResponseResult)
                 .collect(Collectors.groupingBy(FeedbackResponseResult::feedbackId));

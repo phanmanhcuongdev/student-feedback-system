@@ -7,12 +7,16 @@ import com.ttcs.backend.application.domain.model.Status;
 import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.port.in.admin.ApprovalActionResult;
 import com.ttcs.backend.application.port.in.admin.ApproveStudentUseCase;
+import com.ttcs.backend.application.port.in.admin.GetPendingStudentsQuery;
 import com.ttcs.backend.application.port.in.admin.GetStudentDocumentUseCase;
 import com.ttcs.backend.application.port.in.admin.GetPendingStudentsUseCase;
+import com.ttcs.backend.application.port.in.admin.PendingStudentPageResult;
 import com.ttcs.backend.application.port.in.admin.PendingStudentResult;
 import com.ttcs.backend.application.port.in.admin.RejectStudentUseCase;
 import com.ttcs.backend.application.port.in.admin.StudentDocumentResult;
 import com.ttcs.backend.application.port.out.admin.LoadPendingStudentsPort;
+import com.ttcs.backend.application.port.out.admin.ManagePendingStudentsQuery;
+import com.ttcs.backend.application.port.out.admin.PendingStudentSearchItem;
 import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
 import com.ttcs.backend.application.port.out.auth.SaveStudentPort;
@@ -23,7 +27,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @UseCase
 @RequiredArgsConstructor
@@ -42,22 +45,24 @@ public class AdminStudentApprovalService implements
 
     @Override
     @Transactional(readOnly = true)
-    public List<PendingStudentResult> getPendingStudents() {
-        return loadPendingStudentsPort.loadPendingStudents().stream()
-                .map(student -> new PendingStudentResult(
-                        student.getId(),
-                        student.getName(),
-                        student.getUser() != null ? student.getUser().getEmail() : null,
-                        student.getStudentCode(),
-                        student.getDepartment() != null ? student.getDepartment().getName() : null,
-                        student.getStatus().name(),
-                        student.getStudentCardImageUrl(),
-                        student.getNationalIdImageUrl(),
-                        student.getReviewReason(),
-                        student.getReviewNotes(),
-                        student.getResubmissionCount()
-                ))
-                .toList();
+    public PendingStudentPageResult getPendingStudents(GetPendingStudentsQuery query) {
+        var page = loadPendingStudentsPort.loadPage(new ManagePendingStudentsQuery(
+                query == null ? null : query.keyword(),
+                query == null ? null : query.departmentId(),
+                query == null ? null : query.submissionType(),
+                query == null ? 0 : query.page(),
+                query == null ? 10 : query.size(),
+                query == null ? "resubmissionCount" : query.sortBy(),
+                query == null ? "desc" : query.sortDir()
+        ));
+
+        return new PendingStudentPageResult(
+                page.items().stream().map(this::toPendingStudentResult).toList(),
+                page.page(),
+                page.size(),
+                page.totalElements(),
+                page.totalPages()
+        );
     }
 
     @Override
@@ -194,5 +199,21 @@ public class AdminStudentApprovalService implements
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private PendingStudentResult toPendingStudentResult(PendingStudentSearchItem item) {
+        return new PendingStudentResult(
+                item.id(),
+                item.name(),
+                item.email(),
+                item.studentCode(),
+                item.departmentName(),
+                item.status(),
+                item.studentCardImageUrl(),
+                item.nationalIdImageUrl(),
+                item.reviewReason(),
+                item.reviewNotes(),
+                item.resubmissionCount()
+        );
     }
 }

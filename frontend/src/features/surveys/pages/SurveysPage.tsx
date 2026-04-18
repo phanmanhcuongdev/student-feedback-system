@@ -1,20 +1,54 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { getAllSurveys } from "../../../api/surveyApi";
+import { getApiErrorMessage } from "../../../api/apiError";
+import PaginationControls from "../../../components/data-view/PaginationControls";
 import ErrorState from "../../../components/ui/ErrorState";
 import SurveyCardSkeleton from "../components/SurveyCardSkeleton";
 import SurveyEmptyState from "../components/SurveyEmptyState";
 import SurveyFilterTabs, { type SurveyFilter } from "../components/SurveyFilterTabs";
 import SurveyGrid from "../components/SurveyGrid";
 import SurveyHero from "../components/SurveyHero";
-import { useSurveyList } from "../hooks/useSurveyList";
+import type { Survey } from "../../../types/survey";
 
 export default function SurveysPage() {
     const [filter, setFilter] = useState<SurveyFilter>("ALL");
-    const { surveys, loading, error } = useSurveyList();
+    const [surveys, setSurveys] = useState<Survey[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
 
-    const filteredSurveys = useMemo(() => {
-        if (filter === "ALL") return surveys;
-        return surveys.filter((survey) => survey.status === filter);
-    }, [surveys, filter]);
+    useEffect(() => {
+        async function loadSurveys() {
+            try {
+                setLoading(true);
+                setError("");
+                const response = await getAllSurveys({
+                    status: filter === "ALL" ? undefined : filter,
+                    page,
+                    size: 12,
+                    sortBy: "endDate",
+                    sortDir: "asc",
+                });
+                if (response.items.length === 0 && response.totalPages > 0 && page >= response.totalPages) {
+                    setPage(response.totalPages - 1);
+                    return;
+                }
+                setSurveys(response.items);
+                setTotalPages(response.totalPages);
+            } catch (requestError) {
+                setError(getApiErrorMessage(requestError, "Khong the tai danh sach khao sat."));
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        void loadSurveys();
+    }, [filter, page]);
+
+    useEffect(() => {
+        setPage(0);
+    }, [filter]);
 
     return (
         <main className="bg-slate-100">
@@ -32,10 +66,17 @@ export default function SurveysPage() {
                 <div className="mt-8">
                     {loading ? (
                         <SurveyCardSkeleton />
-                    ) : filteredSurveys.length === 0 ? (
+                    ) : surveys.length === 0 ? (
                         <SurveyEmptyState />
                     ) : (
-                        <SurveyGrid surveys={filteredSurveys} />
+                        <div className="space-y-6">
+                            <SurveyGrid surveys={surveys} />
+                            <PaginationControls
+                                page={page + 1}
+                                pageCount={Math.max(totalPages, 1)}
+                                onPageChange={(nextPage) => setPage(nextPage - 1)}
+                            />
+                        </div>
                     )}
                 </div>
             </div>

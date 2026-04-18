@@ -3,20 +3,26 @@ package com.ttcs.backend.adapter.in.web;
 import com.ttcs.backend.adapter.in.web.dto.QuestionStatisticsResponse;
 import com.ttcs.backend.adapter.in.web.dto.RatingBreakdownResponse;
 import com.ttcs.backend.adapter.in.web.dto.SurveyResultDetailResponse;
+import com.ttcs.backend.adapter.in.web.dto.SurveyResultMetricsResponse;
+import com.ttcs.backend.adapter.in.web.dto.SurveyResultPageResponse;
 import com.ttcs.backend.adapter.in.web.dto.SurveyResultSummaryResponse;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultDetailUseCase;
+import com.ttcs.backend.application.port.in.resultview.GetSurveyResultsQuery;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultListUseCase;
 import com.ttcs.backend.application.port.in.resultview.QuestionStatisticsResult;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultDetailResult;
+import com.ttcs.backend.application.port.in.resultview.SurveyResultPageResult;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultSummaryResult;
 import com.ttcs.backend.common.WebAdapter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.List;
+import java.time.LocalDate;
 
 @WebAdapter
 @RequestMapping("/api/v1/survey-results")
@@ -28,15 +34,49 @@ public class SurveyResultController {
     private final CurrentStudentProvider currentStudentProvider;
 
     @GetMapping
-    public ResponseEntity<List<SurveyResultSummaryResponse>> getSurveyResults() {
-        return ResponseEntity.ok(
-                getSurveyResultListUseCase.getSurveyResults(
-                                currentStudentProvider.currentUserId(),
-                                currentStudentProvider.currentRole()
-                        ).stream()
-                        .map(this::toSummaryResponse)
-                        .toList()
+    public ResponseEntity<SurveyResultPageResponse> getSurveyResults(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String lifecycleState,
+            @RequestParam(required = false) String runtimeStatus,
+            @RequestParam(required = false) String recipientScope,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDateTo,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(defaultValue = "responseRate") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) {
+        SurveyResultPageResult result = getSurveyResultListUseCase.getSurveyResults(
+                new GetSurveyResultsQuery(
+                        keyword,
+                        lifecycleState,
+                        runtimeStatus,
+                        recipientScope,
+                        startDateFrom,
+                        endDateTo,
+                        page,
+                        size,
+                        sortBy,
+                        sortDir
+                ),
+                currentStudentProvider.currentUserId(),
+                currentStudentProvider.currentRole()
         );
+        return ResponseEntity.ok(new SurveyResultPageResponse(
+                result.items().stream().map(this::toSummaryResponse).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages(),
+                new SurveyResultMetricsResponse(
+                        result.metrics().total(),
+                        result.metrics().open(),
+                        result.metrics().closed(),
+                        result.metrics().averageResponseRate(),
+                        result.metrics().totalSubmitted(),
+                        result.metrics().totalResponses()
+                )
+        ));
     }
 
     @GetMapping("/{surveyId}")

@@ -1,17 +1,20 @@
 package com.ttcs.backend.adapter.in.web;
 
 import com.ttcs.backend.adapter.in.web.dto.QuestionItemResponse;
+import com.ttcs.backend.adapter.in.web.dto.StudentSurveyPageResponse;
 import com.ttcs.backend.adapter.in.web.dto.SubmitSurveyRequest;
 import com.ttcs.backend.adapter.in.web.dto.SubmitSurveyResponse;
 import com.ttcs.backend.adapter.in.web.dto.SubmitSurveyResponseCode;
 import com.ttcs.backend.adapter.in.web.dto.SurveyDetailResponse;
 import com.ttcs.backend.adapter.in.web.dto.SurveyResponse;
 import com.ttcs.backend.application.port.in.GetSurveyDetailUseCase;
+import com.ttcs.backend.application.port.in.GetStudentSurveysQuery;
 import com.ttcs.backend.application.port.in.GetSurveyUseCase;
 import com.ttcs.backend.application.port.in.SubmitSurveyUseCase;
 import com.ttcs.backend.application.port.in.command.SubmitSurveyAnswerCommand;
 import com.ttcs.backend.application.port.in.command.SubmitSurveyCommand;
 import com.ttcs.backend.application.port.in.result.QuestionItemResult;
+import com.ttcs.backend.application.port.in.result.StudentSurveyPageResult;
 import com.ttcs.backend.application.port.in.result.SubmitSurveyResult;
 import com.ttcs.backend.application.port.in.result.SurveyDetailResult;
 import com.ttcs.backend.application.port.in.result.SurveySummaryResult;
@@ -39,11 +42,25 @@ public class SurveyController {
     }
 
     @GetMapping
-    public ResponseEntity<List<SurveyResponse>> getAllSurveys() {
+    public ResponseEntity<StudentSurveyPageResponse> getAllSurveys(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(defaultValue = "endDate") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir
+    ) {
         currentStudentProvider.ensureActiveStudentAccount();
-        return ResponseEntity.ok(getSurveyUseCase.getAllSurveys(currentStudentProvider.currentUserId()).stream()
-                .map(this::toSurveyResponse)
-                .toList());
+        StudentSurveyPageResult result = getSurveyUseCase.getAllSurveys(
+                new GetStudentSurveysQuery(status, page, size, sortBy, sortDir),
+                currentStudentProvider.currentUserId()
+        );
+        return ResponseEntity.ok(new StudentSurveyPageResponse(
+                result.items().stream().map(this::toSurveyResponse).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        ));
     }
 
     @GetMapping("/{id}/detail")

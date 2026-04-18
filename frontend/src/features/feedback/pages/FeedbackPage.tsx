@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFeedback, getStudentFeedback } from "../../../api/feedbackApi";
 import { getApiErrorMessage } from "../../../api/apiError";
+import PaginationControls from "../../../components/data-view/PaginationControls";
 import type { FeedbackResponse, StudentFeedback } from "../../../types/feedback";
 
 function formatDate(date: string) {
@@ -17,6 +18,8 @@ export default function FeedbackPage() {
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [items, setItems] = useState<StudentFeedback[]>([]);
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
@@ -26,7 +29,18 @@ export default function FeedbackPage() {
         try {
             setLoading(true);
             setError("");
-            setItems(await getStudentFeedback());
+            const response = await getStudentFeedback({
+                page,
+                size: 5,
+                sortBy: "createdAt",
+                sortDir: "desc",
+            });
+            if (response.items.length === 0 && response.totalPages > 0 && page >= response.totalPages) {
+                setPage(response.totalPages - 1);
+                return;
+            }
+            setItems(response.items);
+            setTotalPages(response.totalPages);
         } catch (requestError) {
             setError(getApiErrorMessage(requestError, "Unable to load feedback."));
         } finally {
@@ -35,8 +49,8 @@ export default function FeedbackPage() {
     }
 
     useEffect(() => {
-        loadFeedback();
-    }, []);
+        void loadFeedback();
+    }, [page]);
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -59,6 +73,7 @@ export default function FeedbackPage() {
             setSuccess(response.message);
             setTitle("");
             setContent("");
+            setPage(0);
             await loadFeedback();
         } catch (requestError) {
             setError(getApiErrorMessage(requestError, "Unable to submit feedback right now."));
@@ -185,6 +200,11 @@ export default function FeedbackPage() {
                                             </div>
                                         </article>
                                     ))}
+                                    <PaginationControls
+                                        page={page + 1}
+                                        pageCount={Math.max(totalPages, 1)}
+                                        onPageChange={(nextPage) => setPage(nextPage - 1)}
+                                    />
                                 </div>
                             )}
                         </section>

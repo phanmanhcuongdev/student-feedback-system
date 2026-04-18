@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface LoadSurveyPort {
     Optional<Survey> loadById(Integer surveyId);
     List<Survey> loadAll();
+    StudentSurveySearchPage loadStudentSurveyPage(LoadStudentSurveysQuery query);
 }

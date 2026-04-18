@@ -7,8 +7,9 @@ import java.util.Optional;
 
 public interface LoadFeedbackPort {
     List<Feedback> loadByStudentId(Integer studentId);
+    StudentFeedbackSearchPage loadStudentPage(LoadStudentFeedbackQuery query);
 
-    List<Feedback> loadAll();
+    StaffFeedbackSearchPage loadPage(LoadFeedbackQuery query);
 
     Optional<Feedback> loadById(Integer feedbackId);
 }

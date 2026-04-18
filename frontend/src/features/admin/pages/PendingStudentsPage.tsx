@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { approveStudent, getPendingStudents, getStudentDocument, rejectStudent } from "../../../api/adminApi";
+import { approveStudent, getPendingStudents, getStudentDocument, getUserManagementDepartments, rejectStudent } from "../../../api/adminApi";
 import { getApiErrorMessage } from "../../../api/apiError";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import DataTable, { type DataTableColumn } from "../../../components/data-view/DataTable";
@@ -16,7 +16,7 @@ import PageHeader from "../../../components/ui/PageHeader";
 import SectionCard from "../../../components/ui/SectionCard";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { darkActionButtonClass, darkActionButtonStyle } from "../../../components/ui/buttonStyles";
-import type { PendingStudent } from "../../../types/admin";
+import type { DepartmentOption, PendingStudent } from "../../../types/admin";
 
 type ActionState = {
     studentId: number | null;
@@ -43,16 +43,21 @@ function getInitialDraft(student: PendingStudent): ReviewDraft {
 
 export default function PendingStudentsPage() {
     const [students, setStudents] = useState<PendingStudent[]>([]);
+    const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+    const [totalElements, setTotalElements] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [feedback, setFeedback] = useState("");
     const [drafts, setDrafts] = useState<Record<number, ReviewDraft>>({});
     const [actionState, setActionState] = useState<ActionState>({ studentId: null, type: null });
     const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [departmentFilter, setDepartmentFilter] = useState("ALL");
     const [resubmissionFilter, setResubmissionFilter] = useState("ALL");
-    const [sortOrder, setSortOrder] = useState("resubmissions");
-    const [page, setPage] = useState(1);
+    const [sortBy, setSortBy] = useState("resubmissionCount");
+    const [sortDir, setSortDir] = useState("desc");
+    const [page, setPage] = useState(0);
     const [activeStudentId, setActiveStudentId] = useState<number | null>(null);
     const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | null>(null);
     const [documentPreviews, setDocumentPreviews] = useState<{
@@ -67,26 +72,70 @@ export default function PendingStudentsPage() {
 
     const pageSize = 10;
 
+    const loadPendingStudents = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError("");
+            const response = await getPendingStudents({
+                keyword: debouncedSearch || undefined,
+                departmentId: departmentFilter === "ALL" ? undefined : Number(departmentFilter),
+                submissionType: resubmissionFilter === "ALL" ? undefined : resubmissionFilter,
+                page,
+                size: pageSize,
+                sortBy,
+                sortDir,
+            });
+
+            if (response.items.length === 0 && response.totalPages > 0 && page >= response.totalPages) {
+                setPage(response.totalPages - 1);
+                return;
+            }
+
+            setStudents(response.items);
+            setTotalElements(response.totalElements);
+            setTotalPages(response.totalPages);
+            setDrafts((prev) => {
+                const next = { ...prev };
+                response.items.forEach((student) => {
+                    next[student.id] = prev[student.id] ?? getInitialDraft(student);
+                });
+                return next;
+            });
+            setActiveStudentId((current) => {
+                if (current != null && response.items.some((student) => student.id === current)) {
+                    return current;
+                }
+                return response.items[0]?.id ?? null;
+            });
+        } catch (requestError) {
+            setError(getApiErrorMessage(requestError, "Unable to load pending students."));
+        } finally {
+            setLoading(false);
+        }
+    }, [debouncedSearch, departmentFilter, page, resubmissionFilter, sortBy, sortDir]);
+
     useEffect(() => {
-        async function fetchPendingStudents() {
+        const timeout = window.setTimeout(() => {
+            setDebouncedSearch(search.trim());
+        }, 300);
+
+        return () => window.clearTimeout(timeout);
+    }, [search]);
+
+    useEffect(() => {
+        void loadPendingStudents();
+    }, [loadPendingStudents]);
+
+    useEffect(() => {
+        async function loadDepartments() {
             try {
-                setLoading(true);
-                setError("");
-                const pendingStudents = await getPendingStudents();
-                setStudents(pendingStudents);
-                setDrafts(pendingStudents.reduce<Record<number, ReviewDraft>>((acc, student) => {
-                    acc[student.id] = getInitialDraft(student);
-                    return acc;
-                }, {}));
-                setActiveStudentId(pendingStudents[0]?.id ?? null);
-            } catch (requestError) {
-                setError(getApiErrorMessage(requestError, "Unable to load pending students."));
-            } finally {
-                setLoading(false);
+                setDepartments(await getUserManagementDepartments());
+            } catch {
+                setDepartments([]);
             }
         }
 
-        void fetchPendingStudents();
+        void loadDepartments();
     }, []);
 
     function updateDraft(studentId: number, patch: Partial<ReviewDraft>) {
@@ -111,9 +160,9 @@ export default function PendingStudentsPage() {
                 return;
             }
 
-            setStudents((prev) => prev.filter((student) => student.id !== studentId));
             setFeedback(response.message);
             setConfirmAction(null);
+            await loadPendingStudents();
         } catch (requestError) {
             setError(getApiErrorMessage(requestError, "Unable to approve this student."));
         } finally {
@@ -144,9 +193,9 @@ export default function PendingStudentsPage() {
                 return;
             }
 
-            setStudents((prev) => prev.filter((student) => student.id !== studentId));
             setFeedback(response.message);
             setConfirmAction(null);
+            await loadPendingStudents();
         } catch (requestError) {
             setError(getApiErrorMessage(requestError, "Unable to reject this student."));
         } finally {
@@ -156,60 +205,20 @@ export default function PendingStudentsPage() {
 
     const departmentOptions = useMemo(() => [
         { label: "All departments", value: "ALL" },
-        ...Array.from(new Set(students.map((student) => student.departmentName).filter(Boolean))).sort().map((department) => ({
-            label: department as string,
-            value: department as string,
-        })),
-    ], [students]);
-
-    const filteredStudents = useMemo(() => {
-        const normalizedSearch = search.trim().toLowerCase();
-        const result = students.filter((student) => {
-            if (normalizedSearch) {
-                const haystack = [student.name, student.email, student.studentCode].join(" ").toLowerCase();
-                if (!haystack.includes(normalizedSearch)) {
-                    return false;
-                }
-            }
-            if (departmentFilter !== "ALL" && student.departmentName !== departmentFilter) {
-                return false;
-            }
-            if (resubmissionFilter === "RESUBMITTED" && student.resubmissionCount === 0) {
-                return false;
-            }
-            if (resubmissionFilter === "FIRST_SUBMISSION" && student.resubmissionCount > 0) {
-                return false;
-            }
-            return true;
-        });
-
-        result.sort((left, right) => {
-            switch (sortOrder) {
-                case "name":
-                    return left.name.localeCompare(right.name);
-                case "department":
-                    return (left.departmentName || "").localeCompare(right.departmentName || "");
-                default:
-                    return right.resubmissionCount - left.resubmissionCount;
-            }
-        });
-
-        return result;
-    }, [departmentFilter, resubmissionFilter, search, sortOrder, students]);
+        ...departments.map((department) => ({ label: department.name, value: String(department.id) })),
+    ], [departments]);
 
     useEffect(() => {
-        setPage(1);
-    }, [search, departmentFilter, resubmissionFilter, sortOrder]);
+        setPage(0);
+    }, [debouncedSearch, departmentFilter, resubmissionFilter, sortBy, sortDir]);
 
-    const pageCount = Math.max(1, Math.ceil(filteredStudents.length / pageSize));
-    const pagedStudents = filteredStudents.slice((page - 1) * pageSize, page * pageSize);
-    const activeStudent = filteredStudents.find((student) => student.id === activeStudentId) ?? pagedStudents[0] ?? null;
+    const activeStudent = students.find((student) => student.id === activeStudentId) ?? students[0] ?? null;
 
     useEffect(() => {
-        if (!activeStudent && pagedStudents[0]) {
-            setActiveStudentId(pagedStudents[0].id);
+        if (!activeStudent && students[0]) {
+            setActiveStudentId(students[0].id);
         }
-    }, [activeStudent, pagedStudents]);
+    }, [activeStudent, students]);
 
     const getDocumentName = useCallback((storedPath: string | null): string => {
         if (!storedPath) {
@@ -403,7 +412,7 @@ export default function PendingStudentsPage() {
                     eyebrow="Admin Review"
                     title="Pending student approvals"
                     description="Review onboarding requests as a queue with searchable student context, reusable review notes, and explicit approve or reject decisions."
-                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{filteredStudents.length} pending student{filteredStudents.length === 1 ? "" : "s"}</div>}
+                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{totalElements} pending student{totalElements === 1 ? "" : "s"}</div>}
                 />
 
                 <div className="mt-6 space-y-6">
@@ -413,26 +422,39 @@ export default function PendingStudentsPage() {
                                 <SearchInput value={search} onChange={setSearch} placeholder="Search by name, email, or student code" />
                                 <SelectFilter label="Department" value={departmentFilter} onChange={setDepartmentFilter} options={departmentOptions} />
                                 <SelectFilter label="Submission" value={resubmissionFilter} onChange={setResubmissionFilter} options={[{ label: "All submissions", value: "ALL" }, { label: "Resubmitted only", value: "RESUBMITTED" }, { label: "First submission", value: "FIRST_SUBMISSION" }]} />
-                                <SelectFilter label="Sort" value={sortOrder} onChange={setSortOrder} options={[{ label: "Resubmission count", value: "resubmissions" }, { label: "Student name", value: "name" }, { label: "Department", value: "department" }]} />
+                                <SelectFilter
+                                    label="Sort"
+                                    value={`${sortBy}:${sortDir}`}
+                                    onChange={(value) => {
+                                        const [nextSortBy, nextSortDir] = value.split(":");
+                                        setSortBy(nextSortBy);
+                                        setSortDir(nextSortDir);
+                                    }}
+                                    options={[
+                                        { label: "Resubmission count", value: "resubmissionCount:desc" },
+                                        { label: "Student name A-Z", value: "name:asc" },
+                                        { label: "Department A-Z", value: "department:asc" },
+                                    ]}
+                                />
                             </>
                         )}
                     />
 
-                    {error ? <ErrorState description={error} /> : null}
+                    {error ? <ErrorState description={error} onRetry={() => void loadPendingStudents()} /> : null}
                     {feedback ? <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700">{feedback}</div> : null}
 
                     {loading ? (
                         <LoadingState label="Loading pending students..." />
-                    ) : filteredStudents.length === 0 ? (
+                    ) : students.length === 0 ? (
                         <EmptyState title="No pending students in this queue view" description="Adjust the search or filters to find the onboarding request you need." icon="task_alt" />
                     ) : (
                         <>
                             <div className="hidden lg:block">
-                                <DataTable columns={columns} items={pagedStudents} getRowKey={(student) => student.id} />
+                                <DataTable columns={columns} items={students} getRowKey={(student) => student.id} />
                             </div>
 
                             <ResponsiveDataList
-                                items={pagedStudents}
+                                items={students}
                                 getKey={(student) => student.id}
                                 renderItem={(student) => (
                                     <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
@@ -457,7 +479,7 @@ export default function PendingStudentsPage() {
                                 )}
                             />
 
-                            <PaginationControls page={page} pageCount={pageCount} onPageChange={setPage} />
+                            <PaginationControls page={page + 1} pageCount={Math.max(totalPages, 1)} onPageChange={(nextPage) => setPage(nextPage - 1)} />
 
                             {activeStudent ? (
                                 <SectionCard title="Review detail" description="Approve or reject without leaving the onboarding queue. Rejection reason remains required.">

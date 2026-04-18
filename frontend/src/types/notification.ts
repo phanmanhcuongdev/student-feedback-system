@@ -7,3 +7,11 @@ export type StudentNotification = {
     actionLabel: string | null;
     eventAt: string;
 };
+
+export type StudentNotificationPage = {
+    items: StudentNotification[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+};

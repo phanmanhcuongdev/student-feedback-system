@@ -1,15 +1,17 @@
 package com.ttcs.backend.adapter.in.web;
 
 import com.ttcs.backend.adapter.in.web.dto.StudentNotificationResponse;
+import com.ttcs.backend.adapter.in.web.dto.StudentNotificationPageResponse;
+import com.ttcs.backend.application.port.in.resultview.GetStudentNotificationsQuery;
 import com.ttcs.backend.application.port.in.resultview.GetStudentNotificationsUseCase;
+import com.ttcs.backend.application.port.in.resultview.StudentNotificationPageResult;
 import com.ttcs.backend.application.port.in.resultview.StudentNotificationResult;
 import com.ttcs.backend.common.WebAdapter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @WebAdapter
 @RequestMapping("/api/v1/notifications")
@@ -20,13 +22,23 @@ public class NotificationController {
     private final CurrentStudentProvider currentStudentProvider;
 
     @GetMapping
-    public ResponseEntity<List<StudentNotificationResponse>> getNotifications() {
+    public ResponseEntity<StudentNotificationPageResponse> getNotifications(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size
+    ) {
         currentStudentProvider.ensureActiveStudentAccount();
         Integer studentId = currentStudentProvider.currentStudentId();
-        List<StudentNotificationResponse> body = getStudentNotificationsUseCase.getNotifications(studentId).stream()
-                .map(this::toResponse)
-                .toList();
-        return ResponseEntity.ok(body);
+        StudentNotificationPageResult result = getStudentNotificationsUseCase.getNotifications(
+                new GetStudentNotificationsQuery(page, size),
+                studentId
+        );
+        return ResponseEntity.ok(new StudentNotificationPageResponse(
+                result.items().stream().map(this::toResponse).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        ));
     }
 
     private StudentNotificationResponse toResponse(StudentNotificationResult result) {
