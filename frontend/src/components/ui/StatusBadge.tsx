@@ -32,7 +32,7 @@ function getBadgeMeta(kind: StatusKind, value: string | null | undefined): Badge
     const maps: Record<StatusKind, Record<string, BadgeMeta>> = {
         role: {
             STUDENT: { label: "Student", className: "border-blue-200 bg-blue-50 text-blue-700" },
-            TEACHER: { label: "Lecturer", className: "border-sky-200 bg-sky-50 text-sky-700" },
+            LECTURER: { label: "Lecturer", className: "border-sky-200 bg-sky-50 text-sky-700" },
             ADMIN: { label: "Admin", className: "border-slate-200 bg-slate-100 text-slate-700" },
         },
         account: {

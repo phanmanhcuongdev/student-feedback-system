@@ -1,4 +1,4 @@
-package com.ttcs.backend.adapter.out.persistence.teacher;
+package com.ttcs.backend.adapter.out.persistence.lecturer;
 
 import com.ttcs.backend.adapter.out.persistence.department.DepartmentEntity;
 import com.ttcs.backend.adapter.out.persistence.user.UserEntity;
@@ -15,12 +15,12 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "Teacher")
+@Table(name = "Lecturer")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class TeacherEntity {
+public class LecturerEntity {
     @Id
     @Column(name = "user_id")
     private Integer id;
@@ -33,8 +33,8 @@ public class TeacherEntity {
     @Nationalized
     private String name;
 
-    @Column( name = "teacher_code", nullable = false, unique = true)
-    private String teacherCode;
+    @Column(name = "lecturer_code", nullable = false, unique = true)
+    private String lecturerCode;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dept_id", nullable = false)

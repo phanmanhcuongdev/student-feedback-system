@@ -40,6 +40,8 @@ class AdminStudentApprovalServiceTest {
                 loadStudentPort(pendingStudent),
                 saveStudentPort,
                 auditLogPort,
+                command -> {
+                },
                 noOpDocumentPort()
         );
 
@@ -70,6 +72,8 @@ class AdminStudentApprovalServiceTest {
                 loadStudentPort(pendingStudent),
                 saveStudentPort,
                 auditLogPort,
+                command -> {
+                },
                 noOpDocumentPort()
         );
 
@@ -91,6 +95,8 @@ class AdminStudentApprovalServiceTest {
                 loadStudentPort(pendingStudent),
                 saveStudentPort,
                 auditLogPort,
+                command -> {
+                },
                 noOpDocumentPort()
         );
 
@@ -118,6 +124,8 @@ class AdminStudentApprovalServiceTest {
                 loadStudentPort(pendingStudent),
                 saveStudentPort,
                 auditLogPort,
+                command -> {
+                },
                 noOpDocumentPort()
         );
 

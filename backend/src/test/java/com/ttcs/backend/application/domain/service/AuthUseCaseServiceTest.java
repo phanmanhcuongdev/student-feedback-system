@@ -104,10 +104,10 @@ class AuthUseCaseServiceTest {
     }
 
     @Test
-    void shouldRejectDeactivatedTeacherLogin() {
-        AuthUseCaseService service = createFixtureWithUser(new User(2, "teacher@example.com", "secret", Role.TEACHER, false)).service;
+    void shouldRejectDeactivatedLecturerLogin() {
+        AuthUseCaseService service = createFixtureWithUser(new User(2, "lecturer@example.com", "secret", Role.LECTURER, false)).service;
 
-        LoginResult result = service.login(new LoginCommand("teacher@example.com", "secret"));
+        LoginResult result = service.login(new LoginCommand("lecturer@example.com", "secret"));
 
         assertFalse(result.success());
         assertEquals("ACCOUNT_INACTIVE", result.code());

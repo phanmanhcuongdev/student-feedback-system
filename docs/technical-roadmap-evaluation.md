@@ -326,7 +326,7 @@ Operationally, the project is in a solid “production-minded student project”
 - Current relevance to project: High
 - Suitable for: Both
 - Recommended timing: Now
-- Why it fits this project: The repo already has some service-layer scoping for teacher survey-result access, but it is ad hoc rather than a reusable policy layer ([backend/src/main/java/com/ttcs/backend/application/domain/service/GetSurveyResultService.java](../backend/src/main/java/com/ttcs/backend/application/domain/service/GetSurveyResultService.java)).
+- Why it fits this project: The repo already has some service-layer scoping for lecturer survey-result access, but it is ad hoc rather than a reusable policy layer ([backend/src/main/java/com/ttcs/backend/application/domain/service/GetSurveyResultService.java](../backend/src/main/java/com/ttcs/backend/application/domain/service/GetSurveyResultService.java)).
 - Expected benefits: More consistent security decisions, better maintainability as roles/scope rules grow.
 - Risks / drawbacks: Can become over-engineered if turned into a mini authorization framework too early.
 - Integration difficulty: Medium

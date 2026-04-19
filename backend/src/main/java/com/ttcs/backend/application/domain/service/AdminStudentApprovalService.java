@@ -18,6 +18,8 @@ import com.ttcs.backend.application.port.out.admin.LoadPendingStudentsPort;
 import com.ttcs.backend.application.port.out.admin.ManagePendingStudentsQuery;
 import com.ttcs.backend.application.port.out.admin.PendingStudentSearchItem;
 import com.ttcs.backend.application.port.out.SaveAuditLogPort;
+import com.ttcs.backend.application.port.out.NotificationCreateCommand;
+import com.ttcs.backend.application.port.out.SaveNotificationPort;
 import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
 import com.ttcs.backend.application.port.out.auth.SaveStudentPort;
 import com.ttcs.backend.application.port.out.auth.StoreStudentDocumentPort;
@@ -41,6 +43,7 @@ public class AdminStudentApprovalService implements
     private final LoadStudentByIdPort loadStudentByIdPort;
     private final SaveStudentPort saveStudentPort;
     private final SaveAuditLogPort saveAuditLogPort;
+    private final SaveNotificationPort saveNotificationPort;
     private final StoreStudentDocumentPort storeStudentDocumentPort;
 
     @Override
@@ -144,6 +147,18 @@ public class AdminStudentApprovalService implements
                 student.getStatus().name(),
                 targetStatus.name(),
                 null
+        ));
+        saveNotificationPort.create(new NotificationCreateCommand(
+                targetStatus == Status.ACTIVE ? "ONBOARDING_APPROVED" : "ONBOARDING_REJECTED",
+                targetStatus == Status.ACTIVE ? "Onboarding approved" : "Onboarding needs revision",
+                targetStatus == Status.ACTIVE
+                        ? "Your student account has been approved."
+                        : "Your onboarding submission was rejected. Review the reason and resubmit your documents.",
+                null,
+                targetStatus == Status.ACTIVE ? "View dashboard" : "Review status",
+                reviewerUserId,
+                buildDecisionDetails(student, reviewReason, reviewNotes),
+                java.util.List.of(student.getId())
         ));
 
         return ApprovalActionResult.success(code, message);

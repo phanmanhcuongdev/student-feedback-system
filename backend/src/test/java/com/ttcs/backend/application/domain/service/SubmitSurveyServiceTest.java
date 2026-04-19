@@ -279,7 +279,7 @@ class SubmitSurveyServiceTest {
             return new SurveyResponse(
                     101,
                     surveyResponse.getStudent(),
-                    surveyResponse.getTeacher(),
+                    surveyResponse.getLecturer(),
                     surveyResponse.getSurvey(),
                     surveyResponse.getSubmittedAt()
             );

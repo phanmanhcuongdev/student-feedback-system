@@ -8,7 +8,7 @@ import com.ttcs.backend.application.domain.model.SubjectType;
 import com.ttcs.backend.application.domain.model.Survey;
 import com.ttcs.backend.application.domain.model.SurveyAssignment;
 import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
-import com.ttcs.backend.application.domain.model.Teacher;
+import com.ttcs.backend.application.domain.model.Lecturer;
 import com.ttcs.backend.application.domain.model.User;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultDetailResult;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultsQuery;
@@ -16,7 +16,7 @@ import com.ttcs.backend.application.port.in.resultview.SurveyResultSummaryResult
 import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResultPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResultsQuery;
-import com.ttcs.backend.application.port.out.LoadTeacherByUserIdPort;
+import com.ttcs.backend.application.port.out.LoadLecturerByUserIdPort;
 import com.ttcs.backend.application.port.out.SurveyResultMetrics;
 import com.ttcs.backend.application.port.out.SurveyResultSearchItem;
 import com.ttcs.backend.application.port.out.SurveyResultSearchPage;
@@ -43,50 +43,50 @@ class GetSurveyResultServiceTest {
     }
 
     @Test
-    void shouldRestrictTeacherListToOwnDepartmentSurveys() {
+    void shouldRestrictLecturerListToOwnDepartmentSurveys() {
         GetSurveyResultService service = service();
 
-        List<SurveyResultSummaryResult> results = service.getSurveyResults(defaultQuery(), 10, Role.TEACHER).items();
+        List<SurveyResultSummaryResult> results = service.getSurveyResults(defaultQuery(), 10, Role.LECTURER).items();
 
         assertEquals(1, results.size());
         assertEquals(1, results.getFirst().id());
     }
 
     @Test
-    void shouldDenyTeacherDetailOutsideDepartmentScope() {
+    void shouldDenyLecturerDetailOutsideDepartmentScope() {
         GetSurveyResultService service = service();
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> service.getSurveyResult(2, 10, Role.TEACHER)
+                () -> service.getSurveyResult(2, 10, Role.LECTURER)
         );
 
         assertEquals(403, exception.getStatusCode().value());
     }
 
     @Test
-    void shouldDenyTeacherDetailForAllStudentsSurvey() {
+    void shouldDenyLecturerDetailForAllStudentsSurvey() {
         GetSurveyResultService service = service();
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> service.getSurveyResult(3, 10, Role.TEACHER)
+                () -> service.getSurveyResult(3, 10, Role.LECTURER)
         );
 
         assertEquals(403, exception.getStatusCode().value());
     }
 
     @Test
-    void shouldAllowTeacherDetailWithinDepartmentScope() {
+    void shouldAllowLecturerDetailWithinDepartmentScope() {
         GetSurveyResultService service = service();
 
-        SurveyResultDetailResult result = service.getSurveyResult(1, 10, Role.TEACHER);
+        SurveyResultDetailResult result = service.getSurveyResult(1, 10, Role.LECTURER);
 
         assertEquals(1, result.id());
     }
 
     @Test
-    void shouldRejectMissingTeacherProfile() {
+    void shouldRejectMissingLecturerProfile() {
         GetSurveyResultService service = new GetSurveyResultService(
                 new InMemorySurveyResultPort(),
                 new InMemoryAssignmentPort(),
@@ -95,21 +95,21 @@ class GetSurveyResultServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> service.getSurveyResults(defaultQuery(), 10, Role.TEACHER)
+                () -> service.getSurveyResults(defaultQuery(), 10, Role.LECTURER)
         );
 
         assertEquals(403, exception.getStatusCode().value());
     }
 
     @Test
-    void shouldRejectTeacherWithoutDepartmentScope() {
+    void shouldRejectLecturerWithoutDepartmentScope() {
         GetSurveyResultService service = new GetSurveyResultService(
                 new InMemorySurveyResultPort(),
                 new InMemoryAssignmentPort(),
-                userId -> Optional.of(new Teacher(
+                userId -> Optional.of(new Lecturer(
                         userId,
-                        new User(userId, "teacher@university.edu", "hashed", Role.TEACHER, true),
-                        "Teacher Demo",
+                        new User(userId, "lecturer@university.edu", "hashed", Role.LECTURER, true),
+                        "Lecturer Demo",
                         "T0001",
                         new Department(null, "Unknown")
                 ))
@@ -117,36 +117,36 @@ class GetSurveyResultServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> service.getSurveyResults(defaultQuery(), 10, Role.TEACHER)
+                () -> service.getSurveyResults(defaultQuery(), 10, Role.LECTURER)
         );
 
         assertEquals(403, exception.getStatusCode().value());
     }
 
     @Test
-    void shouldAllowTeacherWhenAnyDepartmentAssignmentMatches() {
+    void shouldAllowLecturerWhenAnyDepartmentAssignmentMatches() {
         GetSurveyResultService service = new GetSurveyResultService(
                 new InMemorySurveyResultPort(),
                 new MultiDepartmentAssignmentPort(),
-                userId -> Optional.of(new Teacher(
+                userId -> Optional.of(new Lecturer(
                         userId,
-                        new User(userId, "teacher@university.edu", "hashed", Role.TEACHER, true),
-                        "Teacher Demo",
+                        new User(userId, "lecturer@university.edu", "hashed", Role.LECTURER, true),
+                        "Lecturer Demo",
                         "T0001",
                         new Department(1, "Computer Science")
                 ))
         );
 
-        SurveyResultDetailResult result = service.getSurveyResult(2, 10, Role.TEACHER);
+        SurveyResultDetailResult result = service.getSurveyResult(2, 10, Role.LECTURER);
 
         assertEquals(2, result.id());
     }
 
     @Test
-    void shouldReturnNotFoundForMissingSurveyEvenForTeacher() {
+    void shouldReturnNotFoundForMissingSurveyEvenForLecturer() {
         GetSurveyResultService service = service();
 
-        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyResult(999, 10, Role.TEACHER));
+        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyResult(999, 10, Role.LECTURER));
     }
 
     @Test
@@ -160,10 +160,10 @@ class GetSurveyResultServiceTest {
         return new GetSurveyResultService(
                 new InMemorySurveyResultPort(),
                 new InMemoryAssignmentPort(),
-                userId -> Optional.of(new Teacher(
+                userId -> Optional.of(new Lecturer(
                         userId,
-                        new User(userId, "teacher@university.edu", "hashed", Role.TEACHER, true),
-                        "Teacher Demo",
+                        new User(userId, "lecturer@university.edu", "hashed", Role.LECTURER, true),
+                        "Lecturer Demo",
                         "T0001",
                         new Department(1, "Computer Science")
                 ))
@@ -185,11 +185,11 @@ class GetSurveyResultServiceTest {
         public SurveyResultSearchPage loadPage(LoadSurveyResultsQuery query) {
             List<SurveyResultSearchItem> filtered = summaries.stream()
                     .filter(item -> {
-                        if (query.teacherDepartmentId() == null) {
+                        if (query.lecturerDepartmentId() == null) {
                             return true;
                         }
-                        return (query.teacherDepartmentId().equals(1) && item.id().equals(1))
-                                || (query.teacherDepartmentId().equals(2) && item.id().equals(2));
+                        return (query.lecturerDepartmentId().equals(1) && item.id().equals(1))
+                                || (query.lecturerDepartmentId().equals(2) && item.id().equals(2));
                     })
                     .toList();
             return new SurveyResultSearchPage(

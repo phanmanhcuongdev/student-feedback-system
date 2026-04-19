@@ -9,7 +9,7 @@ public record LoadSurveyResultsQuery(
         String recipientScope,
         LocalDate startDateFrom,
         LocalDate endDateTo,
-        Integer teacherDepartmentId,
+        Integer lecturerDepartmentId,
         int page,
         int size,
         String sortBy,

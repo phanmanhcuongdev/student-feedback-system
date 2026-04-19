@@ -3,7 +3,7 @@ export function getDefaultAppRoute(role: string | null | undefined, studentStatu
         return "/dashboard/admin";
     }
 
-    if (role === "TEACHER") {
+    if (role === "LECTURER") {
         return "/dashboard/lecturer";
     }
 

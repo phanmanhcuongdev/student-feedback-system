@@ -76,7 +76,7 @@ public class AdminUserController {
                 new ManagedUserMetricsResponse(
                         result.metrics().totalUsers(),
                         result.metrics().totalStudents(),
-                        result.metrics().totalTeachers(),
+                        result.metrics().totalLecturers(),
                         result.metrics().totalAdmins(),
                         result.metrics().totalInactive(),
                         result.metrics().totalPending()
@@ -109,7 +109,7 @@ public class AdminUserController {
                         request.getName(),
                         request.getDepartmentId(),
                         request.getStudentCode(),
-                        request.getTeacherCode()
+                        request.getLecturerCode()
                 )
         );
         return ResponseEntity.ok(toActionResponse(result));
@@ -140,7 +140,7 @@ public class AdminUserController {
                 result.studentStatus(),
                 result.active(),
                 result.studentCode(),
-                result.teacherCode()
+                result.lecturerCode()
         );
     }
 
@@ -154,7 +154,7 @@ public class AdminUserController {
                 result.departmentId(),
                 result.departmentName(),
                 result.studentCode(),
-                result.teacherCode(),
+                result.lecturerCode(),
                 result.studentStatus()
         );
     }

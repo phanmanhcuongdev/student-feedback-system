@@ -127,7 +127,7 @@ public class AdminSurveyController {
 
         List<CreateQuestionCommand> questionCommands = request.questions() == null ? List.of() :
                 request.questions().stream()
-                        .map(q -> new CreateQuestionCommand(q.content(), QuestionType.valueOf(q.type())))
+                        .map(q -> new CreateQuestionCommand(q.content(), QuestionType.valueOf(q.type()), q.questionBankEntryId()))
                         .toList();
 
         CreateSurveyCommand command = new CreateSurveyCommand(
@@ -158,7 +158,7 @@ public class AdminSurveyController {
     ) {
         List<UpdateSurveyQuestionCommand> questions = request.questions() == null ? List.of() :
                 request.questions().stream()
-                        .map(q -> new UpdateSurveyQuestionCommand(q.content(), q.type()))
+                        .map(q -> new UpdateSurveyQuestionCommand(q.content(), q.type(), q.questionBankEntryId()))
                         .toList();
 
         SurveyManagementActionResult result = updateSurveyUseCase.updateSurvey(

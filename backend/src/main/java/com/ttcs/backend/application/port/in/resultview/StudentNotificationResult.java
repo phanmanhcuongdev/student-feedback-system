@@ -3,12 +3,15 @@ package com.ttcs.backend.application.port.in.resultview;
 import java.time.LocalDateTime;
 
 public record StudentNotificationResult(
+        Integer id,
         String type,
         String title,
         String message,
         Integer surveyId,
         String surveyTitle,
         String actionLabel,
-        LocalDateTime eventAt
+        LocalDateTime eventAt,
+        boolean read,
+        LocalDateTime readAt
 ) {
 }

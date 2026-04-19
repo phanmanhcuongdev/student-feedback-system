@@ -299,6 +299,8 @@ class AdminSurveyManagementServiceTest {
                 new CandidatePort(state),
                 new StudentPort(state),
                 new AuditPort(state),
+                command -> {
+                },
                 new ManageSurveyQueryPort(state)
         );
     }

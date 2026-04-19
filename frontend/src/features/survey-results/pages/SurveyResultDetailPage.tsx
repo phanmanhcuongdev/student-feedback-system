@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../../api/apiError";
-import { getSurveyResult } from "../../../api/surveyResultApi";
+import { exportSurveyResult, getSurveyResult } from "../../../api/surveyResultApi";
 import EmptyState from "../../../components/ui/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
@@ -10,6 +10,7 @@ import SearchInput from "../../../components/data-view/SearchInput";
 import SectionCard from "../../../components/ui/SectionCard";
 import StatCard from "../../../components/ui/StatCard";
 import StatusBadge from "../../../components/ui/StatusBadge";
+import { useAuth } from "../../auth/useAuth";
 import type { QuestionStatistics, SurveyResultDetail } from "../../../types/surveyResult";
 
 function formatDate(date: string) {
@@ -63,6 +64,7 @@ function RatingQuestionBlock({ question }: { question: QuestionStatistics }) {
 
 export default function SurveyResultDetailPage() {
     const { id } = useParams();
+    const { session } = useAuth();
     const surveyId = Number(id);
     const [survey, setSurvey] = useState<SurveyResultDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -70,6 +72,7 @@ export default function SurveyResultDetailPage() {
     const [commentQuery, setCommentQuery] = useState("");
     const [expandedQuestions, setExpandedQuestions] = useState<Record<number, boolean>>({});
     const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
         async function fetchSurveyResult() {
@@ -110,6 +113,26 @@ export default function SurveyResultDetailPage() {
             .filter((question) => question.comments.length > 0 || question.content.toLowerCase().includes(normalizedQuery));
     }, [commentQuery, textQuestions]);
 
+    async function handleExport() {
+        try {
+            setExporting(true);
+            setError("");
+            const blob = await exportSurveyResult(surveyId);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `survey-${surveyId}-report.csv`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (requestError) {
+            setError(getApiErrorMessage(requestError, "Unable to export survey report."));
+        } finally {
+            setExporting(false);
+        }
+    }
+
     return (
         <main className="bg-slate-100">
             <div className="mx-auto max-w-screen-2xl px-6 py-10">
@@ -117,7 +140,12 @@ export default function SurveyResultDetailPage() {
                     eyebrow="Result Review"
                     title={survey?.title || "Survey result detail"}
                     description={survey ? "Review overview metrics, participation, rating distributions, and anonymous text comments in grouped analytics sections." : "Review survey analytics."}
-                    actions={<Link to="/survey-results" className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">Back to results</Link>}
+                    actions={<div className="flex flex-wrap gap-2">
+                        {session?.role === "ADMIN" ? (
+                            <button type="button" onClick={() => void handleExport()} disabled={exporting || !survey} className="inline-flex items-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60">{exporting ? "Exporting..." : "Export CSV"}</button>
+                        ) : null}
+                        <Link to="/survey-results" className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">Back to results</Link>
+                    </div>}
                 />
 
                 <div className="mt-6 space-y-6">

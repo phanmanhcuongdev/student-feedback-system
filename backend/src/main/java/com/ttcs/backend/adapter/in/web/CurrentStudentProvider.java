@@ -54,8 +54,8 @@ public class CurrentStudentProvider {
         if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
             return Role.ADMIN;
         }
-        if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_TEACHER"))) {
-            return Role.TEACHER;
+        if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_LECTURER"))) {
+            return Role.LECTURER;
         }
         if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_STUDENT"))) {
             return Role.STUDENT;

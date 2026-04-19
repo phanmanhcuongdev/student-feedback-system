@@ -148,6 +148,11 @@ export default function SurveyResultsPage() {
             render: (survey) => survey.submittedCount,
         },
         {
+            key: "opened",
+            header: "Opened",
+            render: (survey) => survey.openedCount,
+        },
+        {
             key: "rate",
             header: "Response rate",
             render: (survey) => formatRate(survey.responseRate),
@@ -233,7 +238,7 @@ export default function SurveyResultsPage() {
                     ) : surveys.length === 0 ? (
                         <EmptyState
                             title="No survey results found"
-                            description={session?.role === "TEACHER" ? "No results match your department scope and current filters." : "Adjust the filters to find the survey analytics you need."}
+                            description={session?.role === "LECTURER" ? "No results match your department scope and current filters." : "Adjust the filters to find the survey analytics you need."}
                             icon="bar_chart"
                         />
                     ) : (
@@ -256,6 +261,7 @@ export default function SurveyResultsPage() {
                                         <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                                             <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Audience</span><span className="font-medium text-slate-900">{getAudienceLabel(survey)}</span></div>
                                             <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Targeted</span><span className="font-medium text-slate-900">{survey.targetedCount}</span></div>
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Opened</span><span className="font-medium text-slate-900">{survey.openedCount}</span></div>
                                             <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Submitted</span><span className="font-medium text-slate-900">{survey.submittedCount}</span></div>
                                             <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Response rate</span><span className="font-medium text-slate-900">{formatRate(survey.responseRate)}</span></div>
                                             <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Window</span><span className="text-right font-medium text-slate-900">{formatDateRange(survey.startDate, survey.endDate)}</span></div>

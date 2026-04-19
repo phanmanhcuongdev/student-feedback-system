@@ -5,10 +5,10 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class Teacher {
+public class Lecturer {
     private final Integer id;
     private final User user;
     private final String name;
-    private final String teacherCode;
+    private final String lecturerCode;
     private final Department department;
 }

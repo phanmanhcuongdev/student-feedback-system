@@ -67,7 +67,7 @@ public class AdminUserManagementService implements
                 new ManagedUserMetricsResult(
                         page.metrics().totalUsers(),
                         page.metrics().totalStudents(),
-                        page.metrics().totalTeachers(),
+                        page.metrics().totalLecturers(),
                         page.metrics().totalAdmins(),
                         page.metrics().totalInactive(),
                         page.metrics().totalPending()
@@ -112,7 +112,7 @@ public class AdminUserManagementService implements
 
         Department department = existing.getDepartment();
         String studentCode = existing.getStudentCode();
-        String teacherCode = existing.getTeacherCode();
+        String lecturerCode = existing.getLecturerCode();
 
         if (existing.getUser().getRole() == Role.STUDENT) {
             if (command.departmentId() == null || isBlank(command.studentCode())) {
@@ -126,17 +126,17 @@ public class AdminUserManagementService implements
             if (manageUserPort.existsStudentCodeExcludingUserId(studentCode, command.userId())) {
                 return UserManagementActionResult.fail("STUDENT_CODE_ALREADY_USED", "Student code is already used by another user.");
             }
-        } else if (existing.getUser().getRole() == Role.TEACHER) {
-            if (command.departmentId() == null || isBlank(command.teacherCode())) {
-                return UserManagementActionResult.fail("INVALID_INPUT", "Teacher department and teacher code are required.");
+        } else if (existing.getUser().getRole() == Role.LECTURER) {
+            if (command.departmentId() == null || isBlank(command.lecturerCode())) {
+                return UserManagementActionResult.fail("INVALID_INPUT", "Lecturer department and lecturer code are required.");
             }
             department = manageUserPort.loadDepartmentById(command.departmentId()).orElse(null);
             if (department == null) {
                 return UserManagementActionResult.fail("DEPARTMENT_NOT_FOUND", "Department was not found.");
             }
-            teacherCode = command.teacherCode().trim();
-            if (manageUserPort.existsTeacherCodeExcludingUserId(teacherCode, command.userId())) {
-                return UserManagementActionResult.fail("TEACHER_CODE_ALREADY_USED", "Teacher code is already used by another user.");
+            lecturerCode = command.lecturerCode().trim();
+            if (manageUserPort.existsLecturerCodeExcludingUserId(lecturerCode, command.userId())) {
+                return UserManagementActionResult.fail("LECTURER_CODE_ALREADY_USED", "Lecturer code is already used by another user.");
             }
         }
 
@@ -151,7 +151,7 @@ public class AdminUserManagementService implements
                 command.name().trim(),
                 department,
                 studentCode,
-                teacherCode,
+                lecturerCode,
                 existing.getStudentStatus()
         );
         manageUserPort.save(updated);
@@ -196,7 +196,7 @@ public class AdminUserManagementService implements
                 existing.getName(),
                 existing.getDepartment(),
                 existing.getStudentCode(),
-                existing.getTeacherCode(),
+                existing.getLecturerCode(),
                 existing.getStudentStatus()
         );
         manageUserPort.save(updated);
@@ -229,7 +229,7 @@ public class AdminUserManagementService implements
                 user.getStudentStatus() != null ? user.getStudentStatus().name() : null,
                 Boolean.TRUE.equals(user.getUser().getVerified()),
                 user.getStudentCode(),
-                user.getTeacherCode()
+                user.getLecturerCode()
         );
     }
 
@@ -244,7 +244,7 @@ public class AdminUserManagementService implements
                 user.studentStatus(),
                 user.active(),
                 user.studentCode(),
-                user.teacherCode()
+                user.lecturerCode()
         );
     }
 
@@ -258,7 +258,7 @@ public class AdminUserManagementService implements
                 user.getDepartment() != null ? user.getDepartment().getId() : null,
                 user.getDepartment() != null ? user.getDepartment().getName() : null,
                 user.getStudentCode(),
-                user.getTeacherCode(),
+                user.getLecturerCode(),
                 user.getStudentStatus() != null ? user.getStudentStatus().name() : null
         );
     }
@@ -281,8 +281,8 @@ public class AdminUserManagementService implements
         if (after.getStudentCode() != null || before.getStudentCode() != null) {
             appendFieldChange(details, "studentCode", before.getStudentCode(), after.getStudentCode());
         }
-        if (after.getTeacherCode() != null || before.getTeacherCode() != null) {
-            appendFieldChange(details, "teacherCode", before.getTeacherCode(), after.getTeacherCode());
+        if (after.getLecturerCode() != null || before.getLecturerCode() != null) {
+            appendFieldChange(details, "lecturerCode", before.getLecturerCode(), after.getLecturerCode());
         }
         return details.toString();
     }

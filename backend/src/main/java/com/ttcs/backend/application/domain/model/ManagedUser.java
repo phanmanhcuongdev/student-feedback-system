@@ -10,6 +10,6 @@ public class ManagedUser {
     private final String name;
     private final Department department;
     private final String studentCode;
-    private final String teacherCode;
+    private final String lecturerCode;
     private final Status studentStatus;
 }

@@ -38,8 +38,10 @@ import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResponsePort;
 import com.ttcs.backend.application.port.out.LoadStudentPort;
+import com.ttcs.backend.application.port.out.NotificationCreateCommand;
 import com.ttcs.backend.application.port.out.SaveQuestionPort;
 import com.ttcs.backend.application.port.out.SaveAuditLogPort;
+import com.ttcs.backend.application.port.out.SaveNotificationPort;
 import com.ttcs.backend.application.port.out.SaveSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.SaveSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.SaveSurveyPort;
@@ -76,6 +78,7 @@ public class AdminSurveyManagementService implements
     private final LoadSurveyRecipientCandidatePort loadSurveyRecipientCandidatePort;
     private final LoadStudentPort loadStudentPort;
     private final SaveAuditLogPort saveAuditLogPort;
+    private final SaveNotificationPort saveNotificationPort;
     private final ManageSurveyPort manageSurveyPort;
 
     @Override
@@ -226,7 +229,8 @@ public class AdminSurveyManagementService implements
                                 null,
                                 command.surveyId(),
                                 question.content(),
-                                QuestionType.valueOf(question.type())
+                                QuestionType.valueOf(question.type()),
+                                question.questionBankEntryId()
                         ))
                         .toList()
         );
@@ -290,6 +294,18 @@ public class AdminSurveyManagementService implements
                 SurveyLifecycleState.PUBLISHED.name(),
                 null
         ));
+        if (!recipients.isEmpty()) {
+            saveNotificationPort.create(new NotificationCreateCommand(
+                    "SURVEY_PUBLISHED",
+                    "New survey available",
+                    "A new survey is available for responses: " + survey.getTitle(),
+                    survey.getId(),
+                    "Open survey",
+                    actorUserId,
+                    "recipients=" + recipients.size(),
+                    recipients.stream().map(SurveyRecipient::getStudentId).toList()
+            ));
+        }
 
         return SurveyManagementActionResult.ok("SURVEY_PUBLISHED", "Survey published successfully.");
     }

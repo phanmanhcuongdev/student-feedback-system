@@ -347,8 +347,8 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort {
         if (query.endDateTo() != null) {
             nativeQuery.setParameter("endDateTo", query.endDateTo().plusDays(1).atStartOfDay());
         }
-        if (query.teacherDepartmentId() != null) {
-            nativeQuery.setParameter("teacherDepartmentId", query.teacherDepartmentId());
+        if (query.lecturerDepartmentId() != null) {
+            nativeQuery.setParameter("lecturerDepartmentId", query.lecturerDepartmentId());
         }
     }
 
@@ -377,15 +377,15 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort {
         if (query.endDateTo() != null) {
             clauses.add("s.end_date IS NOT NULL AND s.end_date < :endDateTo");
         }
-        if (query.teacherDepartmentId() != null) {
+        if (query.lecturerDepartmentId() != null) {
             clauses.add("""
                     EXISTS (
                         SELECT 1
-                        FROM Survey_Assignment teacher_scope
-                        WHERE teacher_scope.survey_id = s.survey_id
-                            AND teacher_scope.evaluator_type = 'STUDENT'
-                            AND teacher_scope.subject_type = 'DEPARTMENT'
-                            AND teacher_scope.subject_value = :teacherDepartmentId
+                        FROM Survey_Assignment lecturer_scope
+                        WHERE lecturer_scope.survey_id = s.survey_id
+                            AND lecturer_scope.evaluator_type = 'STUDENT'
+                            AND lecturer_scope.subject_type = 'DEPARTMENT'
+                            AND lecturer_scope.subject_value = :lecturerDepartmentId
                     )
                     """);
         }
