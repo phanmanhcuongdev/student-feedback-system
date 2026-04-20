@@ -56,7 +56,8 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
     @Override
     public List<ManagedUser> loadAll() {
         Map<Integer, StudentEntity> students = studentRepository.findAll().stream()
-                .collect(Collectors.toMap(StudentEntity::getId, Function.identity()));
+                .filter(student -> student.getUser() != null && student.getUser().getId() != null)
+                .collect(Collectors.toMap(student -> student.getUser().getId(), Function.identity()));
         Map<Integer, LecturerEntity> lecturers = lecturerRepository.findAll().stream()
                 .collect(Collectors.toMap(LecturerEntity::getId, Function.identity()));
         Map<Integer, AdminEntity> admins = adminRepository.findAll().stream()
@@ -148,7 +149,7 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
         return userRepository.findById(userId)
                 .map(user -> toManagedUser(
                         user,
-                        studentRepository.findById(userId).orElse(null),
+                        studentRepository.findByUserId(userId).orElse(null),
                         lecturerRepository.findById(userId).orElse(null),
                         adminRepository.findById(userId).orElse(null)
                 ));
@@ -168,8 +169,7 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
 
     @Override
     public boolean existsStudentCodeExcludingUserId(String studentCode, Integer userId) {
-        return studentRepository.findAll().stream()
-                .anyMatch(item -> item.getStudentCode().equals(studentCode) && !item.getId().equals(userId));
+        return studentRepository.existsByStudentCodeAndUser_IdNot(studentCode, userId);
     }
 
     @Override
@@ -188,7 +188,7 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
         userRepository.save(userEntity);
 
         if (managedUser.getUser().getRole() == Role.STUDENT) {
-            StudentEntity studentEntity = studentRepository.findById(managedUser.getUser().getId())
+            StudentEntity studentEntity = studentRepository.findByUserId(managedUser.getUser().getId())
                     .orElseThrow(() -> new IllegalArgumentException("Student not found: " + managedUser.getUser().getId()));
             studentEntity.setName(managedUser.getName());
             studentEntity.setStudentCode(managedUser.getStudentCode());

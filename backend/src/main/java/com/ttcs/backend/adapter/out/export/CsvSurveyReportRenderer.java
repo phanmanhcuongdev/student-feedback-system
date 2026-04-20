@@ -1,8 +1,8 @@
 package com.ttcs.backend.adapter.out.export;
 
-import com.ttcs.backend.application.port.in.resultview.ExportedReport;
-import com.ttcs.backend.application.port.in.resultview.SurveyReportQuestionView;
-import com.ttcs.backend.application.port.in.resultview.SurveyReportView;
+import com.ttcs.backend.application.port.out.RenderedReport;
+import com.ttcs.backend.application.port.out.SurveyReport;
+import com.ttcs.backend.application.port.out.SurveyReportQuestion;
 import com.ttcs.backend.application.port.out.SurveyReportRenderer;
 import org.springframework.stereotype.Component;
 
@@ -14,12 +14,12 @@ public class CsvSurveyReportRenderer implements SurveyReportRenderer {
     private static final String CSV_CONTENT_TYPE = "text/csv;charset=UTF-8";
 
     @Override
-    public ExportedReport render(SurveyReportView report) {
+    public RenderedReport render(SurveyReport report) {
         byte[] content = buildCsv(report).getBytes(StandardCharsets.UTF_8);
-        return new ExportedReport("survey-" + report.id() + "-report.csv", CSV_CONTENT_TYPE, content);
+        return new RenderedReport("survey-" + report.id() + "-report.csv", CSV_CONTENT_TYPE, content);
     }
 
-    private String buildCsv(SurveyReportView report) {
+    private String buildCsv(SurveyReport report) {
         StringBuilder csv = new StringBuilder();
         appendRow(csv,
                 "Survey ID",
@@ -44,7 +44,7 @@ public class CsvSurveyReportRenderer implements SurveyReportRenderer {
                 "Rating Count",
                 "Comment"
         );
-        for (SurveyReportQuestionView question : report.questions()) {
+        for (SurveyReportQuestion question : report.questions()) {
             if ("RATING".equalsIgnoreCase(question.type())) {
                 if (question.ratingBreakdown().isEmpty()) {
                     appendQuestionRow(csv, report, question, null, null, null);
@@ -62,8 +62,8 @@ public class CsvSurveyReportRenderer implements SurveyReportRenderer {
 
     private void appendQuestionRow(
             StringBuilder csv,
-            SurveyReportView report,
-            SurveyReportQuestionView question,
+            SurveyReport report,
+            SurveyReportQuestion question,
             Integer rating,
             Long ratingCount,
             String comment

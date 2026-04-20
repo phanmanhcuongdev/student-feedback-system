@@ -3,8 +3,8 @@ package com.ttcs.backend.application.domain.service;
 import com.ttcs.backend.application.domain.exception.SurveyNotFoundException;
 import com.ttcs.backend.application.domain.model.Role;
 import com.ttcs.backend.application.port.in.resultview.ExportedReport;
-import com.ttcs.backend.application.port.in.resultview.SurveyReportView;
 import com.ttcs.backend.application.port.out.LoadSurveyReportPort;
+import com.ttcs.backend.application.port.out.RenderedReport;
 import com.ttcs.backend.application.port.out.SurveyReport;
 import com.ttcs.backend.application.port.out.SurveyReportQuestion;
 import com.ttcs.backend.application.port.out.SurveyReportRatingBreakdown;
@@ -120,13 +120,13 @@ class SurveyReportExportServiceTest {
 
     private static final class TrackingSurveyReportRenderer implements SurveyReportRenderer {
         private int renderCount;
-        private SurveyReportView report;
+        private SurveyReport report;
 
         @Override
-        public ExportedReport render(SurveyReportView report) {
+        public RenderedReport render(SurveyReport report) {
             renderCount++;
             this.report = report;
-            return new ExportedReport("survey-" + report.id() + "-report.csv", "text/csv;charset=UTF-8", new byte[]{1, 2, 3});
+            return new RenderedReport("survey-" + report.id() + "-report.csv", "text/csv;charset=UTF-8", new byte[]{1, 2, 3});
         }
     }
 }

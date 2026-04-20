@@ -17,6 +17,9 @@ import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResultPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResultsQuery;
 import com.ttcs.backend.application.port.out.LoadLecturerByUserIdPort;
+import com.ttcs.backend.application.port.out.QuestionStatistics;
+import com.ttcs.backend.application.port.out.RatingBreakdown;
+import com.ttcs.backend.application.port.out.SurveyResultDetail;
 import com.ttcs.backend.application.port.out.SurveyResultMetrics;
 import com.ttcs.backend.application.port.out.SurveyResultSearchItem;
 import com.ttcs.backend.application.port.out.SurveyResultSearchPage;
@@ -83,6 +86,18 @@ class GetSurveyResultServiceTest {
         SurveyResultDetailResult result = service.getSurveyResult(1, 10, Role.LECTURER);
 
         assertEquals(1, result.id());
+    }
+
+    @Test
+    void shouldMapOutputDetailModelToInputResultModel() {
+        GetSurveyResultService service = service();
+
+        SurveyResultDetailResult result = service.getSurveyResult(1, 99, Role.ADMIN);
+
+        assertEquals(1, result.questions().size());
+        assertEquals(100, result.questions().getFirst().id());
+        assertEquals(5, result.questions().getFirst().ratingBreakdown().getFirst().rating());
+        assertEquals(7L, result.questions().getFirst().ratingBreakdown().getFirst().count());
     }
 
     @Test
@@ -203,11 +218,11 @@ class GetSurveyResultServiceTest {
         }
 
         @Override
-        public Optional<SurveyResultDetailResult> loadSurveyResult(Integer surveyId) {
+        public Optional<SurveyResultDetail> loadSurveyResult(Integer surveyId) {
             return summaries.stream()
                     .filter(item -> item.id().equals(surveyId))
                     .findFirst()
-                    .map(item -> new SurveyResultDetailResult(
+                    .map(item -> new SurveyResultDetail(
                             item.id(),
                             item.title(),
                             item.description(),
@@ -223,7 +238,15 @@ class GetSurveyResultServiceTest {
                             item.openedCount(),
                             item.submittedCount(),
                             item.responseRate(),
-                            List.of()
+                            List.of(new QuestionStatistics(
+                                    100,
+                                    "How useful?",
+                                    "RATING",
+                                    12L,
+                                    4.5,
+                                    List.of(new RatingBreakdown(5, 7L)),
+                                    List.of()
+                            ))
                     ));
         }
 

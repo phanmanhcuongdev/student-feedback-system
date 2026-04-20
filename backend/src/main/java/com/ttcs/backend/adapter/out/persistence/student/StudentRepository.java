@@ -11,6 +11,8 @@ public interface StudentRepository extends JpaRepository<StudentEntity, Integer>
 
     Optional<StudentEntity> findByUserId(Integer userId);
 
+    boolean existsByStudentCodeAndUser_IdNot(String studentCode, Integer userId);
+
     List<StudentEntity> findByStatusOrderByIdAsc(StatusEntity status);
 
     List<StudentEntity> findByStatusAndUser_VerifiedTrueOrderByIdAsc(StatusEntity status);

@@ -1,9 +1,9 @@
 package com.ttcs.backend.adapter.out.export;
 
-import com.ttcs.backend.application.port.in.resultview.ExportedReport;
-import com.ttcs.backend.application.port.in.resultview.SurveyReportQuestionView;
-import com.ttcs.backend.application.port.in.resultview.SurveyReportRatingBreakdownView;
-import com.ttcs.backend.application.port.in.resultview.SurveyReportView;
+import com.ttcs.backend.application.port.out.RenderedReport;
+import com.ttcs.backend.application.port.out.SurveyReport;
+import com.ttcs.backend.application.port.out.SurveyReportQuestion;
+import com.ttcs.backend.application.port.out.SurveyReportRatingBreakdown;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -19,7 +19,7 @@ class CsvSurveyReportRendererTest {
     void shouldRenderCsvWithEscapedValues() {
         CsvSurveyReportRenderer renderer = new CsvSurveyReportRenderer();
 
-        ExportedReport result = renderer.render(report());
+        RenderedReport result = renderer.render(report());
 
         String csv = new String(result.content(), StandardCharsets.UTF_8);
         assertEquals("survey-12-report.csv", result.filename());
@@ -31,8 +31,8 @@ class CsvSurveyReportRendererTest {
         assertTrue(csv.contains("What changed?,TEXT,1,,,," + "\"Great, but needs \"\"examples\"\"\""));
     }
 
-    private SurveyReportView report() {
-        return new SurveyReportView(
+    private SurveyReport report() {
+        return new SurveyReport(
                 12,
                 "Course, Feedback",
                 "Line one\nLine two",
@@ -47,19 +47,19 @@ class CsvSurveyReportRendererTest {
                 12,
                 40.0,
                 List.of(
-                        new SurveyReportQuestionView(
+                        new SurveyReportQuestion(
                                 100,
                                 "How useful?",
                                 "RATING",
                                 2,
                                 4.5,
                                 List.of(
-                                        new SurveyReportRatingBreakdownView(5, 1),
-                                        new SurveyReportRatingBreakdownView(4, 1)
+                                        new SurveyReportRatingBreakdown(5, 1),
+                                        new SurveyReportRatingBreakdown(4, 1)
                                 ),
                                 List.of()
                         ),
-                        new SurveyReportQuestionView(
+                        new SurveyReportQuestion(
                                 101,
                                 "What changed?",
                                 "TEXT",

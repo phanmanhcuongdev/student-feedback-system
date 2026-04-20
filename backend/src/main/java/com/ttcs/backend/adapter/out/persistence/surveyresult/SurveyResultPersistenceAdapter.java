@@ -12,15 +12,15 @@ import com.ttcs.backend.adapter.out.persistence.survey.SurveyEntity;
 import com.ttcs.backend.adapter.out.persistence.survey.SurveyMapper;
 import com.ttcs.backend.adapter.out.persistence.survey.SurveyRepository;
 import com.ttcs.backend.adapter.out.persistence.surveyresponse.SurveyResponseRepository;
-import com.ttcs.backend.application.port.in.resultview.QuestionStatisticsResult;
-import com.ttcs.backend.application.port.in.resultview.RatingBreakdownResult;
-import com.ttcs.backend.application.port.in.resultview.SurveyResultDetailResult;
 import com.ttcs.backend.application.port.out.LoadSurveyReportPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResultsQuery;
 import com.ttcs.backend.application.port.out.LoadSurveyResultPort;
+import com.ttcs.backend.application.port.out.QuestionStatistics;
+import com.ttcs.backend.application.port.out.RatingBreakdown;
 import com.ttcs.backend.application.port.out.SurveyReport;
 import com.ttcs.backend.application.port.out.SurveyReportQuestion;
 import com.ttcs.backend.application.port.out.SurveyReportRatingBreakdown;
+import com.ttcs.backend.application.port.out.SurveyResultDetail;
 import com.ttcs.backend.application.port.out.SurveyResultMetrics;
 import com.ttcs.backend.application.port.out.SurveyResultSearchItem;
 import com.ttcs.backend.application.port.out.SurveyResultSearchPage;
@@ -156,7 +156,7 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
     }
 
     @Override
-    public Optional<SurveyResultDetailResult> loadSurveyResult(Integer surveyId) {
+    public Optional<SurveyResultDetail> loadSurveyResult(Integer surveyId) {
         SurveyEntity survey = surveyRepository.findById(surveyId).orElse(null);
         if (survey == null) {
             return Optional.empty();
@@ -178,11 +178,11 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
             }
         }
 
-        List<QuestionStatisticsResult> questionResults = questions.stream()
+        List<QuestionStatistics> questionResults = questions.stream()
                 .map(question -> toQuestionStatistics(question, detailsByQuestionId.getOrDefault(question.getId(), List.of())))
                 .toList();
 
-        return Optional.of(new SurveyResultDetailResult(
+        return Optional.of(new SurveyResultDetail(
                 survey.getId(),
                 survey.getTitle(),
                 survey.getDescription(),
@@ -254,7 +254,7 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
         return new RecipientSummary(targetedCount, openedCount, submittedCount, responseRate);
     }
 
-    private QuestionStatisticsResult toQuestionStatistics(QuestionEntity question, List<ResponseDetailEntity> details) {
+    private QuestionStatistics toQuestionStatistics(QuestionEntity question, List<ResponseDetailEntity> details) {
         String type = question.getType();
         long responseCount = details.size();
 
@@ -277,14 +277,14 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
 
             Double average = ratedCount == 0 ? null : total / ratedCount;
 
-            return new QuestionStatisticsResult(
+            return new QuestionStatistics(
                     question.getId(),
                     question.getContent(),
                     type,
                     responseCount,
                     average,
                     counts.entrySet().stream()
-                            .map(entry -> new RatingBreakdownResult(entry.getKey(), entry.getValue()))
+                            .map(entry -> new RatingBreakdown(entry.getKey(), entry.getValue()))
                             .toList(),
                     List.of()
             );
@@ -295,7 +295,7 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
                 .filter(comment -> comment != null && !comment.isBlank())
                 .toList();
 
-        return new QuestionStatisticsResult(
+        return new QuestionStatistics(
                 question.getId(),
                 question.getContent(),
                 type,

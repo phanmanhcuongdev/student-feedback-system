@@ -9,6 +9,8 @@ import com.ttcs.backend.application.domain.exception.SurveyNotFoundException;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultDetailUseCase;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultsQuery;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultListUseCase;
+import com.ttcs.backend.application.port.in.resultview.QuestionStatisticsResult;
+import com.ttcs.backend.application.port.in.resultview.RatingBreakdownResult;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultDetailResult;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultMetricsResult;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultPageResult;
@@ -17,6 +19,8 @@ import com.ttcs.backend.application.port.out.LoadSurveyResultsQuery;
 import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResultPort;
 import com.ttcs.backend.application.port.out.LoadLecturerByUserIdPort;
+import com.ttcs.backend.application.port.out.QuestionStatistics;
+import com.ttcs.backend.application.port.out.SurveyResultDetail;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.server.ResponseStatusException;
@@ -95,11 +99,11 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
 
     @Override
     public SurveyResultDetailResult getSurveyResult(Integer surveyId, Integer viewerUserId, Role viewerRole) {
-        SurveyResultDetailResult result = loadSurveyResultPort.loadSurveyResult(surveyId)
+        SurveyResultDetail result = loadSurveyResultPort.loadSurveyResult(surveyId)
                 .orElseThrow(() -> new SurveyNotFoundException(surveyId));
 
         if (viewerRole == Role.ADMIN) {
-            return result;
+            return toDetailResult(result);
         }
 
         Lecturer lecturer = requireLecturer(viewerUserId, viewerRole);
@@ -111,7 +115,44 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
             throw new ResponseStatusException(FORBIDDEN, "You are not allowed to view results for this survey");
         }
 
-        return result;
+        return toDetailResult(result);
+    }
+
+    private SurveyResultDetailResult toDetailResult(SurveyResultDetail result) {
+        return new SurveyResultDetailResult(
+                result.id(),
+                result.title(),
+                result.description(),
+                result.startDate(),
+                result.endDate(),
+                result.status(),
+                result.lifecycleState(),
+                result.runtimeStatus(),
+                result.recipientScope(),
+                result.recipientDepartmentName(),
+                result.responseCount(),
+                result.targetedCount(),
+                result.openedCount(),
+                result.submittedCount(),
+                result.responseRate(),
+                result.questions().stream()
+                        .map(this::toQuestionStatisticsResult)
+                        .toList()
+        );
+    }
+
+    private QuestionStatisticsResult toQuestionStatisticsResult(QuestionStatistics question) {
+        return new QuestionStatisticsResult(
+                question.id(),
+                question.content(),
+                question.type(),
+                question.responseCount(),
+                question.averageRating(),
+                question.ratingBreakdown().stream()
+                        .map(item -> new RatingBreakdownResult(item.rating(), item.count()))
+                        .toList(),
+                question.comments()
+        );
     }
 
     private Lecturer requireLecturer(Integer viewerUserId, Role viewerRole) {

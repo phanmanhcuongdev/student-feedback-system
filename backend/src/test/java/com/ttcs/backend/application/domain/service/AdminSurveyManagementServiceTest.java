@@ -111,6 +111,8 @@ class AdminSurveyManagementServiceTest {
         assertEquals(AuditActionType.SURVEY_PUBLISHED, state.auditLogs.getFirst().getActionType());
         assertEquals("SURVEY_PUBLISHED", state.notifications.getFirst().type());
         assertEquals(List.of(103, 104), state.notifications.getFirst().recipientUserIds());
+        assertEquals(1, state.studentBulkLoadCount);
+        assertEquals(0, state.studentSingleLoadCount);
     }
 
     @Test
@@ -344,6 +346,8 @@ class AdminSurveyManagementServiceTest {
                 student(3, 1),
                 student(4, 2)
         ));
+        private int studentBulkLoadCount;
+        private int studentSingleLoadCount;
         private final long responseCount;
 
         private InMemorySurveyState(long responseCount, SurveyLifecycleState lifecycleState) {
@@ -582,7 +586,16 @@ class AdminSurveyManagementServiceTest {
 
         @Override
         public java.util.Optional<Student> loadById(Integer studentId) {
+            state.studentSingleLoadCount++;
             return state.candidateStudents.stream().filter(student -> student.getId().equals(studentId)).findFirst();
+        }
+
+        @Override
+        public List<Student> loadByIds(List<Integer> studentIds) {
+            state.studentBulkLoadCount++;
+            return state.candidateStudents.stream()
+                    .filter(student -> studentIds.contains(student.getId()))
+                    .toList();
         }
     }
 

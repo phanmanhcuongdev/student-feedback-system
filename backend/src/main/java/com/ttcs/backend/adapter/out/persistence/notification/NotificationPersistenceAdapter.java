@@ -18,6 +18,10 @@ import org.springframework.data.domain.PageRequest;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @PersistenceAdapter
 @RequiredArgsConstructor
@@ -94,9 +98,14 @@ public class NotificationPersistenceAdapter implements SaveNotificationPort, Loa
         );
         NotificationEntity savedNotification = notificationRepository.save(notification);
 
-        List<NotificationUserEntity> recipients = new LinkedHashSet<>(command.recipientUserIds()).stream()
-                .map(userRepository::findById)
-                .flatMap(java.util.Optional::stream)
+        List<Integer> recipientUserIds = new LinkedHashSet<>(command.recipientUserIds()).stream()
+                .filter(Objects::nonNull)
+                .toList();
+        Map<Integer, UserEntity> usersById = userRepository.findAllById(recipientUserIds).stream()
+                .collect(Collectors.toMap(UserEntity::getId, Function.identity()));
+        List<NotificationUserEntity> recipients = recipientUserIds.stream()
+                .map(usersById::get)
+                .filter(Objects::nonNull)
                 .map(user -> toRecipient(savedNotification, user, now))
                 .toList();
         notificationUserRepository.saveAll(recipients);

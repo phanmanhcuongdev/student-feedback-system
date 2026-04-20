@@ -562,10 +562,11 @@ public class AdminSurveyManagementService implements
     }
 
     private List<Integer> recipientUserIds(List<SurveyRecipient> recipients) {
-        return recipients.stream()
+        List<Integer> studentIds = recipients.stream()
                 .map(SurveyRecipient::getStudentId)
-                .map(loadStudentPort::loadById)
-                .flatMap(java.util.Optional::stream)
+                .distinct()
+                .toList();
+        return loadStudentPort.loadByIds(studentIds).stream()
                 .map(Student::getUser)
                 .filter(java.util.Objects::nonNull)
                 .map(com.ttcs.backend.application.domain.model.User::getId)
