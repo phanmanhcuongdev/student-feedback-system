@@ -7,15 +7,15 @@ import com.ttcs.backend.application.domain.model.SubjectType;
 import com.ttcs.backend.application.domain.model.Survey;
 import com.ttcs.backend.application.domain.model.SurveyAiSummaryJobStatus;
 import com.ttcs.backend.application.domain.model.SurveyAssignment;
-import com.ttcs.backend.application.domain.model.Teacher;
+import com.ttcs.backend.application.domain.model.Lecturer;
 import com.ttcs.backend.application.port.in.resultview.GenerateSurveyAiSummaryUseCase;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyAiSummaryUseCase;
 import com.ttcs.backend.application.port.in.resultview.SurveyAiSummaryViewResult;
 import com.ttcs.backend.application.port.out.GenerateSurveyCommentSummaryPort;
 import com.ttcs.backend.application.port.out.LoadSurveyAiSummaryPort;
 import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
+import com.ttcs.backend.application.port.out.LoadLecturerByUserIdPort;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
-import com.ttcs.backend.application.port.out.LoadTeacherByUserIdPort;
 import com.ttcs.backend.application.port.out.SaveSurveyAiSummaryPort;
 import com.ttcs.backend.application.port.out.SurveyCommentSummaryCommand;
 import com.ttcs.backend.application.port.out.SurveyCommentSummaryResult;
@@ -38,7 +38,7 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
 
     private final LoadSurveyPort loadSurveyPort;
     private final LoadSurveyAssignmentPort loadSurveyAssignmentPort;
-    private final LoadTeacherByUserIdPort loadTeacherByUserIdPort;
+    private final LoadLecturerByUserIdPort loadLecturerByUserIdPort;
     private final LoadSurveyAiSummaryPort loadSurveyAiSummaryPort;
     private final SaveSurveyAiSummaryPort saveSurveyAiSummaryPort;
     private final GenerateSurveyCommentSummaryPort generateSurveyCommentSummaryPort;
@@ -177,33 +177,33 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
             return survey;
         }
 
-        Teacher teacher = requireTeacher(viewerUserId, viewerRole);
-        Integer teacherDepartmentId = teacher.getDepartment() != null ? teacher.getDepartment().getId() : null;
-        if (teacherDepartmentId == null) {
-            throw new ResponseStatusException(FORBIDDEN, "Teacher department scope is unavailable");
+        Lecturer lecturer = requireLecturer(viewerUserId, viewerRole);
+        Integer lecturerDepartmentId = lecturer.getDepartment() != null ? lecturer.getDepartment().getId() : null;
+        if (lecturerDepartmentId == null) {
+            throw new ResponseStatusException(FORBIDDEN, "Lecturer department scope is unavailable");
         }
-        if (!isTeacherInScope(surveyId, teacherDepartmentId)) {
+        if (!isLecturerInScope(surveyId, lecturerDepartmentId)) {
             throw new ResponseStatusException(FORBIDDEN, "You are not allowed to view AI summary for this survey");
         }
         return survey;
     }
 
-    private Teacher requireTeacher(Integer viewerUserId, Role viewerRole) {
-        if (viewerUserId == null || viewerRole != Role.TEACHER) {
+    private Lecturer requireLecturer(Integer viewerUserId, Role viewerRole) {
+        if (viewerUserId == null || viewerRole != Role.LECTURER) {
             throw new ResponseStatusException(FORBIDDEN, "You are not allowed to view survey AI summaries");
         }
 
-        return loadTeacherByUserIdPort.loadByUserId(viewerUserId)
-                .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "Teacher profile not found"));
+        return loadLecturerByUserIdPort.loadByUserId(viewerUserId)
+                .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "Lecturer profile not found"));
     }
 
-    private boolean isTeacherInScope(Integer surveyId, Integer teacherDepartmentId) {
+    private boolean isLecturerInScope(Integer surveyId, Integer lecturerDepartmentId) {
         List<SurveyAssignment> assignments = loadSurveyAssignmentPort.loadBySurveyId(surveyId);
         return assignments.stream().anyMatch(assignment ->
                 assignment != null
                         && assignment.getEvaluatorType() == EvaluatorType.STUDENT
                         && assignment.getSubjectType() == SubjectType.DEPARTMENT
-                        && teacherDepartmentId.equals(assignment.getSubjectValue())
+                        && lecturerDepartmentId.equals(assignment.getSubjectValue())
         );
     }
 

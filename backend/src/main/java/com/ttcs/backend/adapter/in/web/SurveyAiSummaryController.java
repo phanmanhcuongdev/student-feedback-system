@@ -20,15 +20,15 @@ public class SurveyAiSummaryController {
 
     private final GetSurveyAiSummaryUseCase getSurveyAiSummaryUseCase;
     private final GenerateSurveyAiSummaryUseCase generateSurveyAiSummaryUseCase;
-    private final CurrentStudentProvider currentStudentProvider;
+    private final CurrentIdentityProvider currentIdentityProvider;
 
     @GetMapping
     public ResponseEntity<SurveyAiSummaryResponse> getSummary(@PathVariable Integer surveyId) {
         return ResponseEntity.ok(toResponse(
                 getSurveyAiSummaryUseCase.getSummary(
                         surveyId,
-                        currentStudentProvider.currentUserId(),
-                        currentStudentProvider.currentRole()
+                        currentIdentityProvider.currentUserId(),
+                        currentIdentityProvider.currentRole()
                 )
         ));
     }
@@ -37,8 +37,8 @@ public class SurveyAiSummaryController {
     public ResponseEntity<SurveyAiSummaryResponse> generate(@PathVariable Integer surveyId) {
         SurveyAiSummaryViewResult result = generateSurveyAiSummaryUseCase.generate(
                 surveyId,
-                currentStudentProvider.currentUserId(),
-                currentStudentProvider.currentRole()
+                currentIdentityProvider.currentUserId(),
+                currentIdentityProvider.currentRole()
         );
         HttpStatus status = "COMPLETED".equals(result.status()) ? HttpStatus.OK : HttpStatus.ACCEPTED;
         return ResponseEntity.status(status).body(toResponse(result));
