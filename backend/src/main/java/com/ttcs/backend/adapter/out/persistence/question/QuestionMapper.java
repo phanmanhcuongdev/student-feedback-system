@@ -12,7 +12,8 @@ public class QuestionMapper {
                 entity.getId(),
                 entity.getSurvey().getId(),
                 entity.getContent(),
-                QuestionType.valueOf(entity.getType())
+                QuestionType.valueOf(entity.getType()),
+                entity.getQuestionBankEntryId()
         );
     }
 
@@ -23,6 +24,7 @@ public class QuestionMapper {
         entity.setId(domain.getId());
         entity.setContent(domain.getContent());
         entity.setType(QuestionTypeMapper.toEntity(domain.getType()));
+        entity.setQuestionBankEntryId(domain.getQuestionBankEntryId());
 
         // shallow survey
         SurveyEntity survey = new SurveyEntity();

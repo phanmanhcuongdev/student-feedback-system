@@ -11,10 +11,15 @@ The current implementation supports:
 - Student document upload after verification
 - Admin approval or rejection of pending student accounts
 - Governed survey lifecycle with draft, publish, close, and archive states
+- Reusable Question Bank and Survey Template management for admins
 - Survey recipient tracking with denominator-based response metrics
-- Scoped teacher survey-result access for department-targeted surveys
+- Scoped lecturer survey-result access for department-targeted surveys
 - Authenticated survey listing, detail view, and submission
-- Survey result viewing for admin and teacher roles
+- Survey result viewing for admin and lecturer roles
+- CSV survey result export for admins
+- Admin analytics dashboard with lifecycle, participation, and attention metrics
+- Admin audit log viewer for privileged actions
+- Persisted student notifications with read/unread state
 - Shared authenticated frontend shell with role-aware navigation
 - Account area for current-user overview and password management
 - Admin user management with backend-backed search, filter, pagination, and sort
@@ -39,6 +44,8 @@ The current implementation supports:
   React web client that calls the backend API. Uses a shared authenticated `AppShell`, role-aware navigation, shared UI primitives, and reusable operational data-view components.
 - [`API_CONTRACT.md`](API_CONTRACT.md)
   Implemented API slices and payload expectations.
+- [`docs/reporting-architecture.md`](docs/reporting-architecture.md)
+  Reporting and export boundaries for analytics queries and survey result exports.
 - [`database/README.md`](database/README.md)
   Fresh setup, migration path, and demo credential notes.
 - [`.env.example`](.env.example)
@@ -126,6 +133,7 @@ Notes:
 - Flyway is enabled through `spring.flyway.enabled=true` and scans SQL migrations from `classpath:db/migration`, which maps to `backend/src/main/resources/db/migration/`.
 - `spring.flyway.baseline-on-migrate=true` is enabled so an existing SQL Server database can be brought under Flyway management without replaying the initial schema migration.
 - `backend/src/main/resources/db/migration/V1__initial_schema.sql` is the baseline schema migration used for new environments.
+- `backend/src/main/resources/db/migration/V2__notification_module.sql` extends notification storage with type, title, survey metadata, delivery timestamp, and read state.
 - For a new database, let Flyway apply the versioned scripts at startup. The legacy `database/full_schema.sql` and `database/migrations/` files are still useful as reference SQL, but the application now runs migrations from the Flyway folder.
 - Resend must be configured if you want registration to send a real verification email. If `RESEND_API_KEY` is missing, registration email delivery will fail by design.
 
@@ -300,10 +308,20 @@ Compatibility note:
 1. Sign in with an admin account
 2. Open `/admin/surveys`
 3. Create a survey draft
-4. Edit the draft until dates, questions, and recipient scope are ready
-5. Publish the survey
-6. Monitor targeted, opened, submitted, and response-rate metrics
-7. Close it when collection should stop, then archive it when the run is complete
+4. Optionally manage reusable questions in `/admin/question-bank`
+5. Optionally manage or apply reusable templates in `/admin/survey-templates`
+6. Edit the draft until dates, questions, and recipient scope are ready
+7. Publish the survey
+8. Monitor targeted, opened, submitted, and response-rate metrics
+9. Export result CSV reports from survey result detail as admin
+10. Close it when collection should stop, then archive it when the run is complete
+
+### Analytics, audit, and notifications
+
+1. Sign in with an admin account
+2. Open `/dashboard/admin` for survey lifecycle, participation, department, and attention metrics
+3. Open `/admin/audit-logs` to inspect successful privileged actions with filters and pagination
+4. Sign in as a student and open `/notifications` to review survey and onboarding notifications, filter unread items, and mark items as read
 
 ### User administration
 
@@ -314,13 +332,13 @@ Compatibility note:
 
 ### Survey result review
 
-1. Sign in with an admin or teacher account
+1. Sign in with an admin or lecturer account
 2. Open `/survey-results`
 3. Inspect survey statistics, participation metrics, and question-level breakdowns
 
 ### Feedback and review queues
 
-1. Sign in with an admin or teacher account
+1. Sign in with an admin or lecturer account
 2. Open `/feedback/manage`
 3. Search and filter the feedback queue, open a queue item, and send a response
 4. As admin, open `/admin/students/pending` and work the review queue
@@ -336,11 +354,12 @@ Compatibility note:
 - Current account overview uses the authenticated session data already available to the frontend. It does not fabricate unsupported profile fields from a separate profile API.
 - User management search, filter, pagination, and sort are backend-backed.
 - Survey management search, filter, pagination, and sort are backend-backed.
-- Pending-student review, staff feedback review, student surveys, student feedback history, notifications, and survey results now use backend-backed pagination.
+- Question Bank, Survey Templates, pending-student review, staff feedback review, student surveys, student feedback history, notifications, audit logs, and survey results now use backend-backed pagination.
 - Survey results also use backend-backed filtering, sorting, and metrics while exposing lifecycle, runtime status, and audience scope.
+- Notification deadline reminders are generated lazily when the student opens the notification center; no scheduler platform is used in the current implementation.
 - Seed accounts in `database/seed_data.sql` are BCrypt-compatible and can be used directly after import:
   - `admin@university.edu` / `admin123`
-  - `teacher@university.edu` / `teacher123`
+  - `lecturer@university.edu` / `lecturer123`
   - seeded student accounts / `student123`
 
 ## Architecture Summary
@@ -358,3 +377,5 @@ Compatibility note:
   - `adapter.out`: persistence adapters, security token service, external integrations such as Resend
 - Main request flow:
   frontend page -> frontend API client -> backend controller -> use case service -> output port -> persistence adapter -> SQL Server
+- Reporting follows the same boundary. Controllers do not own reporting SQL or export formatting; reporting queries live behind output ports in persistence adapters, and survey result export renders through a `SurveyReportRenderer`.
+- See [`docs/reporting-architecture.md`](docs/reporting-architecture.md) for the current admin analytics and survey export flow.

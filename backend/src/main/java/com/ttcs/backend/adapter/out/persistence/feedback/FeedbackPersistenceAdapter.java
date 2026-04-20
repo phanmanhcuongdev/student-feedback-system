@@ -25,6 +25,23 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbackPort {
 
+    /*
+     * Feedback.student_id is constrained to Student.user_id in the current schema.
+     * Keep this join explicit because the column name can look like an independent student profile id.
+     */
+    private static final String STAFF_FEEDBACK_FROM = """
+                FROM [Feedback] f
+                INNER JOIN Student s ON s.user_id = f.student_id
+                INNER JOIN [User] u ON u.user_id = s.user_id
+                LEFT JOIN (
+                    SELECT
+                        fr.feedback_id,
+                        COUNT(*) AS response_count
+                    FROM Feedback_Response fr
+                    GROUP BY fr.feedback_id
+                ) response_stats ON response_stats.feedback_id = f.feedback_id
+            """;
+
     private final FeedbackRepository feedbackRepository;
     private final StudentRepository studentRepository;
     private final EntityManager entityManager;
@@ -85,17 +102,9 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
                     f.title,
                     f.content,
                     f.created_at
-                FROM [Feedback] f
-                INNER JOIN Student s ON s.user_id = f.student_id
-                INNER JOIN [User] u ON u.user_id = s.user_id
-                LEFT JOIN (
-                    SELECT
-                        fr.feedback_id,
-                        COUNT(*) AS response_count
-                    FROM Feedback_Response fr
-                    GROUP BY fr.feedback_id
-                ) response_stats ON response_stats.feedback_id = f.feedback_id
-                """ + whereClause + orderClause + " OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY");
+                """
+                + STAFF_FEEDBACK_FROM
+                + whereClause + orderClause + " OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY");
         applyQueryParameters(itemsQuery, query);
         itemsQuery.setParameter("offset", page * size);
         itemsQuery.setParameter("size", size);
@@ -106,17 +115,9 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
 
         Query countQuery = entityManager.createNativeQuery("""
                 SELECT COUNT(*)
-                FROM [Feedback] f
-                INNER JOIN Student s ON s.user_id = f.student_id
-                INNER JOIN [User] u ON u.user_id = s.user_id
-                LEFT JOIN (
-                    SELECT
-                        fr.feedback_id,
-                        COUNT(*) AS response_count
-                    FROM Feedback_Response fr
-                    GROUP BY fr.feedback_id
-                ) response_stats ON response_stats.feedback_id = f.feedback_id
-                """ + whereClause);
+                """
+                + STAFF_FEEDBACK_FROM
+                + whereClause);
         applyQueryParameters(countQuery, query);
         long totalElements = ((Number) countQuery.getSingleResult()).longValue();
         int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);

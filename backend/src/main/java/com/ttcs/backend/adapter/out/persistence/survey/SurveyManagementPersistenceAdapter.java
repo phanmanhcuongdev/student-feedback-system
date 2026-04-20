@@ -2,6 +2,7 @@ package com.ttcs.backend.adapter.out.persistence.survey;
 
 import com.ttcs.backend.adapter.out.persistence.DepartmentRepository;
 import com.ttcs.backend.adapter.out.persistence.department.DepartmentMapper;
+import com.ttcs.backend.adapter.out.persistence.reporting.ReportingSqlFragments;
 import com.ttcs.backend.application.domain.model.Department;
 import com.ttcs.backend.application.port.out.admin.ManageSurveyPort;
 import com.ttcs.backend.application.port.out.admin.ManagedSurveyMetrics;
@@ -27,30 +28,15 @@ public class SurveyManagementPersistenceAdapter implements ManageSurveyPort {
     private final EntityManager entityManager;
     private final DepartmentRepository departmentRepository;
 
-    private static final String RUNTIME_STATUS_SQL = """
-            CASE
-                WHEN s.lifecycle_state = 'DRAFT' THEN 'NOT_OPEN'
-                WHEN s.lifecycle_state IN ('CLOSED', 'ARCHIVED') THEN 'CLOSED'
-                WHEN s.start_date IS NOT NULL AND s.start_date > GETDATE() THEN 'NOT_OPEN'
-                WHEN s.end_date IS NOT NULL AND s.end_date < GETDATE() THEN 'CLOSED'
-                ELSE 'OPEN'
-            END
-            """;
+    private static final String RUNTIME_STATUS_SQL = ReportingSqlFragments.runtimeStatus("s");
+
+    private static final String RESPONSE_RATE_SQL = ReportingSqlFragments.recipientResponseRate("recipient_stats");
 
     private static final String BASE_FROM = """
             FROM Survey s
             LEFT JOIN Survey_Assignment sa ON sa.survey_id = s.survey_id
             LEFT JOIN Department d ON d.dept_id = sa.subject_value AND sa.subject_type = 'DEPARTMENT'
-            LEFT JOIN (
-                SELECT
-                    sr.survey_id,
-                    COUNT(*) AS targeted_count,
-                    SUM(CASE WHEN sr.opened_at IS NOT NULL THEN 1 ELSE 0 END) AS opened_count,
-                    SUM(CASE WHEN sr.submitted_at IS NOT NULL THEN 1 ELSE 0 END) AS submitted_count
-                FROM Survey_Recipient sr
-                GROUP BY sr.survey_id
-            ) recipient_stats ON recipient_stats.survey_id = s.survey_id
-            """;
+            """ + ReportingSqlFragments.recipientStatsJoin("s", "recipient_stats");
 
     @Override
     public ManagedSurveySearchPage loadPage(ManageSurveysQuery query) {
@@ -78,10 +64,8 @@ public class SurveyManagementPersistenceAdapter implements ManageSurveyPort {
                     COALESCE(recipient_stats.targeted_count, 0) AS targeted_count,
                     COALESCE(recipient_stats.opened_count, 0) AS opened_count,
                     COALESCE(recipient_stats.submitted_count, 0) AS submitted_count,
-                    CASE
-                        WHEN COALESCE(recipient_stats.targeted_count, 0) = 0 THEN 0
-                        ELSE (COALESCE(recipient_stats.submitted_count, 0) * 100.0) / recipient_stats.targeted_count
-                    END AS response_rate
+                    """ + RESPONSE_RATE_SQL + """
+                    AS response_rate
                 """ + BASE_FROM + whereClause + orderClause + " OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY");
         applyQueryParameters(itemsQuery, query);
         itemsQuery.setParameter("offset", page * size);
@@ -225,12 +209,7 @@ public class SurveyManagementPersistenceAdapter implements ManageSurveyPort {
         String expression = switch (normalizedSortBy) {
             case "title" -> "s.title";
             case "endDate" -> "s.end_date";
-            case "responseRate" -> """
-                    CASE
-                        WHEN COALESCE(recipient_stats.targeted_count, 0) = 0 THEN 0
-                        ELSE (COALESCE(recipient_stats.submitted_count, 0) * 100.0) / recipient_stats.targeted_count
-                    END
-                    """;
+            case "responseRate" -> RESPONSE_RATE_SQL;
             case "targetedCount" -> "COALESCE(recipient_stats.targeted_count, 0)";
             case "openedCount" -> "COALESCE(recipient_stats.opened_count, 0)";
             case "submittedCount" -> "COALESCE(recipient_stats.submitted_count, 0)";

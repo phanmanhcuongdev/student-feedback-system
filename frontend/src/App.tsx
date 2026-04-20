@@ -20,6 +20,9 @@ import AccountLayout from "./features/account/layouts/AccountLayout.tsx";
 import PendingStudentsPage from "./features/admin/pages/PendingStudentsPage.tsx";
 import UsersPage from "./features/admin/pages/UsersPage.tsx";
 import UserDetailPage from "./features/admin/pages/UserDetailPage.tsx";
+import QuestionBankPage from "./features/admin/pages/QuestionBankPage.tsx";
+import SurveyTemplatesPage from "./features/admin/pages/SurveyTemplatesPage.tsx";
+import AuditLogsPage from "./features/admin/pages/AuditLogsPage.tsx";
 import SurveysDetailPage from "./features/surveys/pages/SurveyDetailPage.tsx";
 import SurveysListPage from "./features/surveys/pages/SurveysPage.tsx";
 import SurveyResultDetailPage from "./features/survey-results/pages/SurveyResultDetailPage.tsx";
@@ -64,7 +67,7 @@ function App() {
                   <Route path="/feedback" element={<FeedbackPage />} />
                   <Route path="/surveys" element={<SurveysListPage />} />
                   <Route path="/surveys/:id" element={<SurveysDetailPage />} />
-                  <Route element={<RoleRoute allowedRoles={["ADMIN", "TEACHER"]} />}>
+                  <Route element={<RoleRoute allowedRoles={["ADMIN", "LECTURER"]} />}>
                       <Route path="/dashboard/lecturer" element={<LecturerDashboardPage />} />
                       <Route path="/survey-results" element={<SurveyResultsPage />} />
                       <Route path="/survey-results/:id" element={<SurveyResultDetailPage />} />
@@ -75,6 +78,9 @@ function App() {
                       <Route path="/admin/users" element={<UsersPage />} />
                       <Route path="/admin/users/:id" element={<UserDetailPage />} />
                       <Route path="/admin/surveys" element={<AdminSurveysPage />} />
+                      <Route path="/admin/question-bank" element={<QuestionBankPage />} />
+                      <Route path="/admin/survey-templates" element={<SurveyTemplatesPage />} />
+                      <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
                       <Route path="/admin/students/pending" element={<PendingStudentsPage />} />
                       <Route path="/admin/surveys/create" element={<CreateSurveyPage />} />
                       <Route path="/admin/surveys/:id/edit" element={<CreateSurveyPage />} />

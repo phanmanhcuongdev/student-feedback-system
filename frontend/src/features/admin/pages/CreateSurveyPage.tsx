@@ -2,10 +2,13 @@ import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
     archiveSurvey,
+    applySurveyTemplate,
     closeSurvey,
     createSurvey,
     getManagedSurvey,
+    getQuestionBankEntries,
     getSurveyManagementDepartments,
+    getSurveyTemplates,
     publishSurvey,
     setSurveyVisibility,
     updateSurvey,
@@ -22,7 +25,7 @@ import StatCard from "../../../components/ui/StatCard";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { darkActionButtonClass, darkActionButtonStyle } from "../../../components/ui/buttonStyles";
 import type { DepartmentOption } from "../../../types/admin";
-import type { CreateQuestionData, CreateSurveyData, SurveyLifecycleState, SurveyRuntimeStatus } from "../../../types/survey";
+import type { CreateQuestionData, CreateSurveyData, QuestionBankEntry, SurveyLifecycleState, SurveyRuntimeStatus, SurveyTemplate } from "../../../types/survey";
 
 type LifecycleAction = "publish" | "close" | "archive" | "show" | "hide";
 
@@ -79,6 +82,10 @@ export default function CreateSurveyPage() {
     const [error, setError] = useState("");
     const [feedback, setFeedback] = useState("");
     const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+    const [questionBank, setQuestionBank] = useState<QuestionBankEntry[]>([]);
+    const [templates, setTemplates] = useState<SurveyTemplate[]>([]);
+    const [selectedTemplateId, setSelectedTemplateId] = useState("");
+    const [pendingTemplateId, setPendingTemplateId] = useState<number | null>(null);
     const [pendingAction, setPendingAction] = useState<LifecycleAction | null>(null);
 
     const [title, setTitle] = useState("");
@@ -112,6 +119,15 @@ export default function CreateSurveyPage() {
     const recipientsLocked = responseCount > 0 || formLocked;
     const questionLocked = responseCount > 0 || formLocked;
     const notOpenedCount = Math.max(targetedCount - openedCount, 0);
+    const hasDraftContent = Boolean(
+        title.trim()
+        || description.trim()
+        || startDate
+        || endDate
+        || questions.length > 0
+        || recipientScope !== "ALL_STUDENTS"
+        || recipientDepartmentId
+    );
 
     const lifecycleHelp = useMemo(() => {
         if (!isEditMode) {
@@ -173,19 +189,36 @@ export default function CreateSurveyPage() {
     }, [loadSurveyData]);
 
     useEffect(() => {
-        async function loadDepartments() {
+        async function loadAssets() {
             try {
-                setDepartments(await getSurveyManagementDepartments());
+                const [departmentItems, bankPage, templatePage] = await Promise.all([
+                    getSurveyManagementDepartments(),
+                    getQuestionBankEntries({ active: true, size: 100 }),
+                    getSurveyTemplates({ active: true, size: 100 }),
+                ]);
+                setDepartments(departmentItems);
+                setQuestionBank(bankPage.items);
+                setTemplates(templatePage.items);
             } catch {
                 setDepartments([]);
+                setQuestionBank([]);
+                setTemplates([]);
             }
         }
 
-        void loadDepartments();
+        void loadAssets();
     }, []);
 
     function addQuestion() {
-        setQuestions((current) => [...current, { content: "", type: "RATING" }]);
+        setQuestions((current) => [...current, { content: "", type: "RATING", questionBankEntryId: null }]);
+    }
+
+    function addQuestionFromBank(entryId: string) {
+        const entry = questionBank.find((item) => item.id === Number(entryId));
+        if (!entry) {
+            return;
+        }
+        setQuestions((current) => [...current, { content: entry.content, type: entry.type, questionBankEntryId: entry.id }]);
     }
 
     function removeQuestion(index: number) {
@@ -194,6 +227,51 @@ export default function CreateSurveyPage() {
 
     function updateQuestion(index: number, field: keyof CreateQuestionData, value: string) {
         setQuestions((current) => current.map((question, itemIndex) => itemIndex === index ? { ...question, [field]: value } : question));
+    }
+
+    async function applyTemplate(templateId: number) {
+        try {
+            setError("");
+            setFeedback("");
+            const template = await applySurveyTemplate(templateId);
+            if (template.suggestedTitle) {
+                setTitle(template.suggestedTitle);
+            } else {
+                setTitle("");
+            }
+            if (template.suggestedSurveyDescription) {
+                setDescription(template.suggestedSurveyDescription);
+            } else {
+                setDescription("");
+            }
+            setRecipientScope(template.recipientScope);
+            setRecipientDepartmentId(template.recipientDepartmentId != null ? String(template.recipientDepartmentId) : "");
+            setQuestions(template.questions.map((question) => ({
+                content: question.content,
+                type: question.type,
+                questionBankEntryId: question.questionBankEntryId,
+            })));
+            setFeedback(`Applied template "${template.name}" in replace mode. Template questions were copied into this draft.`);
+        } catch (requestError) {
+            setError(getApiErrorMessage(requestError, "Unable to apply survey template."));
+        } finally {
+            setPendingTemplateId(null);
+        }
+    }
+
+    async function handleApplyTemplate() {
+        const templateId = Number(selectedTemplateId);
+        if (!Number.isFinite(templateId) || templateId <= 0) {
+            setError("Select a template to apply.");
+            return;
+        }
+
+        if (hasDraftContent) {
+            setPendingTemplateId(templateId);
+            return;
+        }
+
+        await applyTemplate(templateId);
     }
 
     async function handleSubmit(event: React.FormEvent) {
@@ -223,7 +301,7 @@ export default function CreateSurveyPage() {
             description: description.trim() || null,
             startDate: startDate ? new Date(startDate).toISOString() : null,
             endDate: endDate ? new Date(endDate).toISOString() : null,
-            questions: questions.map((question) => ({ content: question.content.trim(), type: question.type })),
+            questions: questions.map((question) => ({ content: question.content.trim(), type: question.type, questionBankEntryId: question.questionBankEntryId || null })),
             recipientScope,
             recipientDepartmentId: recipientScope === "DEPARTMENT" ? Number(recipientDepartmentId) : null,
         };
@@ -341,6 +419,20 @@ export default function CreateSurveyPage() {
                             ) : null}
 
                             <FormSection title="Survey information" description="Keep the survey title and description readable for admins who manage many campaigns in parallel.">
+                                {!formLocked ? (
+                                    <div className="mb-5 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[minmax(0,1fr)_auto]">
+                                        <select value={selectedTemplateId} onChange={(event) => setSelectedTemplateId(event.target.value)} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5">
+                                            <option value="">Select survey template</option>
+                                            {templates.map((template) => (
+                                                <option key={template.id} value={template.id}>{template.name}</option>
+                                            ))}
+                                        </select>
+                                        <button type="button" onClick={() => void handleApplyTemplate()} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
+                                            Replace with template
+                                        </button>
+                                        <p className="md:col-span-2 text-xs leading-5 text-slate-500">Replace mode copies the selected template into this draft. It overwrites current title, description, audience, and questions, and later template changes will not sync into this survey.</p>
+                                    </div>
+                                ) : null}
                                 <div className="grid gap-5">
                                     <Field label="Title">
                                         <input type="text" value={title} onChange={(event) => setTitle(event.target.value)} disabled={formLocked} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100" />
@@ -383,7 +475,13 @@ export default function CreateSurveyPage() {
                             </FormSection>
 
                             <FormSection title="Questions" description="This phase keeps the current editor model but organizes it into a cleaner operational section.">
-                                <div className="flex justify-end">
+                                <div className="flex flex-wrap justify-end gap-3">
+                                    <select defaultValue="" onChange={(event) => { addQuestionFromBank(event.target.value); event.currentTarget.value = ""; }} disabled={questionLocked || questionBank.length === 0} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition focus:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60">
+                                        <option value="">Add from question bank</option>
+                                        {questionBank.map((entry) => (
+                                            <option key={entry.id} value={entry.id}>{entry.content}</option>
+                                        ))}
+                                    </select>
                                     <button type="button" onClick={addQuestion} disabled={questionLocked} className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60">
                                         <span className="material-symbols-outlined text-[18px]">add</span>
                                         Add question
@@ -416,6 +514,7 @@ export default function CreateSurveyPage() {
                                 )}
 
                                 {questionLocked ? <p className="text-sm font-medium text-amber-700">Questions are locked after publication or once responses exist.</p> : null}
+                                {!questionLocked ? <p className="text-sm text-slate-500">Question-bank items are copied into the draft. Later edits or archives in the question bank do not change this survey.</p> : null}
                             </FormSection>
 
                             {isEditMode ? (
@@ -465,6 +564,16 @@ export default function CreateSurveyPage() {
                 busy={toggling}
                 onCancel={() => setPendingAction(null)}
                 onConfirm={() => void handleLifecycleAction()}
+            />
+            <ConfirmDialog
+                open={pendingTemplateId != null}
+                title="Replace draft with template"
+                description="This will overwrite the current draft title, description, audience, and question list. The template will be copied into this draft and will not stay linked for future changes."
+                confirmLabel="Replace draft"
+                tone="danger"
+                busy={false}
+                onCancel={() => setPendingTemplateId(null)}
+                onConfirm={() => pendingTemplateId != null ? void applyTemplate(pendingTemplateId) : undefined}
             />
         </main>
     );

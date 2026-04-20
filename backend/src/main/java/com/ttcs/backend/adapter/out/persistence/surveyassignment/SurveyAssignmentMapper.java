@@ -49,7 +49,8 @@ public final class SurveyAssignmentMapper {
         }
 
         try {
-            return SubjectType.valueOf(rawValue.trim().toUpperCase());
+            String normalized = rawValue.trim().toUpperCase();
+            return SubjectType.valueOf(normalized);
         } catch (IllegalArgumentException exception) {
             return null;
         }

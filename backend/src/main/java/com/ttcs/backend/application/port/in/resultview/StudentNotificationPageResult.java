@@ -7,6 +7,7 @@ public record StudentNotificationPageResult(
         int page,
         int size,
         long totalElements,
-        int totalPages
+        int totalPages,
+        long unreadCount
 ) {
 }

@@ -5,7 +5,7 @@
   - Build the next version of this repository around three concrete upgrades:
     - a real onboarding review workflow
     - a real survey lifecycle with participation tracking
-    - a real governance/reporting layer for admin and teacher users
+    - a real governance/reporting layer for admin and lecturer users
 - What that means in practice:
   - Replace binary onboarding approval with rejection reasons, reviewer notes, document review, and resubmission.
   - Replace survey CRUD-plus-submit with draft/publish/close/archive plus recipient tracking, reminders, and response-rate reporting.
@@ -53,9 +53,9 @@
     - Critical reporting improvement
     - stronger dashboards
     - better lecturer/recruiter impression
-- Teacher access scoping
+- Lecturer access scoping
   - Problem solved:
-    - Current teacher result access is too broad for a real institution.
+    - Current lecturer result access is too broad for a real institution.
   - Why now:
     - Governance realism is currently weak and obvious.
   - Expected impact:
@@ -226,18 +226,18 @@
 - Security/authorization changes if needed:
   - Ensure only scoped roles see cohort metrics relevant to them.
 
-### D. Teacher access scoping
+### D. Lecturer access scoping
 - Domain model changes:
   - Introduce ownership/scope rules:
     - by department
     - by survey owner
     - possibly by course later if added
 - Database changes:
-  - Minimal version can derive scope from teacher department and survey assignment.
+  - Minimal version can derive scope from lecturer department and survey assignment.
   - Stronger version can add an explicit `Survey_View_Permission` or owner mapping table.
 - Service/use case changes:
   - Refactor survey result query path to filter results by the authenticated user’s scope.
-  - Do not rely on `hasRole("TEACHER")` alone.
+  - Do not rely on `hasRole("LECTURER")` alone.
 - API changes:
   - No major contract change required, but returned data should be filtered.
 - Background processing changes if needed:
@@ -348,14 +348,14 @@
   - Replace raw department ID input with selector.
   - Show participation funnel, not only response count.
 
-### C. Teacher access scoping
+### C. Lecturer access scoping
 - Pages/screens to add or change:
   - Update lecturer dashboard
   - Update survey result list/detail to show only scoped data
 - UI workflow changes:
-  - Teacher sees only relevant surveys/results.
+  - Lecturer sees only relevant surveys/results.
 - Validation / UX changes:
-  - Better empty-state messaging when teacher has no scoped surveys.
+  - Better empty-state messaging when lecturer has no scoped surveys.
 - Admin/operator usability improvements:
   - Improve trust in data boundaries.
 
@@ -467,7 +467,7 @@
   - Onboarding workflow state transition tests
   - Survey lifecycle transition tests
   - Participation tracking tests
-  - Authorization scope tests for teacher/admin access
+  - Authorization scope tests for lecturer/admin access
   - Audit log emission tests
   - Notification/reminder generation tests
 - What frontend tests should be added:
@@ -481,11 +481,11 @@
   - Survey publication creating recipient tracking records
   - Survey submission updating participation metrics
   - Reminder job writing notifications and sending email
-  - Teacher scoped result access
+  - Lecturer scoped result access
 - Which additions most improve confidence and demo quality:
   - Onboarding workflow tests
   - Survey lifecycle + participation tests
-  - Teacher scoping tests
+  - Lecturer scoping tests
   - Frontend tests for admin review and survey publish flow
 
 ## 7. Suggested Delivery Order
@@ -494,7 +494,7 @@
 - What to build:
   - onboarding review workflow
   - rejection reasons / reviewer notes
-  - teacher access scoping
+  - lecturer access scoping
   - audit logging baseline
 - Why that order makes sense:
   - It fixes obvious realism and governance problems first without requiring major infrastructure.
@@ -561,7 +561,7 @@
 - Realism of the product:
   - Students get a clearer status journey.
   - Admins get actual queues and decision tools.
-  - Teachers get governed access and useful reporting.
+  - Lecturers get governed access and useful reporting.
   - Notifications and reminders stop being cosmetic.
 - Quality of project presentation/demo:
   - The demo story becomes much stronger:
@@ -573,7 +573,7 @@
 ## 9. Final Recommended Build Set
 - Top 5 items to implement immediately:
   - Onboarding review workflow with rejection reasons and resubmission
-  - Teacher access scoping
+  - Lecturer access scoping
   - Audit logging for privileged actions
   - Survey lifecycle states and publish/archive controls
   - Department selector/master-data support in admin flows

@@ -1,4 +1,4 @@
-export type NavigationRole = "STUDENT" | "TEACHER" | "ADMIN";
+export type NavigationRole = "STUDENT" | "LECTURER" | "ADMIN";
 
 export type NavigationItem = {
     label: string;
@@ -24,7 +24,7 @@ export function getNavigationGroups(role: string): NavigationGroup[] {
                 ],
             },
         ],
-        TEACHER: [
+        LECTURER: [
             {
                 title: "Lecturer Workspace",
                 items: [
@@ -42,14 +42,17 @@ export function getNavigationGroups(role: string): NavigationGroup[] {
                     { label: "Users", to: "/admin/users", icon: "group" },
                     { label: "Pending Students", to: "/admin/students/pending", icon: "pending_actions" },
                     { label: "Surveys", to: "/admin/surveys", icon: "assignment" },
+                    { label: "Question Bank", to: "/admin/question-bank", icon: "quiz" },
+                    { label: "Survey Templates", to: "/admin/survey-templates", icon: "library_add" },
                     { label: "Survey Results", to: "/survey-results", icon: "analytics" },
+                    { label: "Audit Logs", to: "/admin/audit-logs", icon: "manage_search" },
                     { label: "Feedback Review", to: "/feedback/manage", icon: "rate_review" },
                 ],
             },
         ],
     };
 
-    const normalizedRole: NavigationRole = role === "ADMIN" || role === "TEACHER" || role === "STUDENT"
+    const normalizedRole: NavigationRole = role === "ADMIN" || role === "LECTURER" || role === "STUDENT"
         ? role
         : "STUDENT";
 
@@ -69,7 +72,7 @@ export function getRoleLabel(role: string) {
     switch (role) {
         case "STUDENT":
             return "Student";
-        case "TEACHER":
+        case "LECTURER":
             return "Lecturer";
         case "ADMIN":
             return "Administrator";

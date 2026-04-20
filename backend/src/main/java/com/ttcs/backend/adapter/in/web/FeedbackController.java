@@ -47,7 +47,7 @@ public class FeedbackController {
     private final GetStudentFeedbackUseCase getStudentFeedbackUseCase;
     private final GetAllFeedbackUseCase getAllFeedbackUseCase;
     private final RespondToFeedbackUseCase respondToFeedbackUseCase;
-    private final CurrentStudentProvider currentStudentProvider;
+    private final CurrentIdentityProvider currentIdentityProvider;
 
     @GetMapping
     public ResponseEntity<StudentFeedbackPageResponse> getFeedback(
@@ -56,8 +56,8 @@ public class FeedbackController {
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir
     ) {
-        currentStudentProvider.ensureActiveStudentAccount();
-        Integer studentId = currentStudentProvider.currentStudentId();
+        currentIdentityProvider.ensureActiveStudentAccount();
+        Integer studentId = currentIdentityProvider.currentStudentProfileId();
         StudentFeedbackPageResult result = getStudentFeedbackUseCase.getStudentFeedback(
                 new GetStudentFeedbackQuery(page, size, sortBy, sortDir),
                 studentId
@@ -101,10 +101,10 @@ public class FeedbackController {
 
     @PostMapping
     public ResponseEntity<CreateFeedbackResponse> createFeedback(@Valid @RequestBody CreateFeedbackRequest request) {
-        currentStudentProvider.ensureActiveStudentAccount();
+        currentIdentityProvider.ensureActiveStudentAccount();
         CreateFeedbackResult result = createFeedbackUseCase.createFeedback(
                 new CreateFeedbackCommand(
-                        currentStudentProvider.currentStudentId(),
+                        currentIdentityProvider.currentStudentProfileId(),
                         request.getTitle(),
                         request.getContent()
                 )
@@ -120,7 +120,7 @@ public class FeedbackController {
         RespondToFeedbackResult result = respondToFeedbackUseCase.respond(
                 new RespondToFeedbackCommand(
                         feedbackId,
-                        currentStudentProvider.currentUserId(),
+                        currentIdentityProvider.currentUserId(),
                         request.getContent()
                 )
         );

@@ -6,7 +6,7 @@
   - The current product footprint is broader than a single survey app. It has:
     - student registration, email verification, document upload, admin approval
     - survey creation, editing, visibility control, manual close, response submission
-    - survey result viewing for admin and teacher roles
+    - survey result viewing for admin and lecturer roles
     - user management and account activation/deactivation
     - student-submitted feedback with staff replies
   - Evidence is visible in the README flow summary, the Spring controllers, the React route tree, and the SQL schema (`README.md:5-15`, `backend/src/main/java/com/ttcs/backend/adapter/in/web`, `frontend/src/App.tsx`, `database/full_schema.sql`).
@@ -43,8 +43,8 @@
   - No participation lifecycle.
     - The system records only final submission, not invited/opened/in-progress/reminded/not-submitted states.
 - Governance gaps:
-  - Teacher access is not realistically scoped.
-    - Teachers can access survey results broadly through role checks, but no ownership or departmental scoping is evident in result retrieval (`SecurityConfig.java:41-44`, `SurveyResultPersistenceAdapter.java:33-84`).
+  - Lecturer access is not realistically scoped.
+    - Lecturers can access survey results broadly through role checks, but no ownership or departmental scoping is evident in result retrieval (`SecurityConfig.java:41-44`, `SurveyResultPersistenceAdapter.java:33-84`).
   - Admin actions are not auditable.
     - Approvals, rejections, deactivations, survey closes, and visibility changes do not appear to write audit logs. Not evident in repository.
   - User state semantics are muddy.
@@ -105,7 +105,7 @@
   - Fixes shallow survey CRUD.
   - Fixes weak analytics.
   - Fixes missing closed-loop lifecycle.
-  - Fixes teacher access realism if ownership scoping is added.
+  - Fixes lecturer access realism if ownership scoping is added.
 - Which new business flows it introduces:
   - survey template -> draft -> review -> publish -> invite/target tracking -> reminders -> participation monitoring -> close -> segmented reporting -> action planning -> archive
   - response risk detection for low-performing cohorts
@@ -115,11 +115,11 @@
   - Object storage for exports/report attachments
   - Stronger analytics queries or materialized reporting tables
   - Optional search/filtering layer for surveys, comments, and tickets
-  - Policy-based authorization for teacher/admin data scoping
+  - Policy-based authorization for lecturer/admin data scoping
 - Why this direction is good for a student capstone / portfolio:
   - Best alignment with the existing repo identity.
   - Strongest balance of product depth and justified technical breadth.
-  - Produces visible admin, teacher, and student value without changing domain completely.
+  - Produces visible admin, lecturer, and student value without changing domain completely.
 
 ### Direction C: Student Experience & Feedback Resolution Platform
 - What kind of stronger product it would become:
@@ -151,7 +151,7 @@
   - Expanding that into real survey operations creates the largest jump in product seriousness without forcing a domain pivot.
   - It naturally justifies a broader but still disciplined technical set:
     - scheduled/background jobs for reminders and aggregation
-    - authorization scoping for teacher/admin visibility
+    - authorization scoping for lecturer/admin visibility
     - reporting tables or export workflows
     - object storage for exports and sensitive files
   - It also keeps onboarding and feedback relevant, because those can be integrated as supporting workflows rather than separate products.
@@ -161,7 +161,7 @@
 - What new value it creates for users/admins:
   - Students get clearer assignments, reminders, and better survey timing visibility.
   - Admins get response-rate management instead of passive survey creation.
-  - Teachers get scoped, more actionable result insights.
+  - Lecturers get scoped, more actionable result insights.
   - The institution gets evidence of participation quality, not just stored responses.
 
 ## 5. Recommended Feature Additions
@@ -213,7 +213,7 @@
     - High
 
 ### Must-have governance/operation features
-- Scoped teacher authorization by department/course ownership
+- Scoped lecturer authorization by department/course ownership
   - Problem it solves:
     - Current result access is too broad.
   - Why it matters:
@@ -339,8 +339,8 @@
   - survey reminder emails
   - stale onboarding escalation
   - periodic operational metric refresh
-- Why it is justified here:
-  - The current notification model is computed on read, which is not a real notification system.
+- Current implementation note:
+  - The notification model is now persisted for product actions and read/unread state. A future scheduler would still be useful for proactive reminder generation.
 - Essential or optional:
   - Essential
 - Improves:
@@ -376,7 +376,7 @@
 - Name of the technology or technical pattern:
   - Policy-based authorization over role-only authorization
 - What exact problem it solves:
-  - Roles alone are too broad for teacher result visibility and delegated administration.
+  - Roles alone are too broad for lecturer result visibility and delegated administration.
 - What feature/workflow it enables:
   - department-scoped lecturer access
   - owned-survey management
@@ -542,7 +542,7 @@ Technologies that would currently be overengineering:
 ### Phase 1: Highest-value additions
 - Add onboarding rejection reasons, reviewer notes, and resubmission.
 - Add master-data selectors for departments and other controlled values.
-- Add teacher access scoping.
+- Add lecturer access scoping.
 - Add audit logging for admin actions.
 - Add frontend tests for onboarding, survey submission, and admin review.
 

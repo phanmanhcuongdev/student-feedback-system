@@ -7,7 +7,7 @@
     - stronger onboarding lifecycle
     - governed survey lifecycle
     - participation tracking and operational reporting
-    - scoped admin/teacher access
+    - scoped admin/lecturer access
     - real notification and audit behavior
 - Why this is the best direction:
   - It strengthens the repo's strongest existing domain instead of fragmenting it.
@@ -62,7 +62,7 @@
     - High
   - Mandatory or optional:
     - Mandatory
-- Scoped teacher/admin access
+- Scoped lecturer/admin access
   - Why it was selected:
     - Current role-only access to results is too broad and unrealistic.
   - Expected impact:
@@ -187,9 +187,9 @@
   - Why it was selected:
     - Static roles are not enough for scoped survey/result visibility.
   - What concrete problem it solves:
-    - Prevents overbroad teacher/admin access.
+    - Prevents overbroad lecturer/admin access.
   - What feature(s) it supports:
-    - teacher scoping
+    - lecturer scoping
     - survey ownership/governance
   - Mandatory or optional:
     - Mandatory
@@ -265,7 +265,7 @@
 | Survey lifecycle states | Backend integration tests | Lifecycle logic is only convincing if protected by real flow tests | High | High |
 | Recipient tracking and participation states | Reporting read models | This is what makes survey analytics meaningful instead of decorative | Very high | High |
 | Response-rate reporting | Reporting read models | Solves the repo’s biggest analytics gap directly | Very high | High |
-| Scoped teacher/admin access | Policy-based authorization | Fixes an obvious realism/security problem without changing the stack | High | Very high |
+| Scoped lecturer/admin access | Policy-based authorization | Fixes an obvious realism/security problem without changing the stack | High | Very high |
 | Persistent notifications | Background jobs / scheduler | Makes reminder logic operational instead of page-derived | High | High |
 | Reminder workflow | Background jobs + email workflow expansion | Produces clear product value and justified async behavior | High | High |
 | Operational dashboards | Reporting read models + structured metrics | Makes dashboards useful rather than cosmetic | High | Medium-High |
@@ -275,7 +275,7 @@
 - If I want the minimum scope that still looks much stronger than the current project, I should build:
   - onboarding rejection reasons + reviewer notes + resubmission
   - survey lifecycle states (`draft`, `published`, `closed`, `archived`)
-  - teacher access scoping
+  - lecturer access scoping
   - audit logging
   - response-rate reporting with minimal recipient tracking
 - Why this is the minimum strong scope:
@@ -290,7 +290,7 @@
   - survey lifecycle states and publish/archive controls
   - recipient tracking and participation states
   - response-rate reporting
-  - scoped teacher/admin access
+  - scoped lecturer/admin access
   - persistent notifications and reminder workflow
   - actionable admin/lecturer dashboards
   - audit logging
@@ -331,7 +331,7 @@
   - survey lifecycle states
   - recipient tracking and participation states
   - response-rate reporting
-  - scoped teacher/admin access
+  - scoped lecturer/admin access
   - persistent notifications
   - reminder workflow
   - audit logging
@@ -340,7 +340,7 @@
   - onboarding correction workflow
   - survey lifecycle states
   - recipient tracking plus response-rate reporting
-  - scoped teacher/admin access
+  - scoped lecturer/admin access
   - audit logging
 - Top 5 optional additions:
   - feedback ticket lifecycle

@@ -15,8 +15,12 @@ It currently includes pages and flows for:
 - Student survey listing and submission
 - Admin user management
 - Admin survey management
+- Admin question-bank and survey-template management
 - Admin pending-student review
-- Survey result viewing for admin and teacher roles
+- Admin analytics dashboard
+- Admin audit log viewer
+- Student notifications with read/unread state
+- Survey result viewing for admin and lecturer roles
 - Staff feedback management
 
 ## Stack
@@ -82,6 +86,9 @@ Frontend default URL:
 - `/admin/surveys`
 - `/admin/surveys/create`
 - `/admin/surveys/:id/edit`
+- `/admin/question-bank`
+- `/admin/survey-templates`
+- `/admin/audit-logs`
 - `/admin/students/pending`
 - `/survey-results`
 - `/survey-results/:id`
@@ -113,8 +120,10 @@ Frontend default URL:
 - Account overview uses existing auth/session data only. It does not fetch or fabricate unsupported profile fields.
 - User management at `/admin/users` is backend-backed for search, filter, pagination, and sort.
 - Survey management at `/admin/surveys` is backend-backed for search, filter, pagination, and sort.
+- Question Bank, Survey Templates, Audit Logs, Notifications, and Survey Results use backend-backed pagination.
+- Student notifications are persisted and support unread filtering plus mark-read actions.
 - Survey results expose richer backend metadata such as lifecycle state, runtime status, and audience scope.
-- Feedback management and pending-student review currently use frontend-side filtering and pagination over the current API payloads.
+- Lecturer is the canonical role label in routes, navigation, guards, and UI copy.
 
 ## API Integration Notes
 

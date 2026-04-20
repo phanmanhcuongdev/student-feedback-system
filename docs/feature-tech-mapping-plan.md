@@ -28,7 +28,7 @@
     - Evidence: `backend/src/main/java/com/ttcs/backend/application/domain/service/AdminUserManagementService.java`
   - Student feedback inbox
     - student submits feedback
-    - admin/teacher replies
+    - admin/lecturer replies
     - Evidence: `backend/src/main/java/com/ttcs/backend/application/domain/service/StudentFeedbackService.java`
   - Notifications
     - survey-related notification feed derived from survey dates
@@ -77,7 +77,7 @@
   - Description:
     - Track who was targeted, who opened, who started, who submitted, and who ignored a survey.
   - User value:
-    - Admins and teachers can measure participation quality rather than just raw response counts.
+    - Admins and lecturers can measure participation quality rather than just raw response counts.
   - Why current system needs it:
     - The repo currently knows only about completed responses.
   - Implementation difficulty:
@@ -119,7 +119,7 @@
     - Medium
   - Priority:
     - Critical
-- Teacher/lecturer access scoping
+- Lecturer/lecturer access scoping
   - Description:
     - Restrict result access by department, course ownership, or assigned survey scope.
   - User value:
@@ -237,7 +237,7 @@
 ### Security / audit features
 - Audit trail for privileged actions
   - Description:
-    - Record admin/teacher lifecycle actions with actor, target, timestamp, and payload summary.
+    - Record admin/lecturer lifecycle actions with actor, target, timestamp, and payload summary.
   - User value:
     - Supports accountability and troubleshooting.
   - Why current system needs it:
@@ -330,7 +330,7 @@
   - What it is:
     - Authorization logic based on ownership and scope, not only broad roles.
   - What exact problem it solves here:
-    - Fixes teacher visibility and future delegated admin boundaries.
+    - Fixes lecturer visibility and future delegated admin boundaries.
   - Why it is not just resume decoration:
     - The repo’s current role model is too coarse for realistic institutional data access.
 - File validation/security hardening
@@ -371,7 +371,7 @@
 | Survey draft/review/publish/archive | Survey creation is too close to CRUD | Workflow state model, integration tests | Lifecycle expansion is core business logic, not infrastructure-heavy | Yes | Critical |
 | Recipient tracking and participation states | No response denominator or participation insight | Reporting read models, background jobs | Participation tracking becomes more useful when metrics and reminders are automated | Partially | Critical |
 | Response-rate reporting | Current analytics only count submissions | Reporting read models / summary tables | Raw transactional queries will become clumsy and slow as reporting expands | Partially | Critical |
-| Teacher access scoping | Result access is too broad | Policy layer / scoped authorization | Role-only checks are not enough for institutional realism | Partially | Critical |
+| Lecturer access scoping | Result access is too broad | Policy layer / scoped authorization | Role-only checks are not enough for institutional realism | Partially | Critical |
 | Persistent in-app notifications | Current notifications are computed, not managed | Background jobs, notification persistence model | Reminders and state-change alerts need stored delivery events | Partially | High |
 | Email reminder workflow | No proactive reminder or decision emails | Email workflow expansion, background jobs | Outbound lifecycle communication is already adjacent to current Resend usage | No | High |
 | Operational dashboard for backlog and risk | Current dashboards are passive | Reporting read models, structured metrics | Operational views need precomputed metrics and measurable statuses | Partially | High |
@@ -408,7 +408,7 @@
     - student recovery path
     - reviewer accountability
     - production realism
-- Teacher result scoping + policy layer
+- Lecturer result scoping + policy layer
   - Why it is strong:
     - It addresses a concrete governance flaw, not just a code-style issue.
   - What it demonstrates technically:
@@ -445,7 +445,7 @@
 ### Small expansion
 - Features to add:
   - rejection reasons and reviewer notes
-  - teacher access scoping
+  - lecturer access scoping
   - department selectors/master-data UI
   - audit trail for admin actions
 - Technologies to add:
@@ -507,7 +507,7 @@
   - Survey draft/review/publish/archive lifecycle
   - Recipient tracking and participation states
   - Response-rate reporting
-  - Teacher access scoping
+  - Lecturer access scoping
   - Feedback ticket workflow
 - Top 7 technologies/patterns:
   - Background jobs / scheduler
@@ -521,7 +521,7 @@
   - Recipient tracking and participation states + background jobs
   - Onboarding correction loop + object storage
   - Reviewer notes/rejection reasons + audit logging
-  - Teacher access scoping + policy-based authorization
+  - Lecturer access scoping + policy-based authorization
   - Response-rate reporting + reporting read models / summary tables
 
 Overengineering risks to avoid:

@@ -9,7 +9,7 @@ CREATE TABLE [dbo].[User] (
     [verify] BIT NOT NULL,
     CONSTRAINT [PK_User] PRIMARY KEY ([user_id]),
     CONSTRAINT [UQ_User_Email] UNIQUE ([email]),
-    CONSTRAINT [CHK_User_Role] CHECK ([role] IN ('ADMIN', 'STUDENT', 'TEACHER'))
+    CONSTRAINT [CHK_User_Role] CHECK ([role] IN ('ADMIN', 'STUDENT', 'LECTURER'))
 );
 GO
 
@@ -29,15 +29,15 @@ CREATE TABLE [dbo].[Admin] (
 );
 GO
 
-CREATE TABLE [dbo].[Teacher] (
+CREATE TABLE [dbo].[Lecturer] (
     [user_id] INT NOT NULL,
     [name] NVARCHAR(255) NOT NULL,
-    [teacher_code] NVARCHAR(50) NOT NULL,
+    [lecturer_code] NVARCHAR(50) NOT NULL,
     [dept_id] INT NOT NULL,
-    CONSTRAINT [PK_Teacher] PRIMARY KEY ([user_id]),
-    CONSTRAINT [UQ_Teacher_Code] UNIQUE ([teacher_code]),
-    CONSTRAINT [FK_Teacher_User] FOREIGN KEY ([user_id]) REFERENCES [dbo].[User]([user_id]),
-    CONSTRAINT [FK_Teacher_Department] FOREIGN KEY ([dept_id]) REFERENCES [dbo].[Department]([dept_id])
+    CONSTRAINT [PK_Lecturer] PRIMARY KEY ([user_id]),
+    CONSTRAINT [UQ_Lecturer_Code] UNIQUE ([lecturer_code]),
+    CONSTRAINT [FK_Lecturer_User] FOREIGN KEY ([user_id]) REFERENCES [dbo].[User]([user_id]),
+    CONSTRAINT [FK_Lecturer_Department] FOREIGN KEY ([dept_id]) REFERENCES [dbo].[Department]([dept_id])
 );
 GO
 
@@ -102,13 +102,59 @@ CREATE TABLE [dbo].[Survey] (
 );
 GO
 
+CREATE TABLE [dbo].[Question_Bank] (
+    [question_bank_id] INT IDENTITY(1,1) NOT NULL,
+    [content] NVARCHAR(MAX) NOT NULL,
+    [type] NVARCHAR(20) NOT NULL,
+    [category] NVARCHAR(120) NULL,
+    [active] BIT NOT NULL CONSTRAINT [DF_QuestionBank_Active] DEFAULT ((1)),
+    [created_at] DATETIME NOT NULL CONSTRAINT [DF_QuestionBank_CreatedAt] DEFAULT (GETDATE()),
+    [updated_at] DATETIME NULL,
+    CONSTRAINT [PK_Question_Bank] PRIMARY KEY ([question_bank_id]),
+    CONSTRAINT [CHK_QuestionBank_Type] CHECK ([type] IN ('RATING', 'TEXT'))
+);
+GO
+
+CREATE TABLE [dbo].[Survey_Template] (
+    [template_id] INT IDENTITY(1,1) NOT NULL,
+    [name] NVARCHAR(255) NOT NULL,
+    [description] NVARCHAR(MAX) NULL,
+    [suggested_title] NVARCHAR(255) NULL,
+    [suggested_survey_description] NVARCHAR(MAX) NULL,
+    [recipient_scope] NVARCHAR(30) NOT NULL CONSTRAINT [DF_SurveyTemplate_RecipientScope] DEFAULT ('ALL_STUDENTS'),
+    [recipient_department_id] INT NULL,
+    [active] BIT NOT NULL CONSTRAINT [DF_SurveyTemplate_Active] DEFAULT ((1)),
+    [created_at] DATETIME NOT NULL CONSTRAINT [DF_SurveyTemplate_CreatedAt] DEFAULT (GETDATE()),
+    [updated_at] DATETIME NULL,
+    CONSTRAINT [PK_Survey_Template] PRIMARY KEY ([template_id]),
+    CONSTRAINT [CHK_SurveyTemplate_RecipientScope] CHECK ([recipient_scope] IN ('ALL_STUDENTS', 'DEPARTMENT')),
+    CONSTRAINT [FK_SurveyTemplate_Department] FOREIGN KEY ([recipient_department_id]) REFERENCES [dbo].[Department]([dept_id])
+);
+GO
+
+CREATE TABLE [dbo].[Survey_Template_Question] (
+    [template_question_id] INT IDENTITY(1,1) NOT NULL,
+    [template_id] INT NOT NULL,
+    [question_bank_id] INT NULL,
+    [content] NVARCHAR(MAX) NOT NULL,
+    [type] NVARCHAR(20) NOT NULL,
+    [display_order] INT NOT NULL,
+    CONSTRAINT [PK_Survey_Template_Question] PRIMARY KEY ([template_question_id]),
+    CONSTRAINT [FK_SurveyTemplateQuestion_Template] FOREIGN KEY ([template_id]) REFERENCES [dbo].[Survey_Template]([template_id]),
+    CONSTRAINT [FK_SurveyTemplateQuestion_QuestionBank] FOREIGN KEY ([question_bank_id]) REFERENCES [dbo].[Question_Bank]([question_bank_id]),
+    CONSTRAINT [CHK_SurveyTemplateQuestion_Type] CHECK ([type] IN ('RATING', 'TEXT'))
+);
+GO
+
 CREATE TABLE [dbo].[Question] (
     [question_id] INT IDENTITY(1,1) NOT NULL,
     [survey_id] INT NOT NULL,
+    [question_bank_id] INT NULL,
     [content] NVARCHAR(MAX) NULL,
     [type] NVARCHAR(20) NULL,
     CONSTRAINT [PK_Question] PRIMARY KEY ([question_id]),
     CONSTRAINT [FK_Question_Survey] FOREIGN KEY ([survey_id]) REFERENCES [dbo].[Survey]([survey_id]),
+    CONSTRAINT [FK_Question_QuestionBank] FOREIGN KEY ([question_bank_id]) REFERENCES [dbo].[Question_Bank]([question_bank_id]),
     CONSTRAINT [CHK_Question_Content] CHECK ([type] = 'RATING' OR ([type] = 'TEXT' AND [content] IS NOT NULL))
 );
 GO
@@ -143,15 +189,15 @@ CREATE TABLE [dbo].[Survey_Response] (
     [response_id] INT IDENTITY(1,1) NOT NULL,
     [student_id] INT NULL,
     [survey_id] INT NOT NULL,
-    [teacher_id] INT NULL,
+    [lecturer_id] INT NULL,
     [submitted_at] DATETIME NOT NULL,
     CONSTRAINT [PK_Survey_Response] PRIMARY KEY ([response_id]),
     CONSTRAINT [FK_SurveyResponse_Student] FOREIGN KEY ([student_id]) REFERENCES [dbo].[Student]([user_id]),
     CONSTRAINT [FK_SurveyResponse_Survey] FOREIGN KEY ([survey_id]) REFERENCES [dbo].[Survey]([survey_id]),
-    CONSTRAINT [FK_SurveyResponse_Teacher] FOREIGN KEY ([teacher_id]) REFERENCES [dbo].[Teacher]([user_id]),
-    CONSTRAINT [CK_Response_StudentOrTeacher] CHECK (
-        ([student_id] IS NOT NULL AND [teacher_id] IS NULL)
-        OR ([student_id] IS NULL AND [teacher_id] IS NOT NULL)
+    CONSTRAINT [FK_SurveyResponse_Lecturer] FOREIGN KEY ([lecturer_id]) REFERENCES [dbo].[Lecturer]([user_id]),
+    CONSTRAINT [CK_Response_StudentOrLecturer] CHECK (
+        ([student_id] IS NOT NULL AND [lecturer_id] IS NULL)
+        OR ([student_id] IS NULL AND [lecturer_id] IS NOT NULL)
     )
 );
 GO

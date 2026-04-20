@@ -12,6 +12,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "Notification_User")
 @Getter
@@ -30,4 +32,10 @@ public class NotificationUserEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
+
+    @jakarta.persistence.Column(name = "delivered_at", nullable = false)
+    private LocalDateTime deliveredAt;
+
+    @jakarta.persistence.Column(name = "read_at")
+    private LocalDateTime readAt;
 }

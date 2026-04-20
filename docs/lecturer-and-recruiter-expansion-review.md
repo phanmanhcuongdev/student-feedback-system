@@ -114,7 +114,7 @@
   - Why it is credible:
     - the current repo already has role-based security, so this is a real extension, not a random add-on
   - What problem it solves in the actual product:
-    - teachers should not see global results by default
+    - lecturers should not see global results by default
 - Background jobs for reminders and stale-case checks
   - What engineering strength it demonstrates:
     - async/process separation
@@ -171,7 +171,7 @@
     - adds lifecycle modeling, reporting logic, and better domain separation
   - Why it is worth building:
     - strongest upgrade to the repo’s main business area
-- Scoped authorization for teacher/admin access
+- Scoped authorization for lecturer/admin access
   - Business value:
     - fixes unrealistic data access
   - Architecture/engineering value:
@@ -224,7 +224,7 @@
 - What it demonstrates technically:
   - authorization design beyond static role checks
 - What product problem it solves:
-  - teacher/admin data scoping
+  - lecturer/admin data scoping
 - Whether lecturers will care:
   - Yes, because it improves realism and governance
 - Whether recruiters will care:
@@ -333,7 +333,7 @@
     - onboarding correction loop with reviewer notes and rejection reasons
     - survey draft/publish/archive lifecycle
     - recipient tracking with response-rate reporting
-    - scoped teacher access
+    - scoped lecturer access
     - actionable dashboards
   - Technology additions:
     - audit logging
