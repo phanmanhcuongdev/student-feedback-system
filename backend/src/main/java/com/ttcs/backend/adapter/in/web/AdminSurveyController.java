@@ -62,7 +62,7 @@ public class AdminSurveyController {
     private final CloseSurveyUseCase closeSurveyUseCase;
     private final PublishSurveyUseCase publishSurveyUseCase;
     private final ArchiveSurveyUseCase archiveSurveyUseCase;
-    private final CurrentStudentProvider currentStudentProvider;
+    private final CurrentIdentityProvider currentIdentityProvider;
 
     @GetMapping
     public ResponseEntity<ManagedSurveyPageResponse> getSurveys(
@@ -123,7 +123,7 @@ public class AdminSurveyController {
 
     @PostMapping
     public ResponseEntity<CreateSurveyResponse> createSurvey(@RequestBody CreateSurveyRequest request) {
-        Integer adminId = currentStudentProvider.currentUserId();
+        Integer adminId = currentIdentityProvider.currentUserId();
 
         List<CreateQuestionCommand> questionCommands = request.questions() == null ? List.of() :
                 request.questions().stream()
@@ -178,17 +178,17 @@ public class AdminSurveyController {
 
     @PostMapping("/{surveyId}/publish")
     public ResponseEntity<SurveyManagementActionResponse> publishSurvey(@PathVariable Integer surveyId) {
-        return ResponseEntity.ok(toActionResponse(publishSurveyUseCase.publishSurvey(surveyId, currentStudentProvider.currentUserId())));
+        return ResponseEntity.ok(toActionResponse(publishSurveyUseCase.publishSurvey(surveyId, currentIdentityProvider.currentUserId())));
     }
 
     @PostMapping("/{surveyId}/close")
     public ResponseEntity<SurveyManagementActionResponse> closeSurvey(@PathVariable Integer surveyId) {
-        return ResponseEntity.ok(toActionResponse(closeSurveyUseCase.closeSurvey(surveyId, currentStudentProvider.currentUserId())));
+        return ResponseEntity.ok(toActionResponse(closeSurveyUseCase.closeSurvey(surveyId, currentIdentityProvider.currentUserId())));
     }
 
     @PostMapping("/{surveyId}/archive")
     public ResponseEntity<SurveyManagementActionResponse> archiveSurvey(@PathVariable Integer surveyId) {
-        return ResponseEntity.ok(toActionResponse(archiveSurveyUseCase.archiveSurvey(surveyId, currentStudentProvider.currentUserId())));
+        return ResponseEntity.ok(toActionResponse(archiveSurveyUseCase.archiveSurvey(surveyId, currentIdentityProvider.currentUserId())));
     }
 
     @PostMapping("/{surveyId}/visibility")
@@ -196,7 +196,7 @@ public class AdminSurveyController {
             @PathVariable Integer surveyId,
             @RequestBody SetSurveyVisibilityRequest request
     ) {
-        return ResponseEntity.ok(toActionResponse(setSurveyHiddenUseCase.setHidden(surveyId, request.hidden(), currentStudentProvider.currentUserId())));
+        return ResponseEntity.ok(toActionResponse(setSurveyHiddenUseCase.setHidden(surveyId, request.hidden(), currentIdentityProvider.currentUserId())));
     }
 
     private SurveyRecipientScope parseScope(String rawScope) {

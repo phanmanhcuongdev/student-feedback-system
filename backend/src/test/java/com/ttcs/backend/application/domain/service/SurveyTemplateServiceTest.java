@@ -1,47 +1,44 @@
 package com.ttcs.backend.application.domain.service;
 
-import com.ttcs.backend.adapter.in.web.dto.SurveyTemplateQuestionRequest;
-import com.ttcs.backend.adapter.in.web.dto.SurveyTemplateRequest;
-import com.ttcs.backend.adapter.out.persistence.questionbank.QuestionBankRepository;
-import com.ttcs.backend.adapter.out.persistence.surveytemplate.SurveyTemplateEntity;
-import com.ttcs.backend.adapter.out.persistence.surveytemplate.SurveyTemplateRepository;
+import com.ttcs.backend.application.domain.model.QuestionBankEntry;
+import com.ttcs.backend.application.domain.model.SurveyTemplate;
+import com.ttcs.backend.application.domain.model.SurveyTemplateQuestion;
+import com.ttcs.backend.application.port.in.admin.SurveyTemplateCommand;
+import com.ttcs.backend.application.port.in.admin.SurveyTemplateQuestionCommand;
+import com.ttcs.backend.application.port.out.admin.ManageQuestionBankPort;
+import com.ttcs.backend.application.port.out.admin.ManageSurveyTemplatePort;
+import com.ttcs.backend.application.port.out.admin.QuestionBankSearchPage;
+import com.ttcs.backend.application.port.out.admin.QuestionBankSearchQuery;
+import com.ttcs.backend.application.port.out.admin.SurveyTemplateSearchPage;
+import com.ttcs.backend.application.port.out.admin.SurveyTemplateSearchQuery;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class SurveyTemplateServiceTest {
 
     @Test
     void shouldCreateTemplateWithQuestionBankLinkedQuestion() {
-        SurveyTemplateRepository templateRepository = mock(SurveyTemplateRepository.class);
-        QuestionBankRepository questionBankRepository = mock(QuestionBankRepository.class);
-        when(questionBankRepository.existsById(11)).thenReturn(true);
-        when(templateRepository.save(any(SurveyTemplateEntity.class))).thenAnswer(invocation -> {
-            SurveyTemplateEntity entity = invocation.getArgument(0);
-            entity.setId(5);
-            entity.getQuestions().forEach(question -> question.setId(100 + question.getDisplayOrder()));
-            return entity;
-        });
-
-        SurveyTemplateService service = new SurveyTemplateService(templateRepository, questionBankRepository);
-        var result = service.create(new SurveyTemplateRequest(
+        InMemorySurveyTemplatePort templatePort = new InMemorySurveyTemplatePort();
+        InMemoryQuestionBankPort questionBankPort = new InMemoryQuestionBankPort(11);
+        SurveyTemplateService service = new SurveyTemplateService(templatePort, questionBankPort);
+        var result = service.create(new SurveyTemplateCommand(
                 "Course feedback",
                 "Reusable course feedback",
                 "Course Teaching Feedback",
                 "Collect course delivery feedback.",
                 "ALL_STUDENTS",
                 null,
-                List.of(new SurveyTemplateQuestionRequest(11, "Rate clarity", "RATING"))
+                List.of(new SurveyTemplateQuestionCommand(11, "Rate clarity", "RATING"))
         ));
 
-        assertEquals(5, result.id());
+        assertEquals(1, result.id());
         assertEquals(1, result.questions().size());
         assertEquals(11, result.questions().getFirst().questionBankEntryId());
     }
@@ -49,11 +46,11 @@ class SurveyTemplateServiceTest {
     @Test
     void shouldRejectTemplateWithoutQuestions() {
         SurveyTemplateService service = new SurveyTemplateService(
-                mock(SurveyTemplateRepository.class),
-                mock(QuestionBankRepository.class)
+                new InMemorySurveyTemplatePort(),
+                new InMemoryQuestionBankPort()
         );
 
-        assertThrows(IllegalArgumentException.class, () -> service.create(new SurveyTemplateRequest(
+        assertThrows(IllegalArgumentException.class, () -> service.create(new SurveyTemplateCommand(
                 "Course feedback",
                 null,
                 null,
@@ -66,27 +63,151 @@ class SurveyTemplateServiceTest {
 
     @Test
     void shouldPreserveArchivedStateWhenEditingTemplate() {
-        SurveyTemplateRepository templateRepository = mock(SurveyTemplateRepository.class);
-        QuestionBankRepository questionBankRepository = mock(QuestionBankRepository.class);
-        SurveyTemplateEntity entity = new SurveyTemplateEntity();
-        entity.setId(9);
-        entity.setName("Archived");
-        entity.setRecipientScope("ALL_STUDENTS");
-        entity.setActive(false);
-        when(templateRepository.findById(9)).thenReturn(Optional.of(entity));
-        when(templateRepository.save(any(SurveyTemplateEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        InMemorySurveyTemplatePort templatePort = new InMemorySurveyTemplatePort();
+        InMemoryQuestionBankPort questionBankPort = new InMemoryQuestionBankPort();
+        templatePort.save(new SurveyTemplate(
+                9,
+                "Archived",
+                null,
+                null,
+                null,
+                "ALL_STUDENTS",
+                null,
+                false,
+                LocalDateTime.now(),
+                null,
+                List.of()
+        ));
 
-        SurveyTemplateService service = new SurveyTemplateService(templateRepository, questionBankRepository);
-        var result = service.update(9, new SurveyTemplateRequest(
+        SurveyTemplateService service = new SurveyTemplateService(templatePort, questionBankPort);
+        var result = service.update(9, new SurveyTemplateCommand(
                 "Archived edited",
                 null,
                 null,
                 null,
                 "ALL_STUDENTS",
                 null,
-                List.of(new SurveyTemplateQuestionRequest(null, "Rate clarity", "RATING"))
+                List.of(new SurveyTemplateQuestionCommand(null, "Rate clarity", "RATING"))
         ));
 
         assertEquals(false, result.active());
+    }
+
+    @Test
+    void shouldRejectArchivedTemplateApply() {
+        InMemorySurveyTemplatePort templatePort = new InMemorySurveyTemplatePort();
+        templatePort.save(new SurveyTemplate(
+                3,
+                "Archived",
+                null,
+                null,
+                null,
+                "ALL_STUDENTS",
+                null,
+                false,
+                LocalDateTime.now(),
+                null,
+                List.of(new SurveyTemplateQuestion(null, null, "Rate clarity", "RATING", 0))
+        ));
+        SurveyTemplateService service = new SurveyTemplateService(templatePort, new InMemoryQuestionBankPort());
+
+        assertThrows(IllegalArgumentException.class, () -> service.apply(3));
+    }
+
+    @Test
+    void shouldRejectMissingQuestionBankEntry() {
+        SurveyTemplateService service = new SurveyTemplateService(
+                new InMemorySurveyTemplatePort(),
+                new InMemoryQuestionBankPort()
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(new SurveyTemplateCommand(
+                "Course feedback",
+                null,
+                null,
+                null,
+                "ALL_STUDENTS",
+                null,
+                List.of(new SurveyTemplateQuestionCommand(99, "Rate clarity", "RATING"))
+        )));
+    }
+
+    private static final class InMemorySurveyTemplatePort implements ManageSurveyTemplatePort {
+        private final List<SurveyTemplate> templates = new ArrayList<>();
+        private int nextId = 1;
+
+        @Override
+        public SurveyTemplateSearchPage loadPage(SurveyTemplateSearchQuery query) {
+            return new SurveyTemplateSearchPage(templates, query.page(), query.size(), templates.size(), templates.isEmpty() ? 0 : 1);
+        }
+
+        @Override
+        public Optional<SurveyTemplate> loadById(Integer id) {
+            return templates.stream().filter(template -> template.id().equals(id)).findFirst();
+        }
+
+        @Override
+        public SurveyTemplate save(SurveyTemplate template) {
+            Integer id = template.id() == null ? nextId++ : template.id();
+            SurveyTemplate saved = new SurveyTemplate(
+                    id,
+                    template.name(),
+                    template.description(),
+                    template.suggestedTitle(),
+                    template.suggestedSurveyDescription(),
+                    template.recipientScope(),
+                    template.recipientDepartmentId(),
+                    template.active(),
+                    template.createdAt(),
+                    template.updatedAt(),
+                    withQuestionIds(template.questions())
+            );
+            for (int index = 0; index < templates.size(); index++) {
+                if (templates.get(index).id().equals(saved.id())) {
+                    templates.set(index, saved);
+                    return saved;
+                }
+            }
+            templates.add(saved);
+            return saved;
+        }
+
+        private List<SurveyTemplateQuestion> withQuestionIds(List<SurveyTemplateQuestion> questions) {
+            return questions.stream()
+                    .map(question -> new SurveyTemplateQuestion(
+                            question.id() == null ? 100 + question.displayOrder() : question.id(),
+                            question.questionBankEntryId(),
+                            question.content(),
+                            question.type(),
+                            question.displayOrder()
+                    ))
+                    .toList();
+        }
+    }
+
+    private static final class InMemoryQuestionBankPort implements ManageQuestionBankPort {
+        private final List<Integer> existingIds;
+
+        private InMemoryQuestionBankPort(Integer... existingIds) {
+            this.existingIds = List.of(existingIds);
+        }
+
+        @Override
+        public QuestionBankSearchPage loadPage(QuestionBankSearchQuery query) {
+            return new QuestionBankSearchPage(List.of(), 0, 0, 0, 0);
+        }
+
+        @Override
+        public Optional<QuestionBankEntry> loadById(Integer id) {
+            if (!existingIds.contains(id)) {
+                return Optional.empty();
+            }
+            return Optional.of(new QuestionBankEntry(id, "Rate clarity", "RATING", null, true, LocalDateTime.now(), null));
+        }
+
+        @Override
+        public QuestionBankEntry save(QuestionBankEntry entry) {
+            return entry;
+        }
     }
 }

@@ -27,7 +27,7 @@ public class NotificationController {
 
     private final GetStudentNotificationsUseCase getStudentNotificationsUseCase;
     private final MarkStudentNotificationReadUseCase markStudentNotificationReadUseCase;
-    private final CurrentStudentProvider currentStudentProvider;
+    private final CurrentIdentityProvider currentIdentityProvider;
 
     @GetMapping
     public ResponseEntity<StudentNotificationPageResponse> getNotifications(
@@ -35,10 +35,10 @@ public class NotificationController {
             @RequestParam(defaultValue = "6") int size,
             @RequestParam(defaultValue = "false") boolean unreadOnly
     ) {
-        Integer studentId = currentStudentUserId();
+        Integer studentUserId = currentStudentUserId();
         StudentNotificationPageResult result = getStudentNotificationsUseCase.getNotifications(
                 new GetStudentNotificationsQuery(page, size, unreadOnly),
-                studentId
+                studentUserId
         );
         return ResponseEntity.ok(new StudentNotificationPageResponse(
                 result.items().stream().map(this::toResponse).toList(),
@@ -86,9 +86,9 @@ public class NotificationController {
     }
 
     private Integer currentStudentUserId() {
-        if (currentStudentProvider.currentRole() != Role.STUDENT) {
+        if (currentIdentityProvider.currentRole() != Role.STUDENT) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only students can use the notification center");
         }
-        return currentStudentProvider.currentUserId();
+        return currentIdentityProvider.currentUserId();
     }
 }

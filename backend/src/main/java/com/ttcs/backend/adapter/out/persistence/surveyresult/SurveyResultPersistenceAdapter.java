@@ -2,6 +2,7 @@ package com.ttcs.backend.adapter.out.persistence.surveyresult;
 
 import com.ttcs.backend.adapter.out.persistence.DepartmentRepository;
 import com.ttcs.backend.adapter.out.persistence.question.QuestionEntity;
+import com.ttcs.backend.adapter.out.persistence.reporting.ReportingSqlFragments;
 import com.ttcs.backend.adapter.out.persistence.responsedetail.ResponseDetailEntity;
 import com.ttcs.backend.adapter.out.persistence.responsedetail.ResponseDetailRepository;
 import com.ttcs.backend.adapter.out.persistence.surveyassignment.SurveyAssignmentEntity;
@@ -14,8 +15,12 @@ import com.ttcs.backend.adapter.out.persistence.surveyresponse.SurveyResponseRep
 import com.ttcs.backend.application.port.in.resultview.QuestionStatisticsResult;
 import com.ttcs.backend.application.port.in.resultview.RatingBreakdownResult;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultDetailResult;
+import com.ttcs.backend.application.port.out.LoadSurveyReportPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResultsQuery;
 import com.ttcs.backend.application.port.out.LoadSurveyResultPort;
+import com.ttcs.backend.application.port.out.SurveyReport;
+import com.ttcs.backend.application.port.out.SurveyReportQuestion;
+import com.ttcs.backend.application.port.out.SurveyReportRatingBreakdown;
 import com.ttcs.backend.application.port.out.SurveyResultMetrics;
 import com.ttcs.backend.application.port.out.SurveyResultSearchItem;
 import com.ttcs.backend.application.port.out.SurveyResultSearchPage;
@@ -35,7 +40,7 @@ import java.util.Optional;
 
 @PersistenceAdapter
 @RequiredArgsConstructor
-public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort {
+public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, LoadSurveyReportPort {
 
     private final EntityManager entityManager;
     private final SurveyRepository surveyRepository;
@@ -45,22 +50,9 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort {
     private final SurveyAssignmentRepository surveyAssignmentRepository;
     private final DepartmentRepository departmentRepository;
 
-    private static final String RUNTIME_STATUS_SQL = """
-            CASE
-                WHEN s.lifecycle_state = 'DRAFT' THEN 'NOT_OPEN'
-                WHEN s.lifecycle_state IN ('CLOSED', 'ARCHIVED') THEN 'CLOSED'
-                WHEN s.start_date IS NOT NULL AND s.start_date > GETDATE() THEN 'NOT_OPEN'
-                WHEN s.end_date IS NOT NULL AND s.end_date < GETDATE() THEN 'CLOSED'
-                ELSE 'OPEN'
-            END
-            """;
+    private static final String RUNTIME_STATUS_SQL = ReportingSqlFragments.runtimeStatus("s");
 
-    private static final String RESPONSE_RATE_SQL = """
-            CASE
-                WHEN COALESCE(recipient_stats.targeted_count, 0) = 0 THEN 0
-                ELSE (COALESCE(recipient_stats.submitted_count, 0) * 100.0) / recipient_stats.targeted_count
-            END
-            """;
+    private static final String RESPONSE_RATE_SQL = ReportingSqlFragments.recipientResponseRate("recipient_stats");
 
     private static final String BASE_FROM = """
             FROM Survey s
@@ -76,15 +68,7 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort {
             LEFT JOIN Department d
                 ON d.dept_id = first_assignment.subject_value
                 AND first_assignment.subject_type = 'DEPARTMENT'
-            LEFT JOIN (
-                SELECT
-                    sr.survey_id,
-                    COUNT(*) AS targeted_count,
-                    SUM(CASE WHEN sr.opened_at IS NOT NULL THEN 1 ELSE 0 END) AS opened_count,
-                    SUM(CASE WHEN sr.submitted_at IS NOT NULL THEN 1 ELSE 0 END) AS submitted_count
-                FROM Survey_Recipient sr
-                GROUP BY sr.survey_id
-            ) recipient_stats ON recipient_stats.survey_id = s.survey_id
+            """ + ReportingSqlFragments.recipientStatsJoin("s", "recipient_stats") + """
             LEFT JOIN (
                 SELECT
                     rsp.survey_id,
@@ -218,6 +202,48 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort {
         ));
     }
 
+    @Override
+    public Optional<SurveyReport> loadSurveyReport(Integer surveyId) {
+        SurveyEntity survey = surveyRepository.findById(surveyId).orElse(null);
+        if (survey == null) {
+            return Optional.empty();
+        }
+
+        List<QuestionEntity> questions = responseDetailRepository.findQuestionsBySurveyId(surveyId);
+        List<ResponseDetailEntity> details = responseDetailRepository.findAllBySurveyIdForResults(surveyId);
+        RecipientSummary recipientSummary = recipientSummary(surveyId);
+
+        Map<Integer, List<ResponseDetailEntity>> detailsByQuestionId = new LinkedHashMap<>();
+        for (QuestionEntity question : questions) {
+            detailsByQuestionId.put(question.getId(), new ArrayList<>());
+        }
+        for (ResponseDetailEntity detail : details) {
+            QuestionEntity question = detail.getQuestion();
+            if (question != null) {
+                detailsByQuestionId.computeIfAbsent(question.getId(), key -> new ArrayList<>()).add(detail);
+            }
+        }
+
+        return Optional.of(new SurveyReport(
+                survey.getId(),
+                survey.getTitle(),
+                survey.getDescription(),
+                survey.getStartDate(),
+                survey.getEndDate(),
+                survey.getLifecycleState(),
+                SurveyMapper.toDomain(survey).status().name(),
+                recipientScope(surveyId),
+                recipientDepartmentName(surveyId),
+                recipientSummary.targetedCount(),
+                recipientSummary.openedCount(),
+                recipientSummary.submittedCount(),
+                recipientSummary.responseRate(),
+                questions.stream()
+                        .map(question -> toSurveyReportQuestion(question, detailsByQuestionId.getOrDefault(question.getId(), List.of())))
+                        .toList()
+        ));
+    }
+
     private RecipientSummary recipientSummary(Integer surveyId) {
         List<com.ttcs.backend.adapter.out.persistence.surveyrecipient.SurveyRecipientEntity> recipients =
                 surveyRecipientRepository.findBySurvey_IdOrderByIdAsc(surveyId);
@@ -270,6 +296,58 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort {
                 .toList();
 
         return new QuestionStatisticsResult(
+                question.getId(),
+                question.getContent(),
+                type,
+                responseCount,
+                null,
+                List.of(),
+                comments
+        );
+    }
+
+    private SurveyReportQuestion toSurveyReportQuestion(QuestionEntity question, List<ResponseDetailEntity> details) {
+        String type = question.getType();
+        long responseCount = details.size();
+
+        if ("RATING".equalsIgnoreCase(type)) {
+            Map<Integer, Long> counts = new LinkedHashMap<>();
+            for (int rating = 1; rating <= 5; rating++) {
+                counts.put(rating, 0L);
+            }
+
+            double total = 0;
+            long ratedCount = 0;
+            for (ResponseDetailEntity detail : details) {
+                Integer rating = detail.getRating();
+                if (rating != null) {
+                    counts.put(rating, counts.getOrDefault(rating, 0L) + 1);
+                    total += rating;
+                    ratedCount++;
+                }
+            }
+
+            Double average = ratedCount == 0 ? null : total / ratedCount;
+
+            return new SurveyReportQuestion(
+                    question.getId(),
+                    question.getContent(),
+                    type,
+                    responseCount,
+                    average,
+                    counts.entrySet().stream()
+                            .map(entry -> new SurveyReportRatingBreakdown(entry.getKey(), entry.getValue()))
+                            .toList(),
+                    List.of()
+            );
+        }
+
+        List<String> comments = details.stream()
+                .map(ResponseDetailEntity::getComment)
+                .filter(comment -> comment != null && !comment.isBlank())
+                .toList();
+
+        return new SurveyReportQuestion(
                 question.getId(),
                 question.getContent(),
                 type,

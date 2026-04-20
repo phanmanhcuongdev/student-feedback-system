@@ -27,6 +27,7 @@ import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResponsePort;
 import com.ttcs.backend.application.port.out.LoadStudentSurveysQuery;
 import com.ttcs.backend.application.port.out.LoadStudentPort;
+import com.ttcs.backend.application.port.out.NotificationCreateCommand;
 import com.ttcs.backend.application.port.out.SaveQuestionPort;
 import com.ttcs.backend.application.port.out.SaveAuditLogPort;
 import com.ttcs.backend.application.port.out.SaveSurveyRecipientPort;
@@ -108,6 +109,32 @@ class AdminSurveyManagementServiceTest {
         assertEquals(2, state.recipients.size());
         assertEquals(1, state.auditLogs.size());
         assertEquals(AuditActionType.SURVEY_PUBLISHED, state.auditLogs.getFirst().getActionType());
+        assertEquals("SURVEY_PUBLISHED", state.notifications.getFirst().type());
+        assertEquals(List.of(103, 104), state.notifications.getFirst().recipientUserIds());
+    }
+
+    @Test
+    void shouldCreateDeadlineReminderWhenPublishedSurveyIsAlreadyClosingSoon() {
+        InMemorySurveyState state = new InMemorySurveyState(0, SurveyLifecycleState.DRAFT);
+        state.survey = new Survey(
+                1,
+                "Closing Survey",
+                "Initial description",
+                LocalDateTime.now().minusHours(1),
+                LocalDateTime.now().plusHours(12),
+                1,
+                false,
+                SurveyLifecycleState.DRAFT
+        );
+        AdminSurveyManagementService service = service(state);
+
+        SurveyManagementActionResult result = service.publishSurvey(1, 1);
+
+        assertTrue(result.success());
+        assertEquals(2, state.notifications.size());
+        assertEquals("SURVEY_PUBLISHED", state.notifications.get(0).type());
+        assertEquals("SURVEY_DEADLINE_REMINDER", state.notifications.get(1).type());
+        assertEquals(List.of(103, 104), state.notifications.get(1).recipientUserIds());
     }
 
     @Test
@@ -299,8 +326,7 @@ class AdminSurveyManagementServiceTest {
                 new CandidatePort(state),
                 new StudentPort(state),
                 new AuditPort(state),
-                command -> {
-                },
+                command -> state.notifications.add(command),
                 new ManageSurveyQueryPort(state)
         );
     }
@@ -313,6 +339,7 @@ class AdminSurveyManagementServiceTest {
         private List<SurveyAssignment> assignments;
         private List<SurveyRecipient> recipients = new ArrayList<>();
         private List<AuditLog> auditLogs = new ArrayList<>();
+        private List<NotificationCreateCommand> notifications = new ArrayList<>();
         private List<Student> candidateStudents = new ArrayList<>(List.of(
                 student(3, 1),
                 student(4, 2)
@@ -340,7 +367,7 @@ class AdminSurveyManagementServiceTest {
     private static Student student(Integer id, Integer departmentId) {
         return new Student(
                 id,
-                new User(id, "student" + id + "@example.com", "hashed", Role.STUDENT, true),
+                new User(id + 100, "student" + id + "@example.com", "hashed", Role.STUDENT, true),
                 "Student " + id,
                 "S" + id,
                 new Department(departmentId, "Department " + departmentId),
@@ -358,7 +385,7 @@ class AdminSurveyManagementServiceTest {
     private static Student inactiveStudent(Integer id, Integer departmentId) {
         return new Student(
                 id,
-                new User(id, "student" + id + "@example.com", "hashed", Role.STUDENT, false),
+                new User(id + 100, "student" + id + "@example.com", "hashed", Role.STUDENT, false),
                 "Student " + id,
                 "S" + id,
                 new Department(departmentId, "Department " + departmentId),

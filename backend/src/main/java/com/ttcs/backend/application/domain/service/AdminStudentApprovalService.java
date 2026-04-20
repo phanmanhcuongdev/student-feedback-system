@@ -148,18 +148,20 @@ public class AdminStudentApprovalService implements
                 targetStatus.name(),
                 null
         ));
-        saveNotificationPort.create(new NotificationCreateCommand(
-                targetStatus == Status.ACTIVE ? "ONBOARDING_APPROVED" : "ONBOARDING_REJECTED",
-                targetStatus == Status.ACTIVE ? "Onboarding approved" : "Onboarding needs revision",
-                targetStatus == Status.ACTIVE
-                        ? "Your student account has been approved."
-                        : "Your onboarding submission was rejected. Review the reason and resubmit your documents.",
-                null,
-                targetStatus == Status.ACTIVE ? "View dashboard" : "Review status",
-                reviewerUserId,
-                buildDecisionDetails(student, reviewReason, reviewNotes),
-                java.util.List.of(student.getId())
-        ));
+        if (student.getUser() != null && student.getUser().getId() != null) {
+            saveNotificationPort.create(new NotificationCreateCommand(
+                    targetStatus == Status.ACTIVE ? "ONBOARDING_APPROVED" : "ONBOARDING_REJECTED",
+                    targetStatus == Status.ACTIVE ? "Onboarding approved" : "Onboarding needs revision",
+                    targetStatus == Status.ACTIVE
+                            ? "Your student account has been approved."
+                            : "Your onboarding submission was rejected. Review the reason and resubmit your documents.",
+                    null,
+                    targetStatus == Status.ACTIVE ? "View dashboard" : "Review status",
+                    reviewerUserId,
+                    buildDecisionDetails(student, reviewReason, reviewNotes),
+                    java.util.List.of(student.getUser().getId())
+            ));
+        }
 
         return ApprovalActionResult.success(code, message);
     }

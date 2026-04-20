@@ -1,106 +1,110 @@
 package com.ttcs.backend.application.domain.service;
 
-import com.ttcs.backend.adapter.in.web.dto.QuestionBankPageResponse;
-import com.ttcs.backend.adapter.in.web.dto.QuestionBankRequest;
-import com.ttcs.backend.adapter.in.web.dto.QuestionBankResponse;
-import com.ttcs.backend.adapter.out.persistence.questionbank.QuestionBankEntity;
-import com.ttcs.backend.adapter.out.persistence.questionbank.QuestionBankRepository;
+import com.ttcs.backend.application.domain.model.QuestionBankEntry;
 import com.ttcs.backend.application.domain.model.QuestionType;
+import com.ttcs.backend.application.port.in.admin.CreateQuestionBankEntryUseCase;
+import com.ttcs.backend.application.port.in.admin.GetQuestionBankEntriesQuery;
+import com.ttcs.backend.application.port.in.admin.GetQuestionBankEntriesUseCase;
+import com.ttcs.backend.application.port.in.admin.QuestionBankEntryCommand;
+import com.ttcs.backend.application.port.in.admin.QuestionBankEntryPageResult;
+import com.ttcs.backend.application.port.in.admin.QuestionBankEntryResult;
+import com.ttcs.backend.application.port.in.admin.SetQuestionBankEntryActiveUseCase;
+import com.ttcs.backend.application.port.in.admin.UpdateQuestionBankEntryUseCase;
+import com.ttcs.backend.application.port.out.admin.ManageQuestionBankPort;
+import com.ttcs.backend.application.port.out.admin.QuestionBankSearchQuery;
 import com.ttcs.backend.common.UseCase;
-import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @UseCase
 @RequiredArgsConstructor
-public class QuestionBankService {
+public class QuestionBankService implements
+        GetQuestionBankEntriesUseCase,
+        CreateQuestionBankEntryUseCase,
+        UpdateQuestionBankEntryUseCase,
+        SetQuestionBankEntryActiveUseCase {
 
-    private final QuestionBankRepository questionBankRepository;
+    private final ManageQuestionBankPort manageQuestionBankPort;
 
+    @Override
     @Transactional(readOnly = true)
-    public QuestionBankPageResponse list(String keyword, String type, String category, Boolean active, int page, int size) {
-        int safePage = Math.max(page, 0);
-        int safeSize = Math.min(Math.max(size, 1), 100);
-        var result = questionBankRepository.findAll(specification(keyword, type, category, active),
-                PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "updatedAt").and(Sort.by(Sort.Direction.DESC, "createdAt"))));
+    public QuestionBankEntryPageResult list(GetQuestionBankEntriesQuery query) {
+        var page = manageQuestionBankPort.loadPage(new QuestionBankSearchQuery(
+                query == null ? null : query.keyword(),
+                query == null ? null : query.type(),
+                query == null ? null : query.category(),
+                query == null ? null : query.active(),
+                query == null ? 0 : query.page(),
+                query == null ? 20 : query.size()
+        ));
 
-        return new QuestionBankPageResponse(
-                result.getContent().stream().map(this::toResponse).toList(),
-                result.getNumber(),
-                result.getSize(),
-                result.getTotalElements(),
-                result.getTotalPages()
+        return new QuestionBankEntryPageResult(
+                page.items().stream().map(this::toResult).toList(),
+                page.page(),
+                page.size(),
+                page.totalElements(),
+                page.totalPages()
         );
     }
 
+    @Override
     @Transactional
-    public QuestionBankResponse create(QuestionBankRequest request) {
-        validate(request);
-        QuestionBankEntity entity = new QuestionBankEntity();
-        entity.setContent(request.content().trim());
-        entity.setType(normalizeType(request.type()));
-        entity.setCategory(normalizeNullable(request.category()));
-        entity.setActive(true);
-        entity.setCreatedAt(LocalDateTime.now());
-        return toResponse(questionBankRepository.save(entity));
+    public QuestionBankEntryResult create(QuestionBankEntryCommand command) {
+        validate(command);
+        QuestionBankEntry entry = new QuestionBankEntry(
+                null,
+                command.content().trim(),
+                normalizeType(command.type()),
+                normalizeNullable(command.category()),
+                true,
+                LocalDateTime.now(),
+                null
+        );
+        return toResult(manageQuestionBankPort.save(entry));
     }
 
+    @Override
     @Transactional
-    public QuestionBankResponse update(Integer id, QuestionBankRequest request) {
-        validate(request);
-        QuestionBankEntity entity = questionBankRepository.findById(id)
+    public QuestionBankEntryResult update(Integer id, QuestionBankEntryCommand command) {
+        validate(command);
+        QuestionBankEntry existing = manageQuestionBankPort.loadById(id)
                 .orElseThrow(() -> new IllegalArgumentException("QUESTION_BANK_ENTRY_NOT_FOUND"));
-        entity.setContent(request.content().trim());
-        entity.setType(normalizeType(request.type()));
-        entity.setCategory(normalizeNullable(request.category()));
-        entity.setUpdatedAt(LocalDateTime.now());
-        return toResponse(questionBankRepository.save(entity));
+        QuestionBankEntry updated = new QuestionBankEntry(
+                existing.id(),
+                command.content().trim(),
+                normalizeType(command.type()),
+                normalizeNullable(command.category()),
+                existing.active(),
+                existing.createdAt(),
+                LocalDateTime.now()
+        );
+        return toResult(manageQuestionBankPort.save(updated));
     }
 
+    @Override
     @Transactional
-    public QuestionBankResponse setActive(Integer id, boolean active) {
-        QuestionBankEntity entity = questionBankRepository.findById(id)
+    public QuestionBankEntryResult setActive(Integer id, boolean active) {
+        QuestionBankEntry existing = manageQuestionBankPort.loadById(id)
                 .orElseThrow(() -> new IllegalArgumentException("QUESTION_BANK_ENTRY_NOT_FOUND"));
-        entity.setActive(active);
-        entity.setUpdatedAt(LocalDateTime.now());
-        return toResponse(questionBankRepository.save(entity));
+        QuestionBankEntry updated = new QuestionBankEntry(
+                existing.id(),
+                existing.content(),
+                existing.type(),
+                existing.category(),
+                active,
+                existing.createdAt(),
+                LocalDateTime.now()
+        );
+        return toResult(manageQuestionBankPort.save(updated));
     }
 
-    private Specification<QuestionBankEntity> specification(String keyword, String type, String category, Boolean active) {
-        return (root, query, builder) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            if (keyword != null && !keyword.isBlank()) {
-                String pattern = "%" + keyword.trim().toLowerCase() + "%";
-                predicates.add(builder.or(
-                        builder.like(builder.lower(root.get("content")), pattern),
-                        builder.like(builder.lower(root.get("category")), pattern)
-                ));
-            }
-            if (type != null && !type.isBlank()) {
-                predicates.add(builder.equal(root.get("type"), normalizeType(type)));
-            }
-            if (category != null && !category.isBlank()) {
-                predicates.add(builder.like(builder.lower(root.get("category")), "%" + category.trim().toLowerCase() + "%"));
-            }
-            if (active != null) {
-                predicates.add(builder.equal(root.get("active"), active));
-            }
-            return builder.and(predicates.toArray(Predicate[]::new));
-        };
-    }
-
-    private void validate(QuestionBankRequest request) {
-        if (request == null || request.content() == null || request.content().trim().isEmpty()) {
+    private void validate(QuestionBankEntryCommand command) {
+        if (command == null || command.content() == null || command.content().trim().isEmpty()) {
             throw new IllegalArgumentException("Question content is required.");
         }
-        normalizeType(request.type());
+        normalizeType(command.type());
     }
 
     private String normalizeType(String type) {
@@ -114,15 +118,15 @@ public class QuestionBankService {
         return value == null || value.trim().isEmpty() ? null : value.trim();
     }
 
-    private QuestionBankResponse toResponse(QuestionBankEntity entity) {
-        return new QuestionBankResponse(
-                entity.getId(),
-                entity.getContent(),
-                entity.getType(),
-                entity.getCategory(),
-                entity.isActive(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
+    private QuestionBankEntryResult toResult(QuestionBankEntry entry) {
+        return new QuestionBankEntryResult(
+                entry.id(),
+                entry.content(),
+                entry.type(),
+                entry.category(),
+                entry.active(),
+                entry.createdAt(),
+                entry.updatedAt()
         );
     }
 }

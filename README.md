@@ -44,6 +44,8 @@ The current implementation supports:
   React web client that calls the backend API. Uses a shared authenticated `AppShell`, role-aware navigation, shared UI primitives, and reusable operational data-view components.
 - [`API_CONTRACT.md`](API_CONTRACT.md)
   Implemented API slices and payload expectations.
+- [`docs/reporting-architecture.md`](docs/reporting-architecture.md)
+  Reporting and export boundaries for analytics queries and survey result exports.
 - [`database/README.md`](database/README.md)
   Fresh setup, migration path, and demo credential notes.
 - [`.env.example`](.env.example)
@@ -375,3 +377,5 @@ Compatibility note:
   - `adapter.out`: persistence adapters, security token service, external integrations such as Resend
 - Main request flow:
   frontend page -> frontend API client -> backend controller -> use case service -> output port -> persistence adapter -> SQL Server
+- Reporting follows the same boundary. Controllers do not own reporting SQL or export formatting; reporting queries live behind output ports in persistence adapters, and survey result export renders through a `SurveyReportRenderer`.
+- See [`docs/reporting-architecture.md`](docs/reporting-architecture.md) for the current admin analytics and survey export flow.

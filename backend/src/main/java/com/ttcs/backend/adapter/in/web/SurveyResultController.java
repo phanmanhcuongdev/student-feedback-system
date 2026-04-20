@@ -6,7 +6,8 @@ import com.ttcs.backend.adapter.in.web.dto.SurveyResultDetailResponse;
 import com.ttcs.backend.adapter.in.web.dto.SurveyResultMetricsResponse;
 import com.ttcs.backend.adapter.in.web.dto.SurveyResultPageResponse;
 import com.ttcs.backend.adapter.in.web.dto.SurveyResultSummaryResponse;
-import com.ttcs.backend.application.domain.model.Role;
+import com.ttcs.backend.application.port.in.resultview.ExportedReport;
+import com.ttcs.backend.application.port.in.resultview.ExportSurveyReportUseCase;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultDetailUseCase;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultsQuery;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultListUseCase;
@@ -22,13 +23,11 @@ import org.springframework.http.MediaType;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 
 @WebAdapter
@@ -38,7 +37,8 @@ public class SurveyResultController {
 
     private final GetSurveyResultListUseCase getSurveyResultListUseCase;
     private final GetSurveyResultDetailUseCase getSurveyResultDetailUseCase;
-    private final CurrentStudentProvider currentStudentProvider;
+    private final ExportSurveyReportUseCase exportSurveyReportUseCase;
+    private final CurrentIdentityProvider currentIdentityProvider;
 
     @GetMapping
     public ResponseEntity<SurveyResultPageResponse> getSurveyResults(
@@ -66,8 +66,8 @@ public class SurveyResultController {
                         sortBy,
                         sortDir
                 ),
-                currentStudentProvider.currentUserId(),
-                currentStudentProvider.currentRole()
+                currentIdentityProvider.currentUserId(),
+                currentIdentityProvider.currentRole()
         );
         return ResponseEntity.ok(new SurveyResultPageResponse(
                 result.items().stream().map(this::toSummaryResponse).toList(),
@@ -91,30 +91,25 @@ public class SurveyResultController {
         return ResponseEntity.ok(toDetailResponse(
                 getSurveyResultDetailUseCase.getSurveyResult(
                         surveyId,
-                        currentStudentProvider.currentUserId(),
-                        currentStudentProvider.currentRole()
+                        currentIdentityProvider.currentUserId(),
+                        currentIdentityProvider.currentRole()
                 )
         ));
     }
 
     @GetMapping("/{surveyId}/export")
     public ResponseEntity<byte[]> exportSurveyResult(@PathVariable Integer surveyId) {
-        if (currentStudentProvider.currentRole() != Role.ADMIN) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can export survey reports");
-        }
-
-        SurveyResultDetailResult result = getSurveyResultDetailUseCase.getSurveyResult(
+        ExportedReport result = exportSurveyReportUseCase.exportSurveyReport(
                 surveyId,
-                currentStudentProvider.currentUserId(),
-                currentStudentProvider.currentRole()
+                currentIdentityProvider.currentUserId(),
+                currentIdentityProvider.currentRole()
         );
-        byte[] csv = buildCsv(result).getBytes(StandardCharsets.UTF_8);
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(new MediaType("text", "csv", StandardCharsets.UTF_8));
+        headers.setContentType(MediaType.parseMediaType(result.contentType()));
         headers.setContentDisposition(ContentDisposition.attachment()
-                .filename("survey-" + surveyId + "-report.csv")
+                .filename(result.filename())
                 .build());
-        return new ResponseEntity<>(csv, headers, HttpStatus.OK);
+        return new ResponseEntity<>(result.content(), headers, HttpStatus.OK);
     }
 
     private SurveyResultSummaryResponse toSummaryResponse(SurveyResultSummaryResult result) {
@@ -172,98 +167,4 @@ public class SurveyResultController {
         );
     }
 
-    private String buildCsv(SurveyResultDetailResult result) {
-        StringBuilder csv = new StringBuilder();
-        appendRow(csv,
-                "Survey ID",
-                "Survey Title",
-                "Description",
-                "Start Date",
-                "End Date",
-                "Lifecycle State",
-                "Runtime Status",
-                "Audience",
-                "Department",
-                "Targeted",
-                "Opened",
-                "Submitted",
-                "Response Rate",
-                "Question ID",
-                "Question",
-                "Question Type",
-                "Question Response Count",
-                "Average Rating",
-                "Rating",
-                "Rating Count",
-                "Comment"
-        );
-        for (QuestionStatisticsResult question : result.questions()) {
-            if ("RATING".equalsIgnoreCase(question.type())) {
-                if (question.ratingBreakdown().isEmpty()) {
-                    appendQuestionRow(csv, result, question, null, null, null);
-                } else {
-                    question.ratingBreakdown().forEach(item -> appendQuestionRow(csv, result, question, item.rating(), item.count(), null));
-                }
-            } else if (question.comments().isEmpty()) {
-                appendQuestionRow(csv, result, question, null, null, null);
-            } else {
-                question.comments().forEach(comment -> appendQuestionRow(csv, result, question, null, null, comment));
-            }
-        }
-        return csv.toString();
-    }
-
-    private void appendQuestionRow(
-            StringBuilder csv,
-            SurveyResultDetailResult result,
-            QuestionStatisticsResult question,
-            Integer rating,
-            Long ratingCount,
-            String comment
-    ) {
-        appendRow(csv,
-                result.id(),
-                result.title(),
-                result.description(),
-                result.startDate(),
-                result.endDate(),
-                result.lifecycleState(),
-                result.runtimeStatus(),
-                result.recipientScope(),
-                result.recipientDepartmentName(),
-                result.targetedCount(),
-                result.openedCount(),
-                result.submittedCount(),
-                result.responseRate(),
-                question.id(),
-                question.content(),
-                question.type(),
-                question.responseCount(),
-                question.averageRating(),
-                rating,
-                ratingCount,
-                comment
-        );
-    }
-
-    private void appendRow(StringBuilder csv, Object... values) {
-        for (int i = 0; i < values.length; i++) {
-            if (i > 0) {
-                csv.append(',');
-            }
-            csv.append(escapeCsv(values[i]));
-        }
-        csv.append('\n');
-    }
-
-    private String escapeCsv(Object value) {
-        if (value == null) {
-            return "";
-        }
-        String text = value.toString();
-        if (text.contains(",") || text.contains("\"") || text.contains("\n") || text.contains("\r")) {
-            return "\"" + text.replace("\"", "\"\"") + "\"";
-        }
-        return text;
-    }
 }

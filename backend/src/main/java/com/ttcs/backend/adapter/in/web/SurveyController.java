@@ -33,12 +33,12 @@ public class SurveyController {
     private final GetSurveyUseCase getSurveyUseCase;
     private final GetSurveyDetailUseCase getSurveyDetailUseCase;
     private final SubmitSurveyUseCase submitSurveyUseCase;
-    private final CurrentStudentProvider currentStudentProvider;
+    private final CurrentIdentityProvider currentIdentityProvider;
 
     @GetMapping("/{id}")
     public ResponseEntity<SurveyResponse> getSurveyById(@PathVariable("id") Integer surveyId) {
-        currentStudentProvider.ensureActiveStudentAccount();
-        return ResponseEntity.ok(toSurveyResponse(getSurveyUseCase.getSurveyById(surveyId, currentStudentProvider.currentUserId())));
+        currentIdentityProvider.ensureActiveStudentAccount();
+        return ResponseEntity.ok(toSurveyResponse(getSurveyUseCase.getSurveyById(surveyId, currentIdentityProvider.currentUserId())));
     }
 
     @GetMapping
@@ -49,10 +49,10 @@ public class SurveyController {
             @RequestParam(defaultValue = "endDate") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir
     ) {
-        currentStudentProvider.ensureActiveStudentAccount();
+        currentIdentityProvider.ensureActiveStudentAccount();
         StudentSurveyPageResult result = getSurveyUseCase.getAllSurveys(
                 new GetStudentSurveysQuery(status, page, size, sortBy, sortDir),
-                currentStudentProvider.currentUserId()
+                currentIdentityProvider.currentUserId()
         );
         return ResponseEntity.ok(new StudentSurveyPageResponse(
                 result.items().stream().map(this::toSurveyResponse).toList(),
@@ -65,9 +65,9 @@ public class SurveyController {
 
     @GetMapping("/{id}/detail")
     public ResponseEntity<SurveyDetailResponse> getSurveyDetail(@PathVariable("id") Integer surveyId) {
-        currentStudentProvider.ensureActiveStudentAccount();
+        currentIdentityProvider.ensureActiveStudentAccount();
         return ResponseEntity.ok(toSurveyDetailResponse(
-                getSurveyDetailUseCase.getSurveyDetail(surveyId, currentStudentProvider.currentStudentId())
+                getSurveyDetailUseCase.getSurveyDetail(surveyId, currentIdentityProvider.currentStudentProfileId())
         ));
     }
 
@@ -76,11 +76,10 @@ public class SurveyController {
             @PathVariable Integer surveyId,
             @RequestBody SubmitSurveyRequest request
     ) {
-        currentStudentProvider.ensureActiveStudentAccount();
-        getSurveyUseCase.getSurveyById(surveyId, currentStudentProvider.currentUserId());
+        currentIdentityProvider.ensureActiveStudentAccount();
         SubmitSurveyCommand command = new SubmitSurveyCommand(
                 surveyId,
-                currentStudentProvider.currentStudentId(),
+                currentIdentityProvider.currentStudentProfileId(),
                 request == null || request.answers() == null
                         ? List.of()
                         : request.answers().stream()

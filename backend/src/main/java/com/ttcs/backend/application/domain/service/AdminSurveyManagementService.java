@@ -13,6 +13,7 @@ import com.ttcs.backend.application.domain.model.SurveyAssignment;
 import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
 import com.ttcs.backend.application.domain.model.SurveyRecipient;
 import com.ttcs.backend.application.domain.model.SurveyRecipientScope;
+import com.ttcs.backend.application.domain.model.SurveyStatus;
 import com.ttcs.backend.application.port.in.admin.GetManagedSurveysQuery;
 import com.ttcs.backend.application.port.in.admin.ArchiveSurveyUseCase;
 import com.ttcs.backend.application.port.in.admin.CloseSurveyUseCase;
@@ -51,6 +52,7 @@ import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -65,6 +67,8 @@ public class AdminSurveyManagementService implements
         CloseSurveyUseCase,
         PublishSurveyUseCase,
         ArchiveSurveyUseCase {
+
+    private static final long CLOSING_SOON_DAYS = 3;
 
     private final LoadSurveyPort loadSurveyPort;
     private final SaveSurveyPort saveSurveyPort;
@@ -270,7 +274,7 @@ public class AdminSurveyManagementService implements
             return SurveyManagementActionResult.fail("SURVEY_NOT_READY", "Published surveys require at least one valid recipient assignment.");
         }
 
-        saveSurveyPort.save(new Survey(
+        Survey publishedSurvey = new Survey(
                 survey.getId(),
                 survey.getTitle(),
                 survey.getDescription(),
@@ -279,7 +283,8 @@ public class AdminSurveyManagementService implements
                 survey.getCreatedBy(),
                 survey.isHidden(),
                 SurveyLifecycleState.PUBLISHED
-        ));
+        );
+        saveSurveyPort.save(publishedSurvey);
         createRecipientsForPublishedSurvey(surveyId, assignments);
         List<SurveyRecipient> recipients = loadSurveyRecipientPort.loadBySurveyId(surveyId);
         saveAuditLogPort.save(new AuditLog(
@@ -294,7 +299,8 @@ public class AdminSurveyManagementService implements
                 SurveyLifecycleState.PUBLISHED.name(),
                 null
         ));
-        if (!recipients.isEmpty()) {
+        List<Integer> recipientUserIds = recipientUserIds(recipients);
+        if (!recipientUserIds.isEmpty()) {
             saveNotificationPort.create(new NotificationCreateCommand(
                     "SURVEY_PUBLISHED",
                     "New survey available",
@@ -303,8 +309,9 @@ public class AdminSurveyManagementService implements
                     "Open survey",
                     actorUserId,
                     "recipients=" + recipients.size(),
-                    recipients.stream().map(SurveyRecipient::getStudentId).toList()
+                    recipientUserIds
             ));
+            createDeadlineReminderForClosingSoonSurvey(publishedSurvey, recipientUserIds);
         }
 
         return SurveyManagementActionResult.ok("SURVEY_PUBLISHED", "Survey published successfully.");
@@ -534,6 +541,49 @@ public class AdminSurveyManagementService implements
             return loadSurveyRecipientCandidatePort.loadActiveStudentsByDepartment(assignment.getSubjectValue());
         }
         return loadSurveyRecipientCandidatePort.loadActiveStudents();
+    }
+
+    private void createDeadlineReminderForClosingSoonSurvey(Survey survey, List<Integer> recipientUserIds) {
+        LocalDateTime now = LocalDateTime.now();
+        if (survey.statusAt(now) != SurveyStatus.OPEN || !isWithinNextDays(survey.getEndDate(), now, CLOSING_SOON_DAYS)) {
+            return;
+        }
+
+        saveNotificationPort.create(new NotificationCreateCommand(
+                "SURVEY_DEADLINE_REMINDER",
+                "Survey closing soon",
+                "The survey \"" + survey.getTitle() + "\" is closing soon. Submit before the deadline.",
+                survey.getId(),
+                "Respond now",
+                null,
+                "deadline=" + safeEventAt(survey.getEndDate(), now),
+                recipientUserIds
+        ));
+    }
+
+    private List<Integer> recipientUserIds(List<SurveyRecipient> recipients) {
+        return recipients.stream()
+                .map(SurveyRecipient::getStudentId)
+                .map(loadStudentPort::loadById)
+                .flatMap(java.util.Optional::stream)
+                .map(Student::getUser)
+                .filter(java.util.Objects::nonNull)
+                .map(com.ttcs.backend.application.domain.model.User::getId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    private boolean isWithinNextDays(LocalDateTime value, LocalDateTime now, long days) {
+        if (value == null || value.isBefore(now)) {
+            return false;
+        }
+
+        return Duration.between(now, value).toDays() <= days;
+    }
+
+    private LocalDateTime safeEventAt(LocalDateTime preferred, LocalDateTime fallback) {
+        return preferred != null ? preferred : fallback;
     }
 
     private ParticipationSummary summarizeParticipation(List<SurveyRecipient> recipients) {

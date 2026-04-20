@@ -29,11 +29,11 @@ public class NotificationPersistenceAdapter implements SaveNotificationPort, Loa
     private final SurveyRepository surveyRepository;
 
     @Override
-    public LoadedStudentNotificationPage loadPage(Integer userId, int page, int size, boolean unreadOnly) {
+    public LoadedStudentNotificationPage loadPage(Integer studentUserId, int page, int size, boolean unreadOnly) {
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), 100);
         Page<NotificationUserEntity> results = notificationUserRepository.findPageForUser(
-                userId,
+                studentUserId,
                 unreadOnly,
                 PageRequest.of(safePage, safeSize)
         );
@@ -43,21 +43,21 @@ public class NotificationPersistenceAdapter implements SaveNotificationPort, Loa
                 results.getSize(),
                 results.getTotalElements(),
                 results.getTotalPages(),
-                notificationUserRepository.countUnreadByUserId(userId)
+                notificationUserRepository.countUnreadByUserId(studentUserId)
         );
     }
 
     @Override
-    public boolean existsForUserAndSurvey(Integer userId, String type, Integer surveyId) {
-        if (userId == null || type == null || surveyId == null) {
+    public boolean existsForUserAndSurvey(Integer studentUserId, String type, Integer surveyId) {
+        if (studentUserId == null || type == null || surveyId == null) {
             return false;
         }
-        return notificationUserRepository.existsByUser_IdAndNotification_TypeAndNotification_Survey_Id(userId, type, surveyId);
+        return notificationUserRepository.existsByUser_IdAndNotification_TypeAndNotification_Survey_Id(studentUserId, type, surveyId);
     }
 
     @Override
-    public boolean markAsRead(Integer notificationUserId, Integer userId, LocalDateTime readAt) {
-        NotificationUserEntity notificationUser = notificationUserRepository.findByIdAndUser_Id(notificationUserId, userId)
+    public boolean markAsRead(Integer notificationUserId, Integer studentUserId, LocalDateTime readAt) {
+        NotificationUserEntity notificationUser = notificationUserRepository.findByIdAndUser_Id(notificationUserId, studentUserId)
                 .orElse(null);
         if (notificationUser == null) {
             return false;
@@ -70,8 +70,8 @@ public class NotificationPersistenceAdapter implements SaveNotificationPort, Loa
     }
 
     @Override
-    public int markAllAsRead(Integer userId, LocalDateTime readAt) {
-        return notificationUserRepository.markAllUnreadAsRead(userId, readAt);
+    public int markAllAsRead(Integer studentUserId, LocalDateTime readAt) {
+        return notificationUserRepository.markAllUnreadAsRead(studentUserId, readAt);
     }
 
     @Override
