@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public class SurveyResponse {
     private final Integer id;
     private final Student student;
-    private final Teacher teacher;
+    private final Lecturer lecturer;
     private final Survey survey;
     private final LocalDateTime submittedAt;
 }

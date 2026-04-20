@@ -30,7 +30,7 @@ export type ManagedUserSummary = {
     studentStatus: string | null;
     active: boolean;
     studentCode: string | null;
-    teacherCode: string | null;
+    lecturerCode: string | null;
 };
 
 export type ManagedUserDetail = {
@@ -42,7 +42,7 @@ export type ManagedUserDetail = {
     departmentId: number | null;
     departmentName: string | null;
     studentCode: string | null;
-    teacherCode: string | null;
+    lecturerCode: string | null;
     studentStatus: string | null;
 };
 
@@ -64,7 +64,7 @@ export type RejectStudentRequest = {
 export type ManagedUserMetrics = {
     totalUsers: number;
     totalStudents: number;
-    totalTeachers: number;
+    totalLecturers: number;
     totalAdmins: number;
     totalInactive: number;
     totalPending: number;
@@ -82,4 +82,74 @@ export type ManagedUserPage = {
 export type DepartmentOption = {
     id: number;
     name: string;
+};
+
+export type AdminAnalyticsMetrics = {
+    totalSurveys: number;
+    totalDrafts: number;
+    totalPublished: number;
+    totalClosed: number;
+    totalArchived: number;
+    totalHidden: number;
+    totalOpenRuntime: number;
+    totalTargeted: number;
+    totalOpened: number;
+    totalSubmitted: number;
+    averageResponseRate: number;
+};
+
+export type AdminAnalyticsCount = {
+    key: string;
+    count: number;
+};
+
+export type AdminAnalyticsDepartment = {
+    departmentId: number | null;
+    departmentName: string;
+    surveyCount: number;
+    targetedCount: number;
+    openedCount: number;
+    submittedCount: number;
+    responseRate: number;
+};
+
+export type AdminAnalyticsAttentionSurvey = {
+    id: number;
+    title: string;
+    lifecycleState: string;
+    runtimeStatus: string;
+    departmentName: string | null;
+    targetedCount: number;
+    openedCount: number;
+    submittedCount: number;
+    responseRate: number;
+};
+
+export type AdminAnalyticsOverview = {
+    metrics: AdminAnalyticsMetrics;
+    lifecycleCounts: AdminAnalyticsCount[];
+    runtimeCounts: AdminAnalyticsCount[];
+    departmentBreakdown: AdminAnalyticsDepartment[];
+    attentionSurveys: AdminAnalyticsAttentionSurvey[];
+};
+
+export type AuditLogEntry = {
+    id: number;
+    actorUserId: number;
+    actionType: string;
+    targetType: string;
+    targetId: number;
+    summary: string;
+    details: string | null;
+    oldState: string | null;
+    newState: string | null;
+    createdAt: string;
+};
+
+export type AuditLogPage = {
+    items: AuditLogEntry[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
 };

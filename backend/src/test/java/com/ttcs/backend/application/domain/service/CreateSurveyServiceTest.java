@@ -89,6 +89,29 @@ class CreateSurveyServiceTest {
         )));
     }
 
+    @Test
+    void shouldCopyQuestionBankSourceOntoSurveyQuestion() {
+        RecordingSaveQuestionPort saveQuestionPort = new RecordingSaveQuestionPort();
+        CreateSurveyService service = new CreateSurveyService(
+                new RecordingSaveSurveyPort(),
+                saveQuestionPort,
+                new NoOpSaveSurveyAssignmentPort()
+        );
+
+        service.createSurvey(new CreateSurveyCommand(
+                "Teaching Feedback",
+                "Draft survey",
+                LocalDateTime.now().plusDays(1),
+                LocalDateTime.now().plusDays(3),
+                1,
+                List.of(new CreateQuestionCommand("Rate the class", QuestionType.RATING, 42)),
+                SurveyRecipientScope.ALL_STUDENTS,
+                null
+        ));
+
+        assertEquals(42, saveQuestionPort.lastSavedQuestions.getFirst().getQuestionBankEntryId());
+    }
+
     private static final class RecordingSaveSurveyPort implements SaveSurveyPort {
         private Survey lastSavedSurvey;
 
@@ -106,6 +129,20 @@ class CreateSurveyServiceTest {
 
         @Override
         public void replaceSurveyQuestions(Integer surveyId, List<Question> questions) {
+        }
+    }
+
+    private static final class RecordingSaveQuestionPort implements SaveQuestionPort {
+        private List<Question> lastSavedQuestions = List.of();
+
+        @Override
+        public void saveAll(List<Question> questions) {
+            lastSavedQuestions = questions;
+        }
+
+        @Override
+        public void replaceSurveyQuestions(Integer surveyId, List<Question> questions) {
+            lastSavedQuestions = questions;
         }
     }
 

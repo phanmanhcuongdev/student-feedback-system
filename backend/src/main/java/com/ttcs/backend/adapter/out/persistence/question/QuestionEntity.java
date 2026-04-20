@@ -39,4 +39,7 @@ public class QuestionEntity {
     @Column(length = 20)
     @Nationalized
     private String type;
+
+    @Column(name = "question_bank_id")
+    private Integer questionBankEntryId;
 }

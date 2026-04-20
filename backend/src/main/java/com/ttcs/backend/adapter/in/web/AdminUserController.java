@@ -42,7 +42,7 @@ public class AdminUserController {
     private final GetUserDetailUseCase getUserDetailUseCase;
     private final UpdateUserUseCase updateUserUseCase;
     private final SetUserActiveUseCase setUserActiveUseCase;
-    private final CurrentStudentProvider currentStudentProvider;
+    private final CurrentIdentityProvider currentIdentityProvider;
 
     @GetMapping
     public ResponseEntity<ManagedUserPageResponse> getUsers(
@@ -76,7 +76,7 @@ public class AdminUserController {
                 new ManagedUserMetricsResponse(
                         result.metrics().totalUsers(),
                         result.metrics().totalStudents(),
-                        result.metrics().totalTeachers(),
+                        result.metrics().totalLecturers(),
                         result.metrics().totalAdmins(),
                         result.metrics().totalInactive(),
                         result.metrics().totalPending()
@@ -104,12 +104,12 @@ public class AdminUserController {
         UserManagementActionResult result = updateUserUseCase.updateUser(
                 new UpdateUserCommand(
                         userId,
-                        currentStudentProvider.currentUserId(),
+                        currentIdentityProvider.currentUserId(),
                         request.getEmail(),
                         request.getName(),
                         request.getDepartmentId(),
                         request.getStudentCode(),
-                        request.getTeacherCode()
+                        request.getLecturerCode()
                 )
         );
         return ResponseEntity.ok(toActionResponse(result));
@@ -118,14 +118,14 @@ public class AdminUserController {
     @PostMapping("/{userId}/deactivate")
     public ResponseEntity<UserManagementActionResponse> deactivateUser(@PathVariable Integer userId) {
         return ResponseEntity.ok(toActionResponse(setUserActiveUseCase.setUserActive(
-                new SetUserActiveCommand(userId, currentStudentProvider.currentUserId(), false)
+                new SetUserActiveCommand(userId, currentIdentityProvider.currentUserId(), false)
         )));
     }
 
     @PostMapping("/{userId}/activate")
     public ResponseEntity<UserManagementActionResponse> activateUser(@PathVariable Integer userId) {
         return ResponseEntity.ok(toActionResponse(setUserActiveUseCase.setUserActive(
-                new SetUserActiveCommand(userId, currentStudentProvider.currentUserId(), true)
+                new SetUserActiveCommand(userId, currentIdentityProvider.currentUserId(), true)
         )));
     }
 
@@ -140,7 +140,7 @@ public class AdminUserController {
                 result.studentStatus(),
                 result.active(),
                 result.studentCode(),
-                result.teacherCode()
+                result.lecturerCode()
         );
     }
 
@@ -154,7 +154,7 @@ public class AdminUserController {
                 result.departmentId(),
                 result.departmentName(),
                 result.studentCode(),
-                result.teacherCode(),
+                result.lecturerCode(),
                 result.studentStatus()
         );
     }

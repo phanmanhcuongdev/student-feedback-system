@@ -10,5 +10,5 @@ public class UpdateUserRequest {
     private String name;
     private Integer departmentId;
     private String studentCode;
-    private String teacherCode;
+    private String lecturerCode;
 }

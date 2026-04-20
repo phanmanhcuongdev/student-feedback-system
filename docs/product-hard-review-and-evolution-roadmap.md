@@ -14,24 +14,24 @@
   - A university internal platform for onboarding student accounts, distributing institutional or course feedback surveys, collecting student responses, and giving admins and lecturers some visibility into results.
 - Evidence:
   - The root README defines the system as "collecting student survey responses and reviewing onboarding requests" and lists onboarding, survey submission, and survey result review as core flows (`README.md:5-15`, `README.md:134-162`).
-  - The schema includes `Student`, `Teacher`, `Survey`, `Survey_Assignment`, `Survey_Response`, `Feedback`, and onboarding token tables (`database/full_schema.sql:44-187`).
+  - The schema includes `Student`, `Lecturer`, `Survey`, `Survey_Assignment`, `Survey_Response`, `Feedback`, and onboarding token tables (`database/full_schema.sql:44-187`).
   - Frontend routing exposes separate student, lecturer, and admin surfaces (`frontend/src/App.tsx`).
 - Primary users:
   - Students: register, verify email, upload documents, take surveys, send feedback.
   - Admins: approve students, manage surveys, manage users, review results.
 - Secondary users:
-  - Teachers/lecturers: view survey results and respond to feedback.
+  - Lecturers/lecturers: view survey results and respond to feedback.
 - Core user goals:
   - Students want a verified account, clear action queue, accessible assigned surveys, and evidence their feedback was received.
   - Admins want controlled onboarding, targeted survey distribution, response monitoring, and the ability to manage accounts without touching the database.
-  - Teachers want actionable results scoped to the classes or departments they actually own.
+  - Lecturers want actionable results scoped to the classes or departments they actually own.
 - Organization/business value:
   - Reduce manual onboarding friction.
   - Increase response collection for institutional/course feedback.
   - Provide a channel for student concerns and improvement requests.
 - Product vision clarity:
   - Partially clear, but inconsistent.
-  - The schema hints at a broader evaluator/subject model with `teacher_id`, `evaluator_type`, and `subject_type` (`database/full_schema.sql:108-133`), but the application only uses student evaluators and all-student or department targeting (`backend/src/main/java/com/ttcs/backend/application/domain/service/CreateSurveyService.java:56-84`, `backend/src/main/java/com/ttcs/backend/application/domain/service/GetSurveyService.java:68-82`).
+  - The schema hints at a broader evaluator/subject model with `lecturer_id`, `evaluator_type`, and `subject_type` (`database/full_schema.sql:108-133`), but the application only uses student evaluators and all-student or department targeting (`backend/src/main/java/com/ttcs/backend/application/domain/service/CreateSurveyService.java:56-84`, `backend/src/main/java/com/ttcs/backend/application/domain/service/GetSurveyService.java:68-82`).
   - That mismatch makes the domain feel unfinished rather than intentionally scoped.
 
 ## 3. Current Strengths
@@ -56,13 +56,13 @@
 | Shallow business logic | Student lifecycle is only `EMAIL_UNVERIFIED -> EMAIL_VERIFIED -> PENDING -> ACTIVE/REJECTED` (`AuthUseCaseService.java:220-320`, `AdminStudentApprovalService.java:48-84`, `database/full_schema.sql:44-57`) | This is a thin approval funnel, not a real onboarding lifecycle. There is no resubmission loop, no expiry, no manual review notes, no risk flags, no appeal, no partial approval, no document verification result. | Admin review becomes binary and opaque; students have no recoverable path after rejection; operations cannot explain decisions. |
 | Disconnected feature flows | Survey flow ends at submission, result flow ends at viewing, feedback flow ends at reply stream (`SubmitSurveyService.java:92-105`, `SurveyResultPersistenceAdapter.java:33-138`, `StudentFeedbackService.java:115-147`) | Real products connect actions to outcomes: response rates, follow-up actions, course improvement tasks, closure communications, archived decisions. | Users provide input, but the system shows no institutional response loop. It feels extractive rather than useful. |
 | No closed-loop lifecycle | Admin can create, hide, and close surveys, but there is no draft/approval/publish/archive lifecycle (`AdminSurveyManagementService.java:83-189`) | Production survey programs need governance. Someone should be able to draft, review, approve, schedule, monitor, close, archive, and compare runs. | Surveys can be launched too early, edited with weak control, and disappear into static result pages. |
-| Unrealistic role model | Teachers can see survey results globally because `/api/v1/survey-results/**` is allowed for any teacher and result loading is unscoped (`SecurityConfig.java:41-44`, `SurveyResultPersistenceAdapter.java:33-84`) | In a university, a lecturer should not automatically see all survey results across departments or courses. | Major governance and privacy problem. This would not pass a real institutional review. |
-| Weak assignment model | The schema supports generic evaluator/subject combinations and `teacher_id`, but the application only creates student assignments with `ALL` or `DEPARTMENT` targeting (`database/full_schema.sql:108-133`, `CreateSurveyService.java:56-84`, `GetSurveyService.java:68-82`) | The domain model advertises richer targeting than the product actually delivers. This looks half-built. | Evaluators and reviewers will see architectural ambition without product completion. |
+| Unrealistic role model | Lecturers can see survey results globally because `/api/v1/survey-results/**` is allowed for any lecturer and result loading is unscoped (`SecurityConfig.java:41-44`, `SurveyResultPersistenceAdapter.java:33-84`) | In a university, a lecturer should not automatically see all survey results across departments or courses. | Major governance and privacy problem. This would not pass a real institutional review. |
+| Weak assignment model | The schema supports generic evaluator/subject combinations and `lecturer_id`, but the application only creates student assignments with `ALL` or `DEPARTMENT` targeting (`database/full_schema.sql:108-133`, `CreateSurveyService.java:56-84`, `GetSurveyService.java:68-82`) | The domain model advertises richer targeting than the product actually delivers. This looks half-built. | Evaluators and reviewers will see architectural ambition without product completion. |
 | Weak validation/governance | Survey creation has almost no business validation beyond non-empty title and question presence in the frontend; backend create path does not validate against department existence, missing dates, empty question set, duplicate content, or conflicting windows (`CreateSurveyService.java:30-61`, `frontend/src/features/admin/pages/CreateSurveyPage.tsx:79-112`) | Real survey ops need validation rules or they create garbage data and operator pain. | Admins can create invalid or meaningless survey campaigns. |
 | Missing operational visibility | Admin dashboard is mostly counts and top response volume (`frontend/src/features/dashboard/pages/AdminDashboardPage.tsx:35-149`) | A real operations dashboard should show overdue approvals, stuck onboarding, pending document reviews, response rate by cohort, surveys at risk, rejection reasons, and unresolved feedback backlog. | Dashboard is cosmetic. It does not help staff run the service. |
 | No exception handling in business flows | Pending student approval is a raw approve/reject button with no reason, no reviewer notes, and only file path inspection (`frontend/src/features/admin/pages/PendingStudentsPage.tsx:77-177`, `AdminStudentApprovalService.java:58-84`) | Real onboarding always has exceptions: unreadable ID, mismatched name, expired document, duplicate student code, partial mismatch, escalation. | Staff cannot document why they acted. Students cannot recover constructively. |
 | Low data completeness | Survey, feedback, and notification entities are minimal. `Notification` stores only `content`; survey has no category, owner scope, template, anonymous mode, response target, or academic term (`database/full_schema.sql:84-187`) | Thin tables usually mean thin product thinking. Important reporting and workflow dimensions are absent from the data model. | Future analytics, filtering, governance, and integrations become awkward or impossible. |
-| Missing role boundaries | `CurrentStudentProvider.currentStudentId()` simply returns `currentUserId()` (`CurrentStudentProvider.java:23-25`), which is safe only because the caller pattern is disciplined. Teacher/admin-specific identity models are weak. | This is the kind of shortcut that survives in student work because the role matrix is still small. | Harder to grow into class-scoped teacher features or delegated operators safely. |
+| Missing role boundaries | `CurrentStudentProvider.currentStudentId()` simply returns `currentUserId()` (`CurrentStudentProvider.java:23-25`), which is safe only because the caller pattern is disciplined. Lecturer/admin-specific identity models are weak. | This is the kind of shortcut that survives in student work because the role matrix is still small. | Harder to grow into class-scoped lecturer features or delegated operators safely. |
 | No real notification/escalation loop | Notification tables exist, but active notification delivery is generated in memory from survey dates rather than persisted or event-driven (`database/full_schema.sql:173-187`, `GetStudentNotificationsService.java:30-97`) | That is not a notification system. It is a computed convenience view. No read state, no history, no reminders, no retry, no escalation, no delivery channel. | Students do not actually get prompted; admins cannot prove outreach happened. |
 | Weak reporting/analytics | Survey results are basic aggregates and raw comments only (`SurveyResultPersistenceAdapter.java:87-137`) | Real survey programs need cohort slicing, trend comparison, response-rate denominators, benchmark periods, and action tracking. | Result pages look informative but are operationally shallow. |
 | No audit/compliance thinking | Approvals, user activation, survey closure, and feedback responses do not create an audit trail in the data model or UI. Not evident in the repository. | For any institutional workflow, auditability matters. Who approved? When? Why? Based on what evidence? | This would fail a serious internal tool review. |
@@ -113,7 +113,7 @@ Additional blunt points:
   - `Question`
   - `Survey_Assignment`
 - Current implemented flow:
-  - admin creates survey -> adds questions -> chooses all students or one department -> can edit until responses exist -> can hide or close -> students can submit -> admins/teachers can view results (`CreateSurveyService.java:30-61`, `AdminSurveyManagementService.java:83-189`)
+  - admin creates survey -> adds questions -> chooses all students or one department -> can edit until responses exist -> can hide or close -> students can submit -> admins/lecturers can view results (`CreateSurveyService.java:30-61`, `AdminSurveyManagementService.java:83-189`)
 - Where the flow stops too early:
   - No draft state.
   - No review/approval before publication.
@@ -154,7 +154,7 @@ Additional blunt points:
 - Core entities:
   - survey result views
 - Current implemented flow:
-  - admin/teacher sees response count, averages, breakdown, raw comments (`SurveyResultPersistenceAdapter.java:33-138`)
+  - admin/lecturer sees response count, averages, breakdown, raw comments (`SurveyResultPersistenceAdapter.java:33-138`)
 - Where the flow stops too early:
   - Results are descriptive only.
   - No segmentation by department, course, term, cohort.
@@ -225,8 +225,8 @@ Additional blunt points:
   - Why it matters: creates accountability and rework guidance.
   - Connection: current pending student review is blind.
   - Phase: MVP
-- Scoped teacher access
-  - What it does: restricts teachers to departments/courses they own.
+- Scoped lecturer access
+  - What it does: restricts lecturers to departments/courses they own.
   - Why it matters: global result access is institutionally unsafe.
   - Connection: fixes current survey result access model.
   - Phase: MVP
@@ -359,7 +359,7 @@ Integration notes:
 - Do not add Kafka just to look modern. The repo does not need it yet.
 - The highest-value integrations here are identity, object storage, monitoring, and job execution.
 
-## 8. Teacher / Evaluator Perspective: What Makes a “Real Product”
+## 8. Lecturer / Evaluator Perspective: What Makes a “Real Product”
 - From a demanding lecturer’s perspective, this repo currently feels academically complete but product-incomplete because it demonstrates breadth of implementation without equivalent depth of use.
 - Why it still feels like a student submission:
   - Many flows stop at the first success state.
@@ -376,7 +376,7 @@ Integration notes:
   - Deployment and runtime story show how the product would actually operate.
 - Repo evidence supporting that distinction:
   - Binary onboarding approval with no reasons (`AdminStudentApprovalService.java:48-84`).
-  - Teacher result access is effectively global (`SecurityConfig.java:41-44`, `SurveyResultPersistenceAdapter.java:33-84`).
+  - Lecturer result access is effectively global (`SecurityConfig.java:41-44`, `SurveyResultPersistenceAdapter.java:33-84`).
   - Notification tables exist, but active notifications are computed on the fly rather than managed as events (`database/full_schema.sql:173-187`, `GetStudentNotificationsService.java:30-97`).
   - The frontend has no automated tests at all (`frontend/package.json:6-10`).
   - Dockerfiles exist, but the repo itself admits there is no composed environment (`README.md:166-170`).
@@ -490,7 +490,7 @@ Specific guidance:
 |---|---|---|---|---|---|
 | 1 | Reworkable onboarding case workflow | Binary approve/reject is unrealistic | Transforms onboarding from demo to service workflow | Medium | Critical |
 | 2 | Recipient tracking and response-rate analytics | Current survey stats lack denominator | Makes survey operations meaningful and management-grade | High | Critical |
-| 3 | Scoped teacher authorization | Teachers can currently view too broadly | Fixes major governance/privacy weakness | Medium | Critical |
+| 3 | Scoped lecturer authorization | Lecturers can currently view too broadly | Fixes major governance/privacy weakness | Medium | Critical |
 | 4 | Survey lifecycle states beyond date-only status | Current campaign flow is CRUD-like | Makes survey operations believable | Medium | High |
 | 5 | Feedback ticket triage and resolution workflow | Current feedback is toy-like | Converts feedback into a real support/process channel | Medium | High |
 | 6 | Persistent notifications plus reminder jobs | Current notifications are computed, not delivered | Adds real user engagement loop | Medium | High |

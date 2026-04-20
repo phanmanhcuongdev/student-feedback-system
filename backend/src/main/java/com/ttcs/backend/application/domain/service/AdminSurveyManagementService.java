@@ -13,6 +13,7 @@ import com.ttcs.backend.application.domain.model.SurveyAssignment;
 import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
 import com.ttcs.backend.application.domain.model.SurveyRecipient;
 import com.ttcs.backend.application.domain.model.SurveyRecipientScope;
+import com.ttcs.backend.application.domain.model.SurveyStatus;
 import com.ttcs.backend.application.port.in.admin.GetManagedSurveysQuery;
 import com.ttcs.backend.application.port.in.admin.ArchiveSurveyUseCase;
 import com.ttcs.backend.application.port.in.admin.CloseSurveyUseCase;
@@ -38,8 +39,10 @@ import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResponsePort;
 import com.ttcs.backend.application.port.out.LoadStudentPort;
+import com.ttcs.backend.application.port.out.NotificationCreateCommand;
 import com.ttcs.backend.application.port.out.SaveQuestionPort;
 import com.ttcs.backend.application.port.out.SaveAuditLogPort;
+import com.ttcs.backend.application.port.out.SaveNotificationPort;
 import com.ttcs.backend.application.port.out.SaveSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.SaveSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.SaveSurveyPort;
@@ -49,6 +52,7 @@ import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -64,6 +68,8 @@ public class AdminSurveyManagementService implements
         PublishSurveyUseCase,
         ArchiveSurveyUseCase {
 
+    private static final long CLOSING_SOON_DAYS = 3;
+
     private final LoadSurveyPort loadSurveyPort;
     private final SaveSurveyPort saveSurveyPort;
     private final LoadQuestionPort loadQuestionPort;
@@ -76,6 +82,7 @@ public class AdminSurveyManagementService implements
     private final LoadSurveyRecipientCandidatePort loadSurveyRecipientCandidatePort;
     private final LoadStudentPort loadStudentPort;
     private final SaveAuditLogPort saveAuditLogPort;
+    private final SaveNotificationPort saveNotificationPort;
     private final ManageSurveyPort manageSurveyPort;
 
     @Override
@@ -226,7 +233,8 @@ public class AdminSurveyManagementService implements
                                 null,
                                 command.surveyId(),
                                 question.content(),
-                                QuestionType.valueOf(question.type())
+                                QuestionType.valueOf(question.type()),
+                                question.questionBankEntryId()
                         ))
                         .toList()
         );
@@ -266,7 +274,7 @@ public class AdminSurveyManagementService implements
             return SurveyManagementActionResult.fail("SURVEY_NOT_READY", "Published surveys require at least one valid recipient assignment.");
         }
 
-        saveSurveyPort.save(new Survey(
+        Survey publishedSurvey = new Survey(
                 survey.getId(),
                 survey.getTitle(),
                 survey.getDescription(),
@@ -275,7 +283,8 @@ public class AdminSurveyManagementService implements
                 survey.getCreatedBy(),
                 survey.isHidden(),
                 SurveyLifecycleState.PUBLISHED
-        ));
+        );
+        saveSurveyPort.save(publishedSurvey);
         createRecipientsForPublishedSurvey(surveyId, assignments);
         List<SurveyRecipient> recipients = loadSurveyRecipientPort.loadBySurveyId(surveyId);
         saveAuditLogPort.save(new AuditLog(
@@ -290,6 +299,20 @@ public class AdminSurveyManagementService implements
                 SurveyLifecycleState.PUBLISHED.name(),
                 null
         ));
+        List<Integer> recipientUserIds = recipientUserIds(recipients);
+        if (!recipientUserIds.isEmpty()) {
+            saveNotificationPort.create(new NotificationCreateCommand(
+                    "SURVEY_PUBLISHED",
+                    "New survey available",
+                    "A new survey is available for responses: " + survey.getTitle(),
+                    survey.getId(),
+                    "Open survey",
+                    actorUserId,
+                    "recipients=" + recipients.size(),
+                    recipientUserIds
+            ));
+            createDeadlineReminderForClosingSoonSurvey(publishedSurvey, recipientUserIds);
+        }
 
         return SurveyManagementActionResult.ok("SURVEY_PUBLISHED", "Survey published successfully.");
     }
@@ -518,6 +541,50 @@ public class AdminSurveyManagementService implements
             return loadSurveyRecipientCandidatePort.loadActiveStudentsByDepartment(assignment.getSubjectValue());
         }
         return loadSurveyRecipientCandidatePort.loadActiveStudents();
+    }
+
+    private void createDeadlineReminderForClosingSoonSurvey(Survey survey, List<Integer> recipientUserIds) {
+        LocalDateTime now = LocalDateTime.now();
+        if (survey.statusAt(now) != SurveyStatus.OPEN || !isWithinNextDays(survey.getEndDate(), now, CLOSING_SOON_DAYS)) {
+            return;
+        }
+
+        saveNotificationPort.create(new NotificationCreateCommand(
+                "SURVEY_DEADLINE_REMINDER",
+                "Survey closing soon",
+                "The survey \"" + survey.getTitle() + "\" is closing soon. Submit before the deadline.",
+                survey.getId(),
+                "Respond now",
+                null,
+                "deadline=" + safeEventAt(survey.getEndDate(), now),
+                recipientUserIds
+        ));
+    }
+
+    private List<Integer> recipientUserIds(List<SurveyRecipient> recipients) {
+        List<Integer> studentIds = recipients.stream()
+                .map(SurveyRecipient::getStudentId)
+                .distinct()
+                .toList();
+        return loadStudentPort.loadByIds(studentIds).stream()
+                .map(Student::getUser)
+                .filter(java.util.Objects::nonNull)
+                .map(com.ttcs.backend.application.domain.model.User::getId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    private boolean isWithinNextDays(LocalDateTime value, LocalDateTime now, long days) {
+        if (value == null || value.isBefore(now)) {
+            return false;
+        }
+
+        return Duration.between(now, value).toDays() <= days;
+    }
+
+    private LocalDateTime safeEventAt(LocalDateTime preferred, LocalDateTime fallback) {
+        return preferred != null ? preferred : fallback;
     }
 
     private ParticipationSummary summarizeParticipation(List<SurveyRecipient> recipients) {

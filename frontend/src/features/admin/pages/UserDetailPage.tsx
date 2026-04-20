@@ -12,7 +12,7 @@ export default function UserDetailPage() {
     const [name, setName] = useState("");
     const [departmentId, setDepartmentId] = useState("");
     const [studentCode, setStudentCode] = useState("");
-    const [teacherCode, setTeacherCode] = useState("");
+    const [lecturerCode, setLecturerCode] = useState("");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [toggling, setToggling] = useState(false);
@@ -30,7 +30,7 @@ export default function UserDetailPage() {
                 setName(detail.name);
                 setDepartmentId(detail.departmentId != null ? String(detail.departmentId) : "");
                 setStudentCode(detail.studentCode ?? "");
-                setTeacherCode(detail.teacherCode ?? "");
+                setLecturerCode(detail.lecturerCode ?? "");
             } catch (requestError) {
                 setError(getApiErrorMessage(requestError, "Unable to load user details."));
             } finally {
@@ -61,7 +61,7 @@ export default function UserDetailPage() {
                 name: name.trim(),
                 departmentId: departmentId ? Number(departmentId) : null,
                 studentCode: user.role === "STUDENT" ? studentCode.trim() : null,
-                teacherCode: user.role === "TEACHER" ? teacherCode.trim() : null,
+                lecturerCode: user.role === "LECTURER" ? lecturerCode.trim() : null,
             });
 
             if (!response.success) {
@@ -177,8 +177,8 @@ export default function UserDetailPage() {
                                         <span className="font-medium text-slate-900">{user.studentCode ?? "N/A"}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-4">
-                                        <span className="font-semibold text-slate-500">Teacher code</span>
-                                        <span className="font-medium text-slate-900">{user.teacherCode ?? "N/A"}</span>
+                                        <span className="font-semibold text-slate-500">Lecturer code</span>
+                                        <span className="font-medium text-slate-900">{user.lecturerCode ?? "N/A"}</span>
                                     </div>
                                 </div>
 
@@ -246,13 +246,13 @@ export default function UserDetailPage() {
                                         </label>
                                     ) : null}
 
-                                    {user.role === "TEACHER" ? (
+                                    {user.role === "LECTURER" ? (
                                         <label className="block space-y-2">
-                                            <span className="text-sm font-semibold text-slate-700">Teacher code</span>
+                                            <span className="text-sm font-semibold text-slate-700">Lecturer code</span>
                                             <input
                                                 type="text"
-                                                value={teacherCode}
-                                                onChange={(event) => setTeacherCode(event.target.value)}
+                                                value={lecturerCode}
+                                                onChange={(event) => setLecturerCode(event.target.value)}
                                                 className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
                                             />
                                         </label>

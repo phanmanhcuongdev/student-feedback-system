@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 import com.ttcs.backend.adapter.out.persistence.student.StudentEntity;
 import com.ttcs.backend.adapter.out.persistence.survey.SurveyEntity;
-import com.ttcs.backend.adapter.out.persistence.teacher.TeacherEntity;
+import com.ttcs.backend.adapter.out.persistence.lecturer.LecturerEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -33,8 +33,8 @@ public class SurveyResponseEntity {
     private StudentEntity student;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "teacher_id")
-    private TeacherEntity teacher;
+    @JoinColumn(name = "lecturer_id")
+    private LecturerEntity lecturer;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "survey_id", nullable = false)

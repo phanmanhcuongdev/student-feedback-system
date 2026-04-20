@@ -47,4 +47,4 @@ app:
       endpoint: ${APP_STORAGE_MINIO_ENDPOINT}
       access-key: ${APP_STORAGE_MINIO_ACCESS_KEY}
       secret-key: ${APP_STORAGE_MINIO_SECRET_KEY}
-      bucket: ${APP_STORAGE_MINIO_BUCKET:student-documents}
+      bucket: ${APP_STORAGE_MINIO_BUCKET}

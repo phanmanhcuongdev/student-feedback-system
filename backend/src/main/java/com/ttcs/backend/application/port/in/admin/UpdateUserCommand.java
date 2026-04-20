@@ -7,6 +7,6 @@ public record UpdateUserCommand(
         String name,
         Integer departmentId,
         String studentCode,
-        String teacherCode
+        String lecturerCode
 ) {
 }

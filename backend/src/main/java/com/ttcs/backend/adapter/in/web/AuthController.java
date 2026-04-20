@@ -61,7 +61,7 @@ public class AuthController {
     private final ChangePasswordUseCase changePasswordUseCase;
     private final ForgotPasswordUseCase forgotPasswordUseCase;
     private final ResetPasswordUseCase resetPasswordUseCase;
-    private final CurrentStudentProvider currentStudentProvider;
+    private final CurrentIdentityProvider currentIdentityProvider;
 
     @PostMapping("/register-student")
     public ResponseEntity<RegisterStudentResponse> registerStudent(@Valid @RequestBody RegisterStudentRequest request) {
@@ -100,7 +100,7 @@ public class AuthController {
             @RequestPart("nationalId") MultipartFile nationalId
     ) {
         UploadStudentDocumentsResult result = uploadStudentDocumentsUseCase.upload(
-                new UploadStudentDocumentsCommand(currentStudentProvider.currentStudentId(), studentCard, nationalId)
+                new UploadStudentDocumentsCommand(currentIdentityProvider.currentStudentProfileId(), studentCard, nationalId)
         );
 
         return ResponseEntity.ok(new UploadDocumentsResponse(
@@ -113,7 +113,7 @@ public class AuthController {
     @GetMapping("/onboarding-status")
     public ResponseEntity<StudentOnboardingStatusResponse> getOnboardingStatus() {
         StudentOnboardingStatusResult result = getStudentOnboardingStatusUseCase.getStatus(
-                currentStudentProvider.currentStudentId()
+                currentIdentityProvider.currentStudentProfileId()
         );
 
         return ResponseEntity.ok(new StudentOnboardingStatusResponse(
@@ -149,7 +149,7 @@ public class AuthController {
     public ResponseEntity<ChangePasswordResponse> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         ChangePasswordResult result = changePasswordUseCase.changePassword(
                 new ChangePasswordCommand(
-                        currentStudentProvider.currentUserId(),
+                        currentIdentityProvider.currentUserId(),
                         request.getCurrentPassword(),
                         request.getNewPassword()
                 )

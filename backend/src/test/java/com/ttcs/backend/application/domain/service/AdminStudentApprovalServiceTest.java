@@ -12,6 +12,7 @@ import com.ttcs.backend.application.port.out.admin.LoadPendingStudentsPort;
 import com.ttcs.backend.application.port.out.admin.PendingStudentSearchItem;
 import com.ttcs.backend.application.port.out.admin.PendingStudentSearchPage;
 import com.ttcs.backend.application.port.out.SaveAuditLogPort;
+import com.ttcs.backend.application.port.out.NotificationCreateCommand;
 import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
 import com.ttcs.backend.application.port.out.auth.SaveStudentPort;
 import com.ttcs.backend.application.port.out.auth.StoreStudentDocumentPort;
@@ -35,11 +36,13 @@ class AdminStudentApprovalServiceTest {
         Student pendingStudent = pendingStudent();
         RecordingSaveStudentPort saveStudentPort = new RecordingSaveStudentPort();
         RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
+        RecordingNotificationPort notificationPort = new RecordingNotificationPort();
         AdminStudentApprovalService service = new AdminStudentApprovalService(
                 pendingPort(List.of(pendingStudent)),
                 loadStudentPort(pendingStudent),
                 saveStudentPort,
                 auditLogPort,
+                notificationPort,
                 noOpDocumentPort()
         );
 
@@ -58,6 +61,7 @@ class AdminStudentApprovalServiceTest {
         assertEquals("PENDING", auditLogPort.savedLogs.getFirst().getOldState());
         assertEquals("REJECTED", auditLogPort.savedLogs.getFirst().getNewState());
         assertTrue(auditLogPort.savedLogs.getFirst().getDetails().contains("reason=Photo unreadable"));
+        assertEquals(List.of(205), notificationPort.commands.getFirst().recipientUserIds());
     }
 
     @Test
@@ -65,11 +69,13 @@ class AdminStudentApprovalServiceTest {
         Student pendingStudent = pendingStudent();
         RecordingSaveStudentPort saveStudentPort = new RecordingSaveStudentPort();
         RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
+        RecordingNotificationPort notificationPort = new RecordingNotificationPort();
         AdminStudentApprovalService service = new AdminStudentApprovalService(
                 pendingPort(List.of(pendingStudent)),
                 loadStudentPort(pendingStudent),
                 saveStudentPort,
                 auditLogPort,
+                notificationPort,
                 noOpDocumentPort()
         );
 
@@ -86,11 +92,13 @@ class AdminStudentApprovalServiceTest {
         Student pendingStudent = pendingStudent();
         RecordingSaveStudentPort saveStudentPort = new RecordingSaveStudentPort();
         RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
+        RecordingNotificationPort notificationPort = new RecordingNotificationPort();
         AdminStudentApprovalService service = new AdminStudentApprovalService(
                 pendingPort(List.of(pendingStudent)),
                 loadStudentPort(pendingStudent),
                 saveStudentPort,
                 auditLogPort,
+                notificationPort,
                 noOpDocumentPort()
         );
 
@@ -106,6 +114,7 @@ class AdminStudentApprovalServiceTest {
         assertEquals(AuditActionType.ONBOARDING_APPROVED, auditLogPort.savedLogs.getFirst().getActionType());
         assertEquals("PENDING", auditLogPort.savedLogs.getFirst().getOldState());
         assertEquals("ACTIVE", auditLogPort.savedLogs.getFirst().getNewState());
+        assertEquals(List.of(205), notificationPort.commands.getFirst().recipientUserIds());
     }
 
     @Test
@@ -113,11 +122,13 @@ class AdminStudentApprovalServiceTest {
         Student pendingStudent = pendingStudent();
         RecordingSaveStudentPort saveStudentPort = new RecordingSaveStudentPort();
         RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
+        RecordingNotificationPort notificationPort = new RecordingNotificationPort();
         AdminStudentApprovalService service = new AdminStudentApprovalService(
                 pendingPort(List.of(pendingStudent)),
                 loadStudentPort(pendingStudent),
                 saveStudentPort,
                 auditLogPort,
+                notificationPort,
                 noOpDocumentPort()
         );
 
@@ -184,7 +195,7 @@ class AdminStudentApprovalServiceTest {
     private Student pendingStudent() {
         return new Student(
                 5,
-                new User(5, "student.pending@university.edu", "secret", Role.STUDENT, true),
+                new User(205, "student.pending@university.edu", "secret", Role.STUDENT, true),
                 "Pending Approval Student",
                 "S0003",
                 new Department(2, "Information Systems"),
@@ -221,6 +232,15 @@ class AdminStudentApprovalServiceTest {
         public AuditLog save(AuditLog auditLog) {
             savedLogs.add(auditLog);
             return auditLog;
+        }
+    }
+
+    private static final class RecordingNotificationPort implements com.ttcs.backend.application.port.out.SaveNotificationPort {
+        private final List<NotificationCreateCommand> commands = new ArrayList<>();
+
+        @Override
+        public void create(NotificationCreateCommand command) {
+            commands.add(command);
         }
     }
 }

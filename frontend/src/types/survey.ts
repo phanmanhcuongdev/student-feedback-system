@@ -22,6 +22,7 @@ export interface StudentSurveyPage {
 export interface CreateQuestionData {
     content: string;
     type: "RATING" | "TEXT";
+    questionBankEntryId?: number | null;
 }
 
 export interface CreateSurveyData {
@@ -93,4 +94,52 @@ export interface CreateSurveyResponse {
     surveyId: number;
     code: string;
     message: string;
+}
+
+export interface QuestionBankEntry {
+    id: number;
+    content: string;
+    type: "RATING" | "TEXT";
+    category: string | null;
+    active: boolean;
+    createdAt: string;
+    updatedAt: string | null;
+}
+
+export interface QuestionBankPage {
+    items: QuestionBankEntry[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+}
+
+export interface SurveyTemplateQuestion {
+    id: number;
+    questionBankEntryId: number | null;
+    content: string;
+    type: "RATING" | "TEXT";
+    displayOrder: number;
+}
+
+export interface SurveyTemplate {
+    id: number;
+    name: string;
+    description: string | null;
+    suggestedTitle: string | null;
+    suggestedSurveyDescription: string | null;
+    recipientScope: "ALL_STUDENTS" | "DEPARTMENT";
+    recipientDepartmentId: number | null;
+    active: boolean;
+    createdAt: string;
+    updatedAt: string | null;
+    questions: SurveyTemplateQuestion[];
+}
+
+export interface SurveyTemplatePage {
+    items: SurveyTemplate[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
 }

@@ -123,6 +123,10 @@ class SubmitSurveyServiceTest {
         assertEquals(1, saveSurveyResponsePort.saveCalls);
         assertEquals(1, saveResponseDetailPort.saveAllCalls);
         assertEquals(1, saveSurveyRecipientPort.saveCalls);
+        assertEquals(1, saveSurveyRecipientPort.lastSavedRecipient.getId());
+        assertEquals(6, saveSurveyRecipientPort.lastSavedRecipient.getStudentId());
+        assertTrue(saveSurveyRecipientPort.lastSavedRecipient.hasOpened());
+        assertTrue(saveSurveyRecipientPort.lastSavedRecipient.hasSubmitted());
         assertEquals(2, saveResponseDetailPort.lastSavedDetails.size());
     }
 
@@ -279,7 +283,7 @@ class SubmitSurveyServiceTest {
             return new SurveyResponse(
                     101,
                     surveyResponse.getStudent(),
-                    surveyResponse.getTeacher(),
+                    surveyResponse.getLecturer(),
                     surveyResponse.getSurvey(),
                     surveyResponse.getSubmittedAt()
             );
@@ -305,10 +309,12 @@ class SubmitSurveyServiceTest {
 
     private static final class RecordingSaveSurveyRecipientPort implements SaveSurveyRecipientPort {
         private int saveCalls;
+        private SurveyRecipient lastSavedRecipient;
 
         @Override
         public SurveyRecipient save(SurveyRecipient recipient) {
             saveCalls++;
+            lastSavedRecipient = recipient;
             return recipient;
         }
 

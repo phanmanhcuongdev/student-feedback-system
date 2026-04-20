@@ -38,7 +38,7 @@ public class AdminStudentController {
     private final ApproveStudentUseCase approveStudentUseCase;
     private final RejectStudentUseCase rejectStudentUseCase;
     private final GetStudentDocumentUseCase getStudentDocumentUseCase;
-    private final CurrentStudentProvider currentStudentProvider;
+    private final CurrentIdentityProvider currentIdentityProvider;
 
     @GetMapping("/pending")
     public ResponseEntity<PendingStudentPageResponse> getPendingStudents(
@@ -94,7 +94,7 @@ public class AdminStudentController {
         ApprovalActionResult result = approveStudentUseCase.approve(
                 studentId,
                 request != null ? request.getReviewNotes() : null,
-                currentStudentProvider.currentUserId()
+                currentIdentityProvider.currentUserId()
         );
         return ResponseEntity.ok(new ApproveStudentResponse(result.success(), result.code(), result.message()));
     }
@@ -108,7 +108,7 @@ public class AdminStudentController {
                 studentId,
                 request != null ? request.getReviewReason() : null,
                 request != null ? request.getReviewNotes() : null,
-                currentStudentProvider.currentUserId()
+                currentIdentityProvider.currentUserId()
         );
         return ResponseEntity.ok(new RejectStudentResponse(result.success(), result.code(), result.message()));
     }
