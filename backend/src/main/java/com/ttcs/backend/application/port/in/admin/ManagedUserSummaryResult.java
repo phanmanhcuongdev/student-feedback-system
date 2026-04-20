@@ -10,6 +10,6 @@ public record ManagedUserSummaryResult(
         String studentStatus,
         boolean active,
         String studentCode,
-        String teacherCode
+        String lecturerCode
 ) {
 }

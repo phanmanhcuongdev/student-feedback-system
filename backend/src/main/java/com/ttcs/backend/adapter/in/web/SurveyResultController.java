@@ -6,6 +6,8 @@ import com.ttcs.backend.adapter.in.web.dto.SurveyResultDetailResponse;
 import com.ttcs.backend.adapter.in.web.dto.SurveyResultMetricsResponse;
 import com.ttcs.backend.adapter.in.web.dto.SurveyResultPageResponse;
 import com.ttcs.backend.adapter.in.web.dto.SurveyResultSummaryResponse;
+import com.ttcs.backend.application.port.in.resultview.ExportedReport;
+import com.ttcs.backend.application.port.in.resultview.ExportSurveyReportUseCase;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultDetailUseCase;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultsQuery;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultListUseCase;
@@ -15,7 +17,11 @@ import com.ttcs.backend.application.port.in.resultview.SurveyResultPageResult;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultSummaryResult;
 import com.ttcs.backend.common.WebAdapter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,7 +37,8 @@ public class SurveyResultController {
 
     private final GetSurveyResultListUseCase getSurveyResultListUseCase;
     private final GetSurveyResultDetailUseCase getSurveyResultDetailUseCase;
-    private final CurrentStudentProvider currentStudentProvider;
+    private final ExportSurveyReportUseCase exportSurveyReportUseCase;
+    private final CurrentIdentityProvider currentIdentityProvider;
 
     @GetMapping
     public ResponseEntity<SurveyResultPageResponse> getSurveyResults(
@@ -59,8 +66,8 @@ public class SurveyResultController {
                         sortBy,
                         sortDir
                 ),
-                currentStudentProvider.currentUserId(),
-                currentStudentProvider.currentRole()
+                currentIdentityProvider.currentUserId(),
+                currentIdentityProvider.currentRole()
         );
         return ResponseEntity.ok(new SurveyResultPageResponse(
                 result.items().stream().map(this::toSummaryResponse).toList(),
@@ -84,10 +91,25 @@ public class SurveyResultController {
         return ResponseEntity.ok(toDetailResponse(
                 getSurveyResultDetailUseCase.getSurveyResult(
                         surveyId,
-                        currentStudentProvider.currentUserId(),
-                        currentStudentProvider.currentRole()
+                        currentIdentityProvider.currentUserId(),
+                        currentIdentityProvider.currentRole()
                 )
         ));
+    }
+
+    @GetMapping("/{surveyId}/export")
+    public ResponseEntity<byte[]> exportSurveyResult(@PathVariable Integer surveyId) {
+        ExportedReport result = exportSurveyReportUseCase.exportSurveyReport(
+                surveyId,
+                currentIdentityProvider.currentUserId(),
+                currentIdentityProvider.currentRole()
+        );
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(result.contentType()));
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename(result.filename())
+                .build());
+        return new ResponseEntity<>(result.content(), headers, HttpStatus.OK);
     }
 
     private SurveyResultSummaryResponse toSummaryResponse(SurveyResultSummaryResult result) {
@@ -144,4 +166,5 @@ public class SurveyResultController {
                 result.comments()
         );
     }
+
 }

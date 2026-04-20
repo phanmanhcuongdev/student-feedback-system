@@ -64,7 +64,8 @@ public class CreateSurveyService implements CreateSurveyUseCase {
                         null,
                         savedSurvey.getId(),
                         qCmd.content(),
-                        qCmd.type()
+                        qCmd.type(),
+                        qCmd.questionBankEntryId()
                 ))
                 .toList());
 

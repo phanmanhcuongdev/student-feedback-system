@@ -21,3 +21,10 @@ export async function getSurveyResult(surveyId: number): Promise<SurveyResultDet
     const response = await axios.get<SurveyResultDetail>(`/v1/survey-results/${surveyId}`);
     return response.data;
 }
+
+export async function exportSurveyResult(surveyId: number): Promise<Blob> {
+    const response = await axios.get<Blob>(`/v1/survey-results/${surveyId}/export`, {
+        responseType: "blob",
+    });
+    return response.data;
+}

@@ -13,6 +13,10 @@ It handles:
 - Survey listing, detail, submission, and result viewing
 - Admin user management queries and mutations
 - Admin survey management lifecycle actions and operational queries
+- Question Bank and Survey Template administration
+- Survey analytics overview and CSV result export
+- Admin audit log viewing
+- Persisted student notifications with read/unread state
 - Feedback reply handling for staff roles
 
 ## Stack
@@ -89,6 +93,8 @@ Flyway is configured through Spring Boot 4 auto-configuration.
 - Migration scripts live in [`src/main/resources/db/migration/`](src/main/resources/db/migration/)
 - Current baseline migration:
   - [`src/main/resources/db/migration/V1__initial_schema.sql`](src/main/resources/db/migration/V1__initial_schema.sql)
+- Current notification module migration:
+  - [`src/main/resources/db/migration/V2__notification_module.sql`](src/main/resources/db/migration/V2__notification_module.sql)
 
 The active Flyway properties in [`src/main/resources/application.yaml`](src/main/resources/application.yaml) are:
 
@@ -140,8 +146,18 @@ Backend runs on:
   Returns backend-backed paginated user management results with filter and sort support.
 - `GET /api/admin/surveys`
   Returns backend-backed paginated survey management results with filter and sort support.
+- `GET /api/admin/question-bank`
+  Returns backend-backed paginated reusable question assets with search and filters.
+- `GET /api/admin/survey-templates`
+  Returns backend-backed paginated survey templates with search and active/archive filtering.
 - `GET /api/v1/survey-results`
   Returns survey result summaries enriched with lifecycle, runtime, and audience metadata.
+- `GET /api/admin/analytics/overview`
+  Returns admin survey health and participation metrics.
+- `GET /api/admin/audit-logs`
+  Returns paginated privileged-action audit records.
+- `GET /api/v1/notifications`
+  Returns persisted student notifications with read/unread metadata.
 
 ## Development Notes
 
@@ -151,3 +167,4 @@ Backend runs on:
 - If you update environment variables, restart the application so Spring picks them up.
 - Department lookup endpoints currently support operational filters for user and survey management screens.
 - Add future schema changes as new versioned files under `src/main/resources/db/migration`, not by editing an already-applied migration.
+- Lecturer is the canonical staff role name. Do not introduce product-facing Teacher terminology.

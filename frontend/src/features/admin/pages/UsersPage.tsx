@@ -25,7 +25,7 @@ import type { DepartmentOption, ManagedUserMetrics, ManagedUserSummary } from ".
 const ROLE_TABS = [
     { label: "All", value: "ALL" },
     { label: "Students", value: "STUDENT" },
-    { label: "Lecturers", value: "TEACHER" },
+    { label: "Lecturers", value: "LECTURER" },
     { label: "Admins", value: "ADMIN" },
 ] as const;
 
@@ -34,7 +34,7 @@ export default function UsersPage() {
     const [metrics, setMetrics] = useState<ManagedUserMetrics>({
         totalUsers: 0,
         totalStudents: 0,
-        totalTeachers: 0,
+        totalLecturers: 0,
         totalAdmins: 0,
         totalInactive: 0,
         totalPending: 0,
@@ -66,7 +66,7 @@ export default function UsersPage() {
                 keyword: debouncedQuery || undefined,
                 active: statusFilter === "ALL" ? undefined : statusFilter === "ACTIVE",
                 studentStatus:
-                    roleTab === "TEACHER" || roleTab === "ADMIN"
+                    roleTab === "LECTURER" || roleTab === "ADMIN"
                         ? undefined
                         : studentStatusFilter === "ALL"
                             ? undefined
@@ -157,7 +157,7 @@ export default function UsersPage() {
         {
             key: "code",
             header: "Code",
-            render: (user) => user.studentCode ?? user.teacherCode ?? "N/A",
+            render: (user) => user.studentCode ?? user.lecturerCode ?? "N/A",
         },
         {
             key: "account",
@@ -206,9 +206,9 @@ export default function UsersPage() {
         <main className="bg-slate-100">
             <div className="mx-auto max-w-screen-xl px-6 py-10">
                 <PageHeader
-                    eyebrow="Admin / Users"
-                    title="User management"
-                    description="Operate on user accounts through role-aware search, filters, pagination, and row-level actions instead of a long visual list."
+                    eyebrow="Admin / User Accounts"
+                    title="User account management"
+                    description="Search, review, update profile details, and activate or deactivate accounts without implying role reassignment."
                     actions={(
                         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">
                             {totalElements} matching user{totalElements === 1 ? "" : "s"}
@@ -220,7 +220,7 @@ export default function UsersPage() {
                     <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
                         <StatCard label="Total users" value={metrics.totalUsers} />
                         <StatCard label="Students" value={metrics.totalStudents} tone="blue" />
-                        <StatCard label="Lecturers" value={metrics.totalTeachers} tone="sky" />
+                        <StatCard label="Lecturers" value={metrics.totalLecturers} tone="sky" />
                         <StatCard label="Admins" value={metrics.totalAdmins} tone="slate" />
                         <StatCard label="Inactive" value={metrics.totalInactive} tone="amber" />
                         <StatCard label="Pending" value={metrics.totalPending} tone="amber" />
@@ -354,7 +354,7 @@ export default function UsersPage() {
                                         <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                                             <div className="flex items-center justify-between gap-4">
                                                 <span className="font-semibold text-slate-500">Code</span>
-                                                <span className="text-right font-medium text-slate-900">{user.studentCode ?? user.teacherCode ?? "N/A"}</span>
+                                                <span className="text-right font-medium text-slate-900">{user.studentCode ?? user.lecturerCode ?? "N/A"}</span>
                                             </div>
                                             <div className="flex items-center justify-between gap-4">
                                                 <span className="font-semibold text-slate-500">Department</span>

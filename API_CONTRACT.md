@@ -76,7 +76,7 @@ Returns the authenticated student's onboarding state, review feedback, upload el
 Current implementation note:
 
 - This slice stores only the latest review snapshot on the student record.
-- Full review history is not implemented yet.
+- Full review history is not implemented yet, but successful approval/rejection actions are recorded in `Audit_Log`.
 
 ## Surveys
 
@@ -194,7 +194,7 @@ Rules:
 
 ### `GET /api/v1/feedback/staff`
 
-Returns the staff feedback queue for admin and teacher review flows.
+Returns the staff feedback queue for admin and lecturer review flows.
 
 Supports query parameters:
 
@@ -216,17 +216,81 @@ Rules:
 
 ### `GET /api/v1/notifications`
 
-Returns student notifications for the authenticated active student.
+Returns persisted student notifications for the authenticated student role.
 
 Supports query parameters:
 
 - `page`
 - `size`
+- `unreadOnly`
 
 Rules:
 
-- Notifications remain computed on read in this phase
-- Response is a paged envelope with `items`, `page`, `size`, `totalElements`, and `totalPages`
+- Student notification access requires role `STUDENT`, but does not require the onboarding status to be `ACTIVE`. This lets rejected students read onboarding feedback notifications.
+- Survey-publish notifications are created when an admin publishes a survey.
+- Deadline reminders are created lazily when the student opens the notification center and has an open, unsubmitted survey near its end date.
+- Onboarding approval/rejection notifications are created when admin completes the review action.
+- Response is a paged envelope with `items`, `page`, `size`, `totalElements`, `totalPages`, and `unreadCount`.
+
+Notification item fields include:
+
+- `id`
+- `type`
+- `title`
+- `message`
+- `surveyId`
+- `surveyTitle`
+- `actionLabel`
+- `eventAt`
+- `read`
+- `readAt`
+
+### `POST /api/v1/notifications/{notificationId}/read`
+
+Marks one notification-recipient row as read for the current student.
+
+### `POST /api/v1/notifications/read-all`
+
+Marks all unread notification-recipient rows as read for the current student.
+
+## Admin Analytics
+
+### `GET /api/admin/analytics/overview`
+
+Returns admin dashboard analytics.
+
+Supports query parameters:
+
+- `startDateFrom`
+- `endDateTo`
+- `departmentId`
+
+Response includes:
+
+- survey lifecycle counters
+- runtime counters
+- targeted/opened/submitted totals
+- average response rate
+- department participation breakdown
+- open surveys needing attention
+
+## Admin Audit Logs
+
+### `GET /api/admin/audit-logs`
+
+Returns successful privileged business actions for admins.
+
+Supports query parameters:
+
+- `actorUserId`
+- `actionType`
+- `targetType`
+- `targetId`
+- `keyword`
+- `createdFrom`
+- `createdTo`
+- `page`
+- `size`
 
 ## Admin Survey Management
 
@@ -245,7 +309,8 @@ Request body:
   "questions": [
     {
       "content": "Rate the lecturer's teaching clarity.",
-      "type": "RATING"
+      "type": "RATING",
+      "questionBankEntryId": 4
     }
   ],
   "recipientScope": "ALL_STUDENTS",
@@ -268,7 +333,82 @@ Behavior:
 
 - New surveys start in `DRAFT`
 - Drafts are not visible to students
+- `questionBankEntryId` is optional; when present, the survey question is a copied instance linked back to the reusable question-bank source
 - After create, admin is expected to continue on the draft management screen and explicitly publish later
+
+## Question Bank
+
+### `GET /api/admin/question-bank`
+
+Lists reusable survey question assets. Supports `keyword`, `type`, `category`, `active`, `page`, and `size`.
+
+### `POST /api/admin/question-bank`
+
+Creates a reusable question-bank entry.
+
+```json
+{
+  "content": "Rate the lecturer's teaching clarity.",
+  "type": "RATING",
+  "category": "Teaching quality"
+}
+```
+
+### `PUT /api/admin/question-bank/{id}`
+
+Updates question-bank content, type, and category.
+
+### `POST /api/admin/question-bank/{id}/archive`
+
+Soft-archives a question-bank entry. Existing survey questions copied from it remain intact.
+
+### `POST /api/admin/question-bank/{id}/restore`
+
+Restores an archived question-bank entry.
+
+## Survey Templates
+
+### `GET /api/admin/survey-templates`
+
+Lists reusable survey templates. Supports `keyword`, `active`, `page`, and `size`.
+
+### `POST /api/admin/survey-templates`
+
+Creates a template with suggested survey copy, default recipient scope, and ordered questions.
+
+```json
+{
+  "name": "Course Teaching Feedback",
+  "description": "Reusable teaching feedback structure.",
+  "suggestedTitle": "Course Teaching Feedback",
+  "suggestedSurveyDescription": "Collect student feedback about course delivery.",
+  "recipientScope": "ALL_STUDENTS",
+  "recipientDepartmentId": null,
+  "questions": [
+    {
+      "questionBankEntryId": 4,
+      "content": "Rate the lecturer's teaching clarity.",
+      "type": "RATING"
+    }
+  ]
+}
+```
+
+### `PUT /api/admin/survey-templates/{id}`
+
+Updates template metadata, default audience, and full question set.
+
+### `POST /api/admin/survey-templates/{id}/apply`
+
+Returns an active template payload for initializing a survey draft. Applying a template copies its questions into the draft editor; it does not mutate published surveys.
+
+### `POST /api/admin/survey-templates/{id}/archive`
+
+Soft-archives a template.
+
+### `POST /api/admin/survey-templates/{id}/restore`
+
+Restores an archived template.
 
 ### `PUT /api/admin/surveys/{surveyId}`
 
@@ -450,7 +590,7 @@ Rules:
 
 ### `GET /api/v1/survey-results`
 
-Returns survey result summaries for admin and teacher roles.
+Returns survey result summaries for admin and lecturer roles.
 
 Supports query parameters:
 
@@ -468,10 +608,10 @@ Supports query parameters:
 Authorization semantics in this phase:
 
 - `ADMIN` can view all survey results
-- `TEACHER` can only view results for surveys explicitly targeted to the teacher's own department
-- teacher scope is derived from `Survey_Assignment`
+- `LECTURER` can only view results for surveys explicitly targeted to the lecturer's own department
+- lecturer scope is derived from `Survey_Assignment`
 - surveys targeted to `ALL_STUDENTS` remain admin-visible only in this phase because the repository does not yet have a stronger ownership model for broader lecturer access
-- if a teacher profile is missing or the teacher department scope is incomplete, access fails closed
+- if a lecturer profile is missing or the lecturer department scope is incomplete, access fails closed
 
 Summary rows now include denominator-based participation metrics:
 
@@ -496,8 +636,8 @@ Returns detailed question statistics, including rating breakdowns and text comme
 Authorization semantics match the list endpoint:
 
 - admins can open any survey result
-- teachers can open only in-scope department-targeted survey results
-- out-of-scope teacher access is rejected with `403 Forbidden`
+- lecturers can open only in-scope department-targeted survey results
+- out-of-scope lecturer access is rejected with `403 Forbidden`
 - a truly nonexistent survey still returns not found
 - denied survey-result authorization attempts are not audit-logged in this phase
 
@@ -511,6 +651,17 @@ Detail payloads also include:
 - `openedCount`
 - `submittedCount`
 - `responseRate`
+
+### `GET /api/v1/survey-results/{surveyId}/export`
+
+Exports a CSV report for admin users. The CSV is generated from the same real result data as the detail endpoint and includes:
+
+- survey summary and lifecycle/runtime status
+- participation metrics
+- per-question rating aggregates
+- free-text comments for text questions
+
+Lecturer access is intentionally not enabled for export in this phase.
 
 ## Admin User Management
 

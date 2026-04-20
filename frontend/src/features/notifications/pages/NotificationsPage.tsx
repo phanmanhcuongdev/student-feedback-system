@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getApiErrorMessage } from "../../../api/apiError";
-import { getStudentNotifications } from "../../../api/notificationApi";
+import { getStudentNotifications, markAllNotificationsRead, markNotificationRead } from "../../../api/notificationApi";
 import PaginationControls from "../../../components/data-view/PaginationControls";
 import type { StudentNotification } from "../../../types/notification";
 
@@ -17,55 +17,82 @@ function formatDate(date: string) {
 
 function getAccent(type: StudentNotification["type"]) {
     switch (type) {
-        case "NEW_SURVEY":
+        case "SURVEY_PUBLISHED":
             return "border-blue-200 bg-blue-50 text-blue-700";
-        case "OPENING_SOON":
-            return "border-sky-200 bg-sky-50 text-sky-700";
-        case "CLOSING_SOON":
+        case "SURVEY_DEADLINE_REMINDER":
             return "border-amber-200 bg-amber-50 text-amber-700";
-        case "CLOSED":
-            return "border-slate-200 bg-slate-100 text-slate-700";
+        case "ONBOARDING_APPROVED":
+            return "border-emerald-200 bg-emerald-50 text-emerald-700";
+        case "ONBOARDING_REJECTED":
+            return "border-red-200 bg-red-50 text-red-700";
         default:
             return "border-slate-200 bg-slate-50 text-slate-700";
     }
 }
 
 function getTarget(notification: StudentNotification) {
-    if (notification.type === "NEW_SURVEY" || notification.type === "CLOSING_SOON") {
+    if (notification.type === "SURVEY_PUBLISHED" || notification.type === "SURVEY_DEADLINE_REMINDER") {
         return notification.surveyId ? `/surveys/${notification.surveyId}` : "/surveys";
     }
+    if (notification.type === "ONBOARDING_REJECTED") {
+        return "/upload-documents";
+    }
+    if (notification.type === "ONBOARDING_APPROVED") {
+        return "/dashboard/student";
+    }
 
-    return "/surveys";
+    return "/notifications";
 }
 
 export default function NotificationsPage() {
     const [notifications, setNotifications] = useState<StudentNotification[]>([]);
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [unreadOnly, setUnreadOnly] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        async function fetchNotifications() {
-            try {
-                setLoading(true);
-                setError("");
-                const response = await getStudentNotifications({ page, size: 6 });
-                if (response.items.length === 0 && response.totalPages > 0 && page >= response.totalPages) {
-                    setPage(response.totalPages - 1);
-                    return;
-                }
-                setNotifications(response.items);
-                setTotalPages(response.totalPages);
-            } catch (requestError) {
-                setError(getApiErrorMessage(requestError, "Unable to load notifications."));
-            } finally {
-                setLoading(false);
+    async function fetchNotifications() {
+        try {
+            setLoading(true);
+            setError("");
+            const response = await getStudentNotifications({ page, size: 6, unreadOnly });
+            if (response.items.length === 0 && response.totalPages > 0 && page >= response.totalPages) {
+                setPage(response.totalPages - 1);
+                return;
             }
+            setNotifications(response.items);
+            setTotalPages(response.totalPages);
+            setUnreadCount(response.unreadCount);
+        } catch (requestError) {
+            setError(getApiErrorMessage(requestError, "Unable to load notifications."));
+        } finally {
+            setLoading(false);
         }
+    }
 
+    useEffect(() => {
         void fetchNotifications();
-    }, [page]);
+    }, [page, unreadOnly]);
+
+    async function handleMarkRead(notificationId: number) {
+        try {
+            await markNotificationRead(notificationId);
+            await fetchNotifications();
+        } catch (requestError) {
+            setError(getApiErrorMessage(requestError, "Unable to mark notification as read."));
+        }
+    }
+
+    async function handleMarkAllRead() {
+        try {
+            await markAllNotificationsRead();
+            await fetchNotifications();
+        } catch (requestError) {
+            setError(getApiErrorMessage(requestError, "Unable to mark notifications as read."));
+        }
+    }
 
     return (
         <main className="bg-[linear-gradient(180deg,#f4f8ff_0%,#eef3f8_44%,#f7fafc_100%)]">
@@ -73,14 +100,34 @@ export default function NotificationsPage() {
                     <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                         <div className="max-w-2xl">
                             <span className="mb-3 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-blue-700">
-                                Student Inbox
+                                Student Inbox - {unreadCount} unread
                             </span>
                             <h1 className="text-4xl font-extrabold tracking-tight text-slate-950">
                                 Notifications
                             </h1>
                             <p className="mt-4 text-base leading-7 text-slate-500">
-                                Review survey updates, upcoming openings, and approaching deadlines.
+                                Review survey assignments, approaching deadlines, and onboarding review updates.
                             </p>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setUnreadOnly((current) => !current);
+                                    setPage(0);
+                                }}
+                                className={`rounded-2xl border px-4 py-3 text-sm font-bold transition ${unreadOnly ? "border-blue-300 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}`}
+                            >
+                                {unreadOnly ? "Showing unread" : "Show unread"}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => void handleMarkAllRead()}
+                                disabled={unreadCount === 0}
+                                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Mark all read
+                            </button>
                         </div>
                     </div>
 
@@ -101,21 +148,26 @@ export default function NotificationsPage() {
                             </div>
                             <h2 className="text-2xl font-bold text-slate-900">No notifications</h2>
                             <p className="mt-3 text-sm text-slate-500">
-                                Survey-related updates will appear here when they become relevant.
+                                Survey and onboarding updates will appear here when they become relevant.
                             </p>
                         </div>
                     ) : (
                         <div className="space-y-5">
                             {notifications.map((notification, index) => (
                                 <article
-                                    key={`${notification.type}-${notification.surveyId ?? "general"}-${index}`}
-                                    className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_18px_40px_rgba(15,23,42,0.05)]"
+                                    key={`${notification.id}-${index}`}
+                                    className={`rounded-[28px] border p-6 shadow-[0_18px_40px_rgba(15,23,42,0.05)] ${notification.read ? "border-slate-200 bg-white" : "border-blue-200 bg-blue-50/45"}`}
                                 >
                                     <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                         <div>
                                             <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] ${getAccent(notification.type)}`}>
                                                 {notification.type.replace(/_/g, " ")}
                                             </span>
+                                            {!notification.read ? (
+                                                <span className="ml-2 inline-flex rounded-full border border-blue-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">
+                                                    Unread
+                                                </span>
+                                            ) : null}
                                             <h2 className="mt-3 text-2xl font-bold text-slate-950">
                                                 {notification.title}
                                             </h2>
@@ -134,13 +186,24 @@ export default function NotificationsPage() {
                                     </div>
 
                                     <div className="pt-2">
-                                        <Link
-                                            to={getTarget(notification)}
-                                            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
-                                        >
-                                            <span>{notification.actionLabel ?? "Open"}</span>
-                                            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                                        </Link>
+                                        <div className="flex flex-wrap gap-3">
+                                            <Link
+                                                to={getTarget(notification)}
+                                                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
+                                            >
+                                                <span>{notification.actionLabel ?? "Open"}</span>
+                                                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                                            </Link>
+                                            {!notification.read ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => void handleMarkRead(notification.id)}
+                                                    className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-white px-4 py-3 text-sm font-bold text-blue-700 transition hover:border-blue-300"
+                                                >
+                                                    Mark read
+                                                </button>
+                                            ) : null}
+                                        </div>
                                     </div>
                                 </article>
                             ))}

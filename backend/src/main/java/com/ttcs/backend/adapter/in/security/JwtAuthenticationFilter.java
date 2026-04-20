@@ -59,4 +59,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         return bearer.substring(7);
     }
+
 }

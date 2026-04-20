@@ -4,11 +4,13 @@ import com.ttcs.backend.application.domain.model.EvaluatorType;
 import com.ttcs.backend.application.domain.model.Role;
 import com.ttcs.backend.application.domain.model.SubjectType;
 import com.ttcs.backend.application.domain.model.SurveyAssignment;
-import com.ttcs.backend.application.domain.model.Teacher;
+import com.ttcs.backend.application.domain.model.Lecturer;
 import com.ttcs.backend.application.domain.exception.SurveyNotFoundException;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultDetailUseCase;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultsQuery;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyResultListUseCase;
+import com.ttcs.backend.application.port.in.resultview.QuestionStatisticsResult;
+import com.ttcs.backend.application.port.in.resultview.RatingBreakdownResult;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultDetailResult;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultMetricsResult;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultPageResult;
@@ -16,7 +18,9 @@ import com.ttcs.backend.application.port.in.resultview.SurveyResultSummaryResult
 import com.ttcs.backend.application.port.out.LoadSurveyResultsQuery;
 import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResultPort;
-import com.ttcs.backend.application.port.out.LoadTeacherByUserIdPort;
+import com.ttcs.backend.application.port.out.LoadLecturerByUserIdPort;
+import com.ttcs.backend.application.port.out.QuestionStatistics;
+import com.ttcs.backend.application.port.out.SurveyResultDetail;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.server.ResponseStatusException;
@@ -31,16 +35,16 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
 
     private final LoadSurveyResultPort loadSurveyResultPort;
     private final LoadSurveyAssignmentPort loadSurveyAssignmentPort;
-    private final LoadTeacherByUserIdPort loadTeacherByUserIdPort;
+    private final LoadLecturerByUserIdPort loadLecturerByUserIdPort;
 
     @Override
     public SurveyResultPageResult getSurveyResults(GetSurveyResultsQuery query, Integer viewerUserId, Role viewerRole) {
-        Integer teacherDepartmentId = null;
+        Integer lecturerDepartmentId = null;
         if (viewerRole != Role.ADMIN) {
-            Teacher teacher = requireTeacher(viewerUserId, viewerRole);
-            teacherDepartmentId = teacher.getDepartment() != null ? teacher.getDepartment().getId() : null;
-            if (teacherDepartmentId == null) {
-                throw new ResponseStatusException(FORBIDDEN, "Teacher department scope is unavailable");
+            Lecturer lecturer = requireLecturer(viewerUserId, viewerRole);
+            lecturerDepartmentId = lecturer.getDepartment() != null ? lecturer.getDepartment().getId() : null;
+            if (lecturerDepartmentId == null) {
+                throw new ResponseStatusException(FORBIDDEN, "Lecturer department scope is unavailable");
             }
         }
 
@@ -51,7 +55,7 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
                 query == null ? null : query.recipientScope(),
                 query == null ? null : query.startDateFrom(),
                 query == null ? null : query.endDateTo(),
-                teacherDepartmentId,
+                lecturerDepartmentId,
                 query == null ? 0 : query.page(),
                 query == null ? 12 : query.size(),
                 query == null ? "responseRate" : query.sortBy(),
@@ -95,41 +99,78 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
 
     @Override
     public SurveyResultDetailResult getSurveyResult(Integer surveyId, Integer viewerUserId, Role viewerRole) {
-        SurveyResultDetailResult result = loadSurveyResultPort.loadSurveyResult(surveyId)
+        SurveyResultDetail result = loadSurveyResultPort.loadSurveyResult(surveyId)
                 .orElseThrow(() -> new SurveyNotFoundException(surveyId));
 
         if (viewerRole == Role.ADMIN) {
-            return result;
+            return toDetailResult(result);
         }
 
-        Teacher teacher = requireTeacher(viewerUserId, viewerRole);
-        Integer teacherDepartmentId = teacher.getDepartment() != null ? teacher.getDepartment().getId() : null;
-        if (teacherDepartmentId == null) {
-            throw new ResponseStatusException(FORBIDDEN, "Teacher department scope is unavailable");
+        Lecturer lecturer = requireLecturer(viewerUserId, viewerRole);
+        Integer lecturerDepartmentId = lecturer.getDepartment() != null ? lecturer.getDepartment().getId() : null;
+        if (lecturerDepartmentId == null) {
+            throw new ResponseStatusException(FORBIDDEN, "Lecturer department scope is unavailable");
         }
-        if (!isTeacherInScope(surveyId, teacherDepartmentId)) {
+        if (!isLecturerInScope(surveyId, lecturerDepartmentId)) {
             throw new ResponseStatusException(FORBIDDEN, "You are not allowed to view results for this survey");
         }
 
-        return result;
+        return toDetailResult(result);
     }
 
-    private Teacher requireTeacher(Integer viewerUserId, Role viewerRole) {
-        if (viewerUserId == null || viewerRole != Role.TEACHER) {
+    private SurveyResultDetailResult toDetailResult(SurveyResultDetail result) {
+        return new SurveyResultDetailResult(
+                result.id(),
+                result.title(),
+                result.description(),
+                result.startDate(),
+                result.endDate(),
+                result.status(),
+                result.lifecycleState(),
+                result.runtimeStatus(),
+                result.recipientScope(),
+                result.recipientDepartmentName(),
+                result.responseCount(),
+                result.targetedCount(),
+                result.openedCount(),
+                result.submittedCount(),
+                result.responseRate(),
+                result.questions().stream()
+                        .map(this::toQuestionStatisticsResult)
+                        .toList()
+        );
+    }
+
+    private QuestionStatisticsResult toQuestionStatisticsResult(QuestionStatistics question) {
+        return new QuestionStatisticsResult(
+                question.id(),
+                question.content(),
+                question.type(),
+                question.responseCount(),
+                question.averageRating(),
+                question.ratingBreakdown().stream()
+                        .map(item -> new RatingBreakdownResult(item.rating(), item.count()))
+                        .toList(),
+                question.comments()
+        );
+    }
+
+    private Lecturer requireLecturer(Integer viewerUserId, Role viewerRole) {
+        if (viewerUserId == null || viewerRole != Role.LECTURER) {
             throw new ResponseStatusException(FORBIDDEN, "You are not allowed to view survey results");
         }
 
-        return loadTeacherByUserIdPort.loadByUserId(viewerUserId)
-                .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "Teacher profile not found"));
+        return loadLecturerByUserIdPort.loadByUserId(viewerUserId)
+                .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "Lecturer profile not found"));
     }
 
-    private boolean isTeacherInScope(Integer surveyId, Integer teacherDepartmentId) {
+    private boolean isLecturerInScope(Integer surveyId, Integer lecturerDepartmentId) {
         List<SurveyAssignment> assignments = loadSurveyAssignmentPort.loadBySurveyId(surveyId);
         return assignments.stream().anyMatch(assignment ->
                 assignment != null
                         && assignment.getEvaluatorType() == EvaluatorType.STUDENT
                         && assignment.getSubjectType() == SubjectType.DEPARTMENT
-                        && teacherDepartmentId.equals(assignment.getSubjectValue())
+                        && lecturerDepartmentId.equals(assignment.getSubjectValue())
         );
     }
 }

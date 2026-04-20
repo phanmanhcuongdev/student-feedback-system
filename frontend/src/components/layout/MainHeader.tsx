@@ -14,8 +14,8 @@ export default function MainHeader() {
     const navigate = useNavigate();
     const { session, logout } = useAuth();
     const isStudent = session?.role === "STUDENT";
-    const canViewResults = session?.role === "ADMIN" || session?.role === "TEACHER";
-    const canManageFeedback = session?.role === "ADMIN" || session?.role === "TEACHER";
+    const canViewResults = session?.role === "ADMIN" || session?.role === "LECTURER";
+    const canManageFeedback = session?.role === "ADMIN" || session?.role === "LECTURER";
     const dashboardRoute = getDefaultAppRoute(session?.role, session?.studentStatus);
 
     function handleLogout() {

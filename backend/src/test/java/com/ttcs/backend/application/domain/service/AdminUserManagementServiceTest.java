@@ -43,22 +43,22 @@ class AdminUserManagementServiceTest {
     }
 
     @Test
-    void shouldUpdateTeacherBasicInfo() {
+    void shouldUpdateLecturerBasicInfo() {
         InMemoryManageUserPort port = new InMemoryManageUserPort();
         RecordingAuditLogPort auditLogPort = new RecordingAuditLogPort();
         AdminUserManagementService service = new AdminUserManagementService(port, auditLogPort);
 
         UserManagementActionResult result = service.updateUser(
-                new UpdateUserCommand(2, 1, "teacher.updated@university.edu", "Updated Lecturer", 2, null, "T1002")
+                new UpdateUserCommand(2, 1, "lecturer.updated@university.edu", "Updated Lecturer", 2, null, "T1002")
         );
 
         assertTrue(result.success());
         assertEquals("USER_UPDATED", result.code());
-        assertEquals("teacher.updated@university.edu", port.loadById(2).orElseThrow().getUser().getEmail());
+        assertEquals("lecturer.updated@university.edu", port.loadById(2).orElseThrow().getUser().getEmail());
         assertEquals("Updated Lecturer", port.loadById(2).orElseThrow().getName());
         assertEquals(1, auditLogPort.savedLogs.size());
         assertEquals(AuditActionType.USER_PROFILE_UPDATED, auditLogPort.savedLogs.getFirst().getActionType());
-        assertTrue(auditLogPort.savedLogs.getFirst().getDetails().contains("email=teacher@university.edu -> teacher.updated@university.edu"));
+        assertTrue(auditLogPort.savedLogs.getFirst().getDetails().contains("email=lecturer@university.edu -> lecturer.updated@university.edu"));
         assertTrue(auditLogPort.savedLogs.getFirst().getOldState().contains("active=ACTIVE"));
         assertTrue(auditLogPort.savedLogs.getFirst().getNewState().contains("department=Information Systems"));
     }
@@ -114,7 +114,7 @@ class AdminUserManagementServiceTest {
         AdminUserManagementService service = new AdminUserManagementService(port, auditLogPort);
 
         UserManagementActionResult result = service.updateUser(
-                new UpdateUserCommand(2, null, "teacher.updated@university.edu", "Updated Lecturer", 2, null, "T1002")
+                new UpdateUserCommand(2, null, "lecturer.updated@university.edu", "Updated Lecturer", 2, null, "T1002")
         );
 
         assertFalse(result.success());
@@ -125,7 +125,7 @@ class AdminUserManagementServiceTest {
     private static final class InMemoryManageUserPort implements ManageUserPort {
         private final List<ManagedUser> users = new ArrayList<>(List.of(
                 new ManagedUser(new User(1, "admin@university.edu", "secret", Role.ADMIN, true), "System Admin", null, null, null, null),
-                new ManagedUser(new User(2, "teacher@university.edu", "secret", Role.TEACHER, true), "Lecturer Demo", new Department(1, "Computer Science"), null, "T0001", null)
+                new ManagedUser(new User(2, "lecturer@university.edu", "secret", Role.LECTURER, true), "Lecturer Demo", new Department(1, "Computer Science"), null, "T0001", null)
         ));
 
         @Override
@@ -146,7 +146,7 @@ class AdminUserManagementServiceTest {
                             user.getStudentStatus() != null ? user.getStudentStatus().name() : null,
                             Boolean.TRUE.equals(user.getUser().getVerified()),
                             user.getStudentCode(),
-                            user.getTeacherCode()
+                            user.getLecturerCode()
                     ))
                     .toList();
 
@@ -195,8 +195,8 @@ class AdminUserManagementServiceTest {
         }
 
         @Override
-        public boolean existsTeacherCodeExcludingUserId(String teacherCode, Integer userId) {
-            return users.stream().anyMatch(user -> teacherCode.equals(user.getTeacherCode()) && !user.getUser().getId().equals(userId));
+        public boolean existsLecturerCodeExcludingUserId(String lecturerCode, Integer userId) {
+            return users.stream().anyMatch(user -> lecturerCode.equals(user.getLecturerCode()) && !user.getUser().getId().equals(userId));
         }
 
         @Override

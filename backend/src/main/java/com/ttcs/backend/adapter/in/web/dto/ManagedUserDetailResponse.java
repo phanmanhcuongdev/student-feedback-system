@@ -9,7 +9,7 @@ public record ManagedUserDetailResponse(
         Integer departmentId,
         String departmentName,
         String studentCode,
-        String teacherCode,
+        String lecturerCode,
         String studentStatus
 ) {
 }

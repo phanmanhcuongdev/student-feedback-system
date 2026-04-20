@@ -8,9 +8,9 @@ import com.ttcs.backend.adapter.out.persistence.department.DepartmentMapper;
 import com.ttcs.backend.adapter.out.persistence.student.StudentEntity;
 import com.ttcs.backend.adapter.out.persistence.student.StudentMapper;
 import com.ttcs.backend.adapter.out.persistence.student.StudentRepository;
-import com.ttcs.backend.adapter.out.persistence.teacher.TeacherEntity;
-import com.ttcs.backend.adapter.out.persistence.teacher.TeacherMapper;
-import com.ttcs.backend.adapter.out.persistence.teacher.TeacherRepository;
+import com.ttcs.backend.adapter.out.persistence.lecturer.LecturerEntity;
+import com.ttcs.backend.adapter.out.persistence.lecturer.LecturerMapper;
+import com.ttcs.backend.adapter.out.persistence.lecturer.LecturerRepository;
 import com.ttcs.backend.adapter.out.persistence.user.UserMapper;
 import com.ttcs.backend.application.domain.model.Department;
 import com.ttcs.backend.application.domain.model.ManagedUser;
@@ -40,7 +40,7 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
 
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
-    private final TeacherRepository teacherRepository;
+    private final LecturerRepository lecturerRepository;
     private final AdminRepository adminRepository;
     private final DepartmentRepository departmentRepository;
     private final EntityManager entityManager;
@@ -48,22 +48,23 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
     private static final String USER_SELECT = """
             FROM [User] u
             LEFT JOIN Student s ON s.user_id = u.user_id
-            LEFT JOIN Teacher t ON t.user_id = u.user_id
+            LEFT JOIN Lecturer l ON l.user_id = u.user_id
             LEFT JOIN Admin a ON a.user_id = u.user_id
-            LEFT JOIN Department d ON d.dept_id = COALESCE(s.dept_id, t.dept_id)
+            LEFT JOIN Department d ON d.dept_id = COALESCE(s.dept_id, l.dept_id)
             """;
 
     @Override
     public List<ManagedUser> loadAll() {
         Map<Integer, StudentEntity> students = studentRepository.findAll().stream()
-                .collect(Collectors.toMap(StudentEntity::getId, Function.identity()));
-        Map<Integer, TeacherEntity> teachers = teacherRepository.findAll().stream()
-                .collect(Collectors.toMap(TeacherEntity::getId, Function.identity()));
+                .filter(student -> student.getUser() != null && student.getUser().getId() != null)
+                .collect(Collectors.toMap(student -> student.getUser().getId(), Function.identity()));
+        Map<Integer, LecturerEntity> lecturers = lecturerRepository.findAll().stream()
+                .collect(Collectors.toMap(LecturerEntity::getId, Function.identity()));
         Map<Integer, AdminEntity> admins = adminRepository.findAll().stream()
                 .collect(Collectors.toMap(AdminEntity::getId, Function.identity()));
 
         return userRepository.findAll().stream()
-                .map(user -> toManagedUser(user, students.get(user.getId()), teachers.get(user.getId()), admins.get(user.getId())))
+                .map(user -> toManagedUser(user, students.get(user.getId()), lecturers.get(user.getId()), admins.get(user.getId())))
                 .toList();
     }
 
@@ -80,13 +81,13 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
                     u.user_id,
                     u.email,
                     u.role,
-                    COALESCE(s.name, t.name, a.name),
+                    COALESCE(s.name, l.name, a.name),
                     d.dept_id,
                     d.name,
                     s.status,
                     u.verify,
                     s.student_code,
-                    t.teacher_code
+                    l.lecturer_code
                 """
                 + USER_SELECT
                 + whereClause
@@ -111,7 +112,7 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
                 SELECT
                     COUNT(*) AS totalUsers,
                     SUM(CASE WHEN u.role = 'STUDENT' THEN 1 ELSE 0 END) AS totalStudents,
-                    SUM(CASE WHEN u.role = 'TEACHER' THEN 1 ELSE 0 END) AS totalTeachers,
+                    SUM(CASE WHEN u.role = 'LECTURER' THEN 1 ELSE 0 END) AS totalLecturers,
                     SUM(CASE WHEN u.role = 'ADMIN' THEN 1 ELSE 0 END) AS totalAdmins,
                     SUM(CASE WHEN u.verify = 0 THEN 1 ELSE 0 END) AS totalInactive,
                     SUM(CASE WHEN s.status = 'PENDING' THEN 1 ELSE 0 END) AS totalPending
@@ -148,8 +149,8 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
         return userRepository.findById(userId)
                 .map(user -> toManagedUser(
                         user,
-                        studentRepository.findById(userId).orElse(null),
-                        teacherRepository.findById(userId).orElse(null),
+                        studentRepository.findByUserId(userId).orElse(null),
+                        lecturerRepository.findById(userId).orElse(null),
                         adminRepository.findById(userId).orElse(null)
                 ));
     }
@@ -168,13 +169,12 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
 
     @Override
     public boolean existsStudentCodeExcludingUserId(String studentCode, Integer userId) {
-        return studentRepository.findAll().stream()
-                .anyMatch(item -> item.getStudentCode().equals(studentCode) && !item.getId().equals(userId));
+        return studentRepository.existsByStudentCodeAndUser_IdNot(studentCode, userId);
     }
 
     @Override
-    public boolean existsTeacherCodeExcludingUserId(String teacherCode, Integer userId) {
-        return teacherRepository.existsByTeacherCodeAndIdNot(teacherCode, userId);
+    public boolean existsLecturerCodeExcludingUserId(String lecturerCode, Integer userId) {
+        return lecturerRepository.existsByLecturerCodeAndIdNot(lecturerCode, userId);
     }
 
     @Override
@@ -188,7 +188,7 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
         userRepository.save(userEntity);
 
         if (managedUser.getUser().getRole() == Role.STUDENT) {
-            StudentEntity studentEntity = studentRepository.findById(managedUser.getUser().getId())
+            StudentEntity studentEntity = studentRepository.findByUserId(managedUser.getUser().getId())
                     .orElseThrow(() -> new IllegalArgumentException("Student not found: " + managedUser.getUser().getId()));
             studentEntity.setName(managedUser.getName());
             studentEntity.setStudentCode(managedUser.getStudentCode());
@@ -200,16 +200,16 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
             return;
         }
 
-        if (managedUser.getUser().getRole() == Role.TEACHER) {
-            TeacherEntity teacherEntity = teacherRepository.findById(managedUser.getUser().getId())
-                    .orElseThrow(() -> new IllegalArgumentException("Teacher not found: " + managedUser.getUser().getId()));
-            teacherEntity.setName(managedUser.getName());
-            teacherEntity.setTeacherCode(managedUser.getTeacherCode());
+        if (managedUser.getUser().getRole() == Role.LECTURER) {
+            LecturerEntity lecturerEntity = lecturerRepository.findById(managedUser.getUser().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Lecturer not found: " + managedUser.getUser().getId()));
+            lecturerEntity.setName(managedUser.getName());
+            lecturerEntity.setLecturerCode(managedUser.getLecturerCode());
             if (managedUser.getDepartment() != null) {
-                teacherEntity.setDepartment(departmentRepository.findById(managedUser.getDepartment().getId())
+                lecturerEntity.setDepartment(departmentRepository.findById(managedUser.getDepartment().getId())
                         .orElseThrow(() -> new IllegalArgumentException("Department not found: " + managedUser.getDepartment().getId())));
             }
-            teacherRepository.save(teacherEntity);
+            lecturerRepository.save(lecturerEntity);
             return;
         }
 
@@ -219,7 +219,7 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
         adminRepository.save(adminEntity);
     }
 
-    private ManagedUser toManagedUser(UserEntity user, StudentEntity student, TeacherEntity teacher, AdminEntity admin) {
+    private ManagedUser toManagedUser(UserEntity user, StudentEntity student, LecturerEntity lecturer, AdminEntity admin) {
         return switch (user.getRole()) {
             case STUDENT -> new ManagedUser(
                     UserMapper.toDomain(user),
@@ -229,12 +229,12 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
                     null,
                     student != null ? StudentMapper.toDomain(student).getStatus() : null
             );
-            case TEACHER -> new ManagedUser(
+            case LECTURER -> new ManagedUser(
                     UserMapper.toDomain(user),
-                    teacher != null ? teacher.getName() : null,
-                    teacher != null && teacher.getDepartment() != null ? DepartmentMapper.toDomain(teacher.getDepartment()) : null,
+                    lecturer != null ? lecturer.getName() : null,
+                    lecturer != null && lecturer.getDepartment() != null ? DepartmentMapper.toDomain(lecturer.getDepartment()) : null,
                     null,
-                    teacher != null ? teacher.getTeacherCode() : null,
+                    lecturer != null ? lecturer.getLecturerCode() : null,
                     null
             );
             case ADMIN -> new ManagedUser(
@@ -290,10 +290,10 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
         if (query.keyword() != null && !query.keyword().isBlank()) {
             clauses.add("""
                     (
-                        LOWER(COALESCE(s.name, t.name, a.name, '')) LIKE :keyword
+                        LOWER(COALESCE(s.name, l.name, a.name, '')) LIKE :keyword
                         OR LOWER(COALESCE(u.email, '')) LIKE :keyword
                         OR LOWER(COALESCE(s.student_code, '')) LIKE :keyword
-                        OR LOWER(COALESCE(t.teacher_code, '')) LIKE :keyword
+                        OR LOWER(COALESCE(l.lecturer_code, '')) LIKE :keyword
                     )
                     """);
         }
@@ -324,7 +324,7 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
             case "department" -> "d.name";
             case "status" -> "s.status";
             case "active" -> "u.verify";
-            default -> "COALESCE(s.name, t.name, a.name)";
+            default -> "COALESCE(s.name, l.name, a.name)";
         };
 
         return " ORDER BY " + expression + " " + direction + ", u.user_id ASC";
@@ -339,4 +339,5 @@ public class UserManagementPersistenceAdapter implements ManageUserPort {
         }
         return ((Number) value).longValue();
     }
+
 }

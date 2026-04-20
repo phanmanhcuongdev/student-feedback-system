@@ -11,7 +11,7 @@ GO
 SET IDENTITY_INSERT [dbo].[User] ON;
 INSERT INTO [dbo].[User] ([user_id], [email], [pass_word], [role], [verify]) VALUES
     (1, N'admin@university.edu', N'$2a$10$lk.RCUFC0mwBCuqtMWPjieICJ/rgZ1LD/ZWBOrxN8/leR.VbTG5xy', N'ADMIN', 1),
-    (2, N'teacher@university.edu', N'$2a$10$NAUl9QQgFCEW/iv/87jDKur7/3MfgOcepdc.cXXE0P0ZfrpxLxhMy', N'TEACHER', 1),
+    (2, N'lecturer@university.edu', N'$2a$10$exJHHeZ4KGomGLLw9j4td.cfucxpASr2JX9kUmlMUkZlvw1qagqy6', N'LECTURER', 1),
     (3, N'student.active@university.edu', N'$2a$10$4Tf.uaQGQdw2RIDZzkPSpep4LERq6jo06m1Q4w7EkBIivrZarnGlO', N'STUDENT', 1),
     (4, N'student.verified@university.edu', N'$2a$10$4Tf.uaQGQdw2RIDZzkPSpep4LERq6jo06m1Q4w7EkBIivrZarnGlO', N'STUDENT', 1),
     (5, N'student.pending@university.edu', N'$2a$10$4Tf.uaQGQdw2RIDZzkPSpep4LERq6jo06m1Q4w7EkBIivrZarnGlO', N'STUDENT', 1),
@@ -25,7 +25,7 @@ INSERT INTO [dbo].[Admin] ([user_id], [name]) VALUES
     (1, N'System Admin');
 GO
 
-INSERT INTO [dbo].[Teacher] ([user_id], [name], [teacher_code], [dept_id]) VALUES
+INSERT INTO [dbo].[Lecturer] ([user_id], [name], [lecturer_code], [dept_id]) VALUES
     (2, N'Lecturer Demo', N'T0001', 1);
 GO
 
@@ -112,7 +112,7 @@ SET IDENTITY_INSERT [dbo].[Survey_Recipient] OFF;
 GO
 
 SET IDENTITY_INSERT [dbo].[Survey_Response] ON;
-INSERT INTO [dbo].[Survey_Response] ([response_id], [student_id], [survey_id], [teacher_id], [submitted_at]) VALUES
+INSERT INTO [dbo].[Survey_Response] ([response_id], [student_id], [survey_id], [lecturer_id], [submitted_at]) VALUES
     (1, 3, 1, NULL, DATEADD(DAY, -1, GETDATE()));
 SET IDENTITY_INSERT [dbo].[Survey_Response] OFF;
 GO

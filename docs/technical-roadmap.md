@@ -353,15 +353,15 @@ Mục tiêu:
 
 Vấn đề nếu chỉ dùng role:
 
-- Teacher có thể xem quá rộng.
-- Admin/Teacher cần bị giới hạn theo khoa, bộ môn, khảo sát được phân công.
+- Lecturer có thể xem quá rộng.
+- Admin/Lecturer cần bị giới hạn theo khoa, bộ môn, khảo sát được phân công.
 - Một số dữ liệu khảo sát có tính nhạy cảm.
 
 Hướng triển khai:
 
 - Vẫn giữ RBAC:
     - Student
-    - Lecturer/Teacher
+    - Lecturer/Lecturer
     - Admin
 
 - Bổ sung policy layer:

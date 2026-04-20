@@ -10,6 +10,6 @@ public record ManagedUserSearchItem(
         String studentStatus,
         boolean active,
         String studentCode,
-        String teacherCode
+        String lecturerCode
 ) {
 }

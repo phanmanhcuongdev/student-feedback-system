@@ -166,7 +166,7 @@ public class StudentFeedbackService implements
         if (responder == null) {
             return RespondToFeedbackResult.fail("RESPONDER_NOT_FOUND", "Responder account not found.");
         }
-        if (responder.getRole() != Role.ADMIN && responder.getRole() != Role.TEACHER) {
+        if (responder.getRole() != Role.ADMIN && responder.getRole() != Role.LECTURER) {
             return RespondToFeedbackResult.fail("FORBIDDEN", "Only admin or lecturer accounts can respond to feedback.");
         }
 

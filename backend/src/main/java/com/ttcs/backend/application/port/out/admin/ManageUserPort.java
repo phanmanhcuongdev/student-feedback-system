@@ -21,7 +21,7 @@ public interface ManageUserPort {
 
     boolean existsStudentCodeExcludingUserId(String studentCode, Integer userId);
 
-    boolean existsTeacherCodeExcludingUserId(String teacherCode, Integer userId);
+    boolean existsLecturerCodeExcludingUserId(String lecturerCode, Integer userId);
 
     void save(ManagedUser managedUser);
 }
