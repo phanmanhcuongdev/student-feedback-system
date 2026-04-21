@@ -112,6 +112,10 @@ export default function SurveyResultDetailPage() {
     const [aiError, setAiError] = useState("");
     const [isGeneratingAiSummary, setIsGeneratingAiSummary] = useState(false);
 
+    const textQuestions = useMemo(() => survey?.questions.filter((question) => question.type === "TEXT") ?? [], [survey]);
+    const ratingQuestions = useMemo(() => survey?.questions.filter((question) => question.type === "RATING") ?? [], [survey]);
+    const hasTextQuestions = textQuestions.length > 0;
+
     async function fetchAiSummaryStatus() {
         try {
             setAiSummary(await getSurveyAiSummary(surveyId));
@@ -153,17 +157,18 @@ export default function SurveyResultDetailPage() {
             }
         }
 
-        if (Number.isFinite(surveyId)) {
+        if (Number.isFinite(surveyId) && hasTextQuestions) {
             void fetchAiSummary();
             return;
         }
 
         setAiLoading(false);
-        setAiError("Invalid survey id.");
-    }, [surveyId]);
+        setAiSummary(null);
+        setAiError(Number.isFinite(surveyId) ? "" : "Invalid survey id.");
+    }, [hasTextQuestions, surveyId]);
 
     useEffect(() => {
-        if (!Number.isFinite(surveyId) || !isProcessingStatus(aiSummary?.status)) {
+        if (!Number.isFinite(surveyId) || !hasTextQuestions || !isProcessingStatus(aiSummary?.status)) {
             return;
         }
 
@@ -172,10 +177,7 @@ export default function SurveyResultDetailPage() {
         }, 4000);
 
         return () => window.clearInterval(intervalId);
-    }, [aiSummary?.status, surveyId]);
-
-    const textQuestions = useMemo(() => survey?.questions.filter((question) => question.type === "TEXT") ?? [], [survey]);
-    const ratingQuestions = useMemo(() => survey?.questions.filter((question) => question.type === "RATING") ?? [], [survey]);
+    }, [aiSummary?.status, hasTextQuestions, surveyId]);
 
     const filteredTextQuestions = useMemo(() => {
         const normalizedQuery = commentQuery.trim().toLowerCase();
@@ -297,75 +299,77 @@ export default function SurveyResultDetailPage() {
                                 </div>
                             </SectionCard>
 
-                            <SectionCard
-                                title="AI summary"
-                                description="Generate an admin-facing summary from student text feedback only when you need it. The analysis runs in the background and reuses the latest result when the feedback has not changed."
-                                actions={(
-                                    <button
-                                        type="button"
-                                        onClick={() => void handleGenerateAiSummary()}
-                                        disabled={!survey || aiLoading || isGeneratingAiSummary || isProcessingStatus(aiSummary?.status)}
-                                        className="inline-flex items-center rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                        {isGeneratingAiSummary ? "Submitting..." : isProcessingStatus(aiSummary?.status) ? "Processing..." : aiSummary?.summary ? "Regenerate AI summary" : "Generate AI summary"}
-                                    </button>
-                                )}
-                            >
-                                {aiLoading ? (
-                                    <LoadingState label="Loading AI summary status..." />
-                                ) : aiError ? (
-                                    <ErrorState description={aiError} onRetry={() => void fetchAiSummaryStatus()} />
-                                ) : aiSummary ? (
-                                    <div className="space-y-5">
-                                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                                            <StatCard label="Status" value={getSummaryStatusLabel(aiSummary.status)} tone="amber" />
-                                            <StatCard label="Text comments" value={aiSummary.commentCount} tone="sky" />
-                                            <StatCard label="Requested" value={formatDateTime(aiSummary.requestedAt)} tone="slate" />
-                                            <StatCard label="Finished" value={formatDateTime(aiSummary.finishedAt)} tone="emerald" />
+                            {hasTextQuestions ? (
+                                <SectionCard
+                                    title="AI summary"
+                                    description="Generate an admin-facing summary from student text feedback only when you need it. The analysis runs in the background and reuses the latest result when the feedback has not changed."
+                                    actions={(
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleGenerateAiSummary()}
+                                            disabled={!survey || aiLoading || isGeneratingAiSummary || isProcessingStatus(aiSummary?.status)}
+                                            className="inline-flex items-center rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            {isGeneratingAiSummary ? "Submitting..." : isProcessingStatus(aiSummary?.status) ? "Processing..." : aiSummary?.summary ? "Regenerate AI summary" : "Generate AI summary"}
+                                        </button>
+                                    )}
+                                >
+                                    {aiLoading ? (
+                                        <LoadingState label="Loading AI summary status..." />
+                                    ) : aiError ? (
+                                        <ErrorState description={aiError} onRetry={() => void fetchAiSummaryStatus()} />
+                                    ) : aiSummary ? (
+                                        <div className="space-y-5">
+                                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                                                <StatCard label="Status" value={getSummaryStatusLabel(aiSummary.status)} tone="amber" />
+                                                <StatCard label="Text comments" value={aiSummary.commentCount} tone="sky" />
+                                                <StatCard label="Requested" value={formatDateTime(aiSummary.requestedAt)} tone="slate" />
+                                                <StatCard label="Finished" value={formatDateTime(aiSummary.finishedAt)} tone="emerald" />
+                                            </div>
+
+                                            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
+                                                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                                                            {getSummaryStatusLabel(aiSummary.status)}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="mt-4">
+                                                        {aiSummary.summary ? (
+                                                            <p className="text-sm leading-7 text-slate-700">{aiSummary.summary}</p>
+                                                        ) : aiSummary.status === "FAILED" ? (
+                                                            <p className="text-sm leading-7 text-rose-600">{aiSummary.errorMessage || "AI summary generation failed."}</p>
+                                                        ) : aiSummary.status === "NOT_REQUESTED" ? (
+                                                            <p className="text-sm leading-7 text-slate-600">No AI summary has been generated for this survey yet. The system only analyzes text feedback after you explicitly request it.</p>
+                                                        ) : (
+                                                            <p className="text-sm leading-7 text-slate-600">The summary job is processing in the background. This panel refreshes automatically until a result is available.</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
+                                                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Job details</p>
+                                                    <div className="mt-4 grid gap-3">
+                                                        <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Job id</span><span className="font-medium text-slate-900">{aiSummary.jobId ?? "-"}</span></div>
+                                                        <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Requested at</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.requestedAt)}</span></div>
+                                                        <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Started at</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.startedAt)}</span></div>
+                                                        <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Finished at</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.finishedAt)}</span></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {aiSummary.summary ? (
+                                                <div className="grid gap-4 xl:grid-cols-3">
+                                                    <SummaryListCard title="Highlights" items={aiSummary.highlights} emptyMessage="No strong positive theme was extracted from the current text responses." tone="sky" />
+                                                    <SummaryListCard title="Concerns" items={aiSummary.concerns} emptyMessage="No repeated concern cluster was extracted from the current text responses." tone="rose" />
+                                                    <SummaryListCard title="Recommended actions" items={aiSummary.actions} emptyMessage="No concrete action recommendation was generated for the current text responses." tone="amber" />
+                                                </div>
+                                            ) : null}
                                         </div>
-
-                                        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
-                                            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                                                        {getSummaryStatusLabel(aiSummary.status)}
-                                                    </span>
-                                                </div>
-
-                                                <div className="mt-4">
-                                                    {aiSummary.summary ? (
-                                                        <p className="text-sm leading-7 text-slate-700">{aiSummary.summary}</p>
-                                                    ) : aiSummary.status === "FAILED" ? (
-                                                        <p className="text-sm leading-7 text-rose-600">{aiSummary.errorMessage || "AI summary generation failed."}</p>
-                                                    ) : aiSummary.status === "NOT_REQUESTED" ? (
-                                                        <p className="text-sm leading-7 text-slate-600">No AI summary has been generated for this survey yet. The system only analyzes text feedback after you explicitly request it.</p>
-                                                    ) : (
-                                                        <p className="text-sm leading-7 text-slate-600">The summary job is processing in the background. This panel refreshes automatically until a result is available.</p>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
-                                                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Job details</p>
-                                                <div className="mt-4 grid gap-3">
-                                                    <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Job id</span><span className="font-medium text-slate-900">{aiSummary.jobId ?? "-"}</span></div>
-                                                    <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Requested at</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.requestedAt)}</span></div>
-                                                    <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Started at</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.startedAt)}</span></div>
-                                                    <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Finished at</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.finishedAt)}</span></div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {aiSummary.summary ? (
-                                            <div className="grid gap-4 xl:grid-cols-3">
-                                                <SummaryListCard title="Highlights" items={aiSummary.highlights} emptyMessage="No strong positive theme was extracted from the current text responses." tone="sky" />
-                                                <SummaryListCard title="Concerns" items={aiSummary.concerns} emptyMessage="No repeated concern cluster was extracted from the current text responses." tone="rose" />
-                                                <SummaryListCard title="Recommended actions" items={aiSummary.actions} emptyMessage="No concrete action recommendation was generated for the current text responses." tone="amber" />
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                ) : null}
-                            </SectionCard>
+                                    ) : null}
+                                </SectionCard>
+                            ) : null}
 
                             <SectionCard title="Text comments" description="Anonymous comments are grouped by question. Search applies only to comment text and question copy.">
                                 <div className="space-y-5">
