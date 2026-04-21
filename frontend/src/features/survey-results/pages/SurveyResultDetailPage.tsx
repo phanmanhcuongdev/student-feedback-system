@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../../api/apiError";
+import { generateSurveyAiSummary, getSurveyAiSummary } from "../../../api/surveyAiSummaryApi";
 import { exportSurveyResult, getSurveyResult } from "../../../api/surveyResultApi";
 import EmptyState from "../../../components/ui/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState";
@@ -11,6 +12,7 @@ import SectionCard from "../../../components/ui/SectionCard";
 import StatCard from "../../../components/ui/StatCard";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { useAuth } from "../../auth/useAuth";
+import type { SurveyAiSummary } from "../../../types/surveyAiSummary";
 import type { QuestionStatistics, SurveyResultDetail } from "../../../types/surveyResult";
 
 function formatDate(date: string) {
@@ -23,6 +25,38 @@ function formatDateRange(startDate: string, endDate: string) {
 
 function formatRate(value: number) {
     return `${value.toFixed(1)}%`;
+}
+
+function formatDateTime(value: string | null) {
+    if (!value) {
+        return "-";
+    }
+    return new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    }).format(new Date(value));
+}
+
+function getSummaryStatusLabel(status: string) {
+    switch (status) {
+        case "QUEUED":
+            return "Queued";
+        case "PROCESSING":
+            return "Processing";
+        case "COMPLETED":
+            return "Completed";
+        case "FAILED":
+            return "Failed";
+        default:
+            return "Not generated";
+    }
+}
+
+function isProcessingStatus(status: string | null | undefined) {
+    return status === "QUEUED" || status === "PROCESSING";
 }
 
 function getAudienceLabel(survey: SurveyResultDetail) {
@@ -73,6 +107,23 @@ export default function SurveyResultDetailPage() {
     const [expandedQuestions, setExpandedQuestions] = useState<Record<number, boolean>>({});
     const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
     const [exporting, setExporting] = useState(false);
+    const [aiSummary, setAiSummary] = useState<SurveyAiSummary | null>(null);
+    const [aiLoading, setAiLoading] = useState(true);
+    const [aiError, setAiError] = useState("");
+    const [isGeneratingAiSummary, setIsGeneratingAiSummary] = useState(false);
+
+    const textQuestions = useMemo(() => survey?.questions.filter((question) => question.type === "TEXT") ?? [], [survey]);
+    const ratingQuestions = useMemo(() => survey?.questions.filter((question) => question.type === "RATING") ?? [], [survey]);
+    const hasTextQuestions = textQuestions.length > 0;
+
+    async function fetchAiSummaryStatus() {
+        try {
+            setAiSummary(await getSurveyAiSummary(surveyId));
+            setAiError("");
+        } catch (requestError) {
+            setAiError(getApiErrorMessage(requestError, "Unable to load AI summary status."));
+        }
+    }
 
     useEffect(() => {
         async function fetchSurveyResult() {
@@ -96,8 +147,37 @@ export default function SurveyResultDetailPage() {
         setError("Invalid survey id.");
     }, [surveyId]);
 
-    const textQuestions = useMemo(() => survey?.questions.filter((question) => question.type === "TEXT") ?? [], [survey]);
-    const ratingQuestions = useMemo(() => survey?.questions.filter((question) => question.type === "RATING") ?? [], [survey]);
+    useEffect(() => {
+        async function fetchAiSummary() {
+            try {
+                setAiLoading(true);
+                await fetchAiSummaryStatus();
+            } finally {
+                setAiLoading(false);
+            }
+        }
+
+        if (Number.isFinite(surveyId) && hasTextQuestions) {
+            void fetchAiSummary();
+            return;
+        }
+
+        setAiLoading(false);
+        setAiSummary(null);
+        setAiError(Number.isFinite(surveyId) ? "" : "Invalid survey id.");
+    }, [hasTextQuestions, surveyId]);
+
+    useEffect(() => {
+        if (!Number.isFinite(surveyId) || !hasTextQuestions || !isProcessingStatus(aiSummary?.status)) {
+            return;
+        }
+
+        const intervalId = window.setInterval(() => {
+            void fetchAiSummaryStatus();
+        }, 4000);
+
+        return () => window.clearInterval(intervalId);
+    }, [aiSummary?.status, hasTextQuestions, surveyId]);
 
     const filteredTextQuestions = useMemo(() => {
         const normalizedQuery = commentQuery.trim().toLowerCase();
@@ -130,6 +210,18 @@ export default function SurveyResultDetailPage() {
             setError(getApiErrorMessage(requestError, "Unable to export survey report."));
         } finally {
             setExporting(false);
+        }
+    }
+
+    async function handleGenerateAiSummary() {
+        try {
+            setIsGeneratingAiSummary(true);
+            setAiError("");
+            setAiSummary(await generateSurveyAiSummary(surveyId));
+        } catch (requestError) {
+            setAiError(getApiErrorMessage(requestError, "Unable to generate AI summary."));
+        } finally {
+            setIsGeneratingAiSummary(false);
         }
     }
 
@@ -207,6 +299,78 @@ export default function SurveyResultDetailPage() {
                                 </div>
                             </SectionCard>
 
+                            {hasTextQuestions ? (
+                                <SectionCard
+                                    title="AI summary"
+                                    description="Generate an admin-facing summary from student text feedback only when you need it. The analysis runs in the background and reuses the latest result when the feedback has not changed."
+                                    actions={(
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleGenerateAiSummary()}
+                                            disabled={!survey || aiLoading || isGeneratingAiSummary || isProcessingStatus(aiSummary?.status)}
+                                            className="inline-flex items-center rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            {isGeneratingAiSummary ? "Submitting..." : isProcessingStatus(aiSummary?.status) ? "Processing..." : aiSummary?.summary ? "Regenerate AI summary" : "Generate AI summary"}
+                                        </button>
+                                    )}
+                                >
+                                    {aiLoading ? (
+                                        <LoadingState label="Loading AI summary status..." />
+                                    ) : aiError ? (
+                                        <ErrorState description={aiError} onRetry={() => void fetchAiSummaryStatus()} />
+                                    ) : aiSummary ? (
+                                        <div className="space-y-5">
+                                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                                                <StatCard label="Status" value={getSummaryStatusLabel(aiSummary.status)} tone="amber" />
+                                                <StatCard label="Text comments" value={aiSummary.commentCount} tone="sky" />
+                                                <StatCard label="Requested" value={formatDateTime(aiSummary.requestedAt)} tone="slate" />
+                                                <StatCard label="Finished" value={formatDateTime(aiSummary.finishedAt)} tone="emerald" />
+                                            </div>
+
+                                            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
+                                                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                                                            {getSummaryStatusLabel(aiSummary.status)}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="mt-4">
+                                                        {aiSummary.summary ? (
+                                                            <p className="text-sm leading-7 text-slate-700">{aiSummary.summary}</p>
+                                                        ) : aiSummary.status === "FAILED" ? (
+                                                            <p className="text-sm leading-7 text-rose-600">{aiSummary.errorMessage || "AI summary generation failed."}</p>
+                                                        ) : aiSummary.status === "NOT_REQUESTED" ? (
+                                                            <p className="text-sm leading-7 text-slate-600">No AI summary has been generated for this survey yet. The system only analyzes text feedback after you explicitly request it.</p>
+                                                        ) : (
+                                                            <p className="text-sm leading-7 text-slate-600">The summary job is processing in the background. This panel refreshes automatically until a result is available.</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
+                                                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Job details</p>
+                                                    <div className="mt-4 grid gap-3">
+                                                        <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Job id</span><span className="font-medium text-slate-900">{aiSummary.jobId ?? "-"}</span></div>
+                                                        <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Requested at</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.requestedAt)}</span></div>
+                                                        <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Started at</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.startedAt)}</span></div>
+                                                        <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Finished at</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.finishedAt)}</span></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {aiSummary.summary ? (
+                                                <div className="grid gap-4 xl:grid-cols-3">
+                                                    <SummaryListCard title="Highlights" items={aiSummary.highlights} emptyMessage="No strong positive theme was extracted from the current text responses." tone="sky" />
+                                                    <SummaryListCard title="Concerns" items={aiSummary.concerns} emptyMessage="No repeated concern cluster was extracted from the current text responses." tone="rose" />
+                                                    <SummaryListCard title="Recommended actions" items={aiSummary.actions} emptyMessage="No concrete action recommendation was generated for the current text responses." tone="amber" />
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    ) : null}
+                                </SectionCard>
+                            ) : null}
+
                             <SectionCard title="Text comments" description="Anonymous comments are grouped by question. Search applies only to comment text and question copy.">
                                 <div className="space-y-5">
                                     <SearchInput value={commentQuery} onChange={setCommentQuery} placeholder="Search comments or question text" />
@@ -260,6 +424,31 @@ export default function SurveyResultDetailPage() {
                 </div>
             </div>
         </main>
+    );
+}
+
+function SummaryListCard({ title, items, emptyMessage, tone }: { title: string; items: string[]; emptyMessage: string; tone: "sky" | "rose" | "amber" }) {
+    const toneClasses = {
+        sky: "border-sky-200 bg-sky-50 text-sky-800",
+        rose: "border-rose-200 bg-rose-50 text-rose-800",
+        amber: "border-amber-200 bg-amber-50 text-amber-800",
+    }[tone];
+
+    return (
+        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-base font-bold text-slate-950">{title}</h3>
+            {items.length === 0 ? (
+                <p className="mt-3 text-sm leading-6 text-slate-500">{emptyMessage}</p>
+            ) : (
+                <div className="mt-4 space-y-3">
+                    {items.map((item) => (
+                        <div key={item} className={`rounded-2xl border px-4 py-4 text-sm leading-6 ${toneClasses}`}>
+                            {item}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </article>
     );
 }
 
