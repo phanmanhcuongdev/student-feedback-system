@@ -54,23 +54,9 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
             return toView(surveyId, latestJob, latestSummary);
         }
         if (latestSummary != null) {
-            return new SurveyAiSummaryViewResult(
-                    surveyId,
-                    SurveyAiSummaryJobStatus.COMPLETED.name(),
-                    null,
-                    latestSummary.commentCount(),
-                    latestSummary.summaryText(),
-                    latestSummary.highlights(),
-                    latestSummary.concerns(),
-                    latestSummary.actions(),
-                    latestSummary.modelName(),
-                    null,
-                    latestSummary.createdAt(),
-                    latestSummary.createdAt(),
-                    latestSummary.createdAt()
-            );
+            return completedView(surveyId, latestSummary);
         }
-        return new SurveyAiSummaryViewResult(surveyId, "NOT_REQUESTED", null, 0, null, List.of(), List.of(), List.of(), null, null, null, null, null);
+        return new SurveyAiSummaryViewResult(surveyId, "NOT_REQUESTED", null, 0, null, List.of(), List.of(), List.of(), null, null, null, null);
     }
 
     @Override
@@ -81,21 +67,7 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
 
         var latestSummary = loadSurveyAiSummaryPort.loadLatestSummary(surveyId).orElse(null);
         if (latestSummary != null && sourceHash.equals(latestSummary.sourceHash())) {
-            return new SurveyAiSummaryViewResult(
-                    surveyId,
-                    SurveyAiSummaryJobStatus.COMPLETED.name(),
-                    null,
-                    latestSummary.commentCount(),
-                    latestSummary.summaryText(),
-                    latestSummary.highlights(),
-                    latestSummary.concerns(),
-                    latestSummary.actions(),
-                    latestSummary.modelName(),
-                    null,
-                    latestSummary.createdAt(),
-                    latestSummary.createdAt(),
-                    latestSummary.createdAt()
-            );
+            return completedView(surveyId, latestSummary);
         }
 
         var latestJob = loadSurveyAiSummaryPort.loadLatestJob(surveyId).orElse(null);
@@ -117,21 +89,7 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
                     List.of("Thu thap them cau tra loi text neu admin can tong hop y kien chi tiet hon."),
                     viewerUserId
             );
-            return new SurveyAiSummaryViewResult(
-                    surveyId,
-                    SurveyAiSummaryJobStatus.COMPLETED.name(),
-                    null,
-                    summary.commentCount(),
-                    summary.summaryText(),
-                    summary.highlights(),
-                    summary.concerns(),
-                    summary.actions(),
-                    summary.modelName(),
-                    null,
-                    summary.createdAt(),
-                    summary.createdAt(),
-                    summary.createdAt()
-            );
+            return completedView(surveyId, summary);
         }
 
         var job = saveSurveyAiSummaryPort.createJob(surveyId, sourceHash, payload.commentCount(), viewerUserId);
@@ -226,11 +184,27 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
                 summary != null ? summary.highlights() : List.of(),
                 summary != null ? summary.concerns() : List.of(),
                 summary != null ? summary.actions() : List.of(),
-                summary != null ? summary.modelName() : null,
                 job.errorMessage(),
                 job.createdAt(),
                 job.startedAt(),
                 job.finishedAt()
+        );
+    }
+
+    private SurveyAiSummaryViewResult completedView(Integer surveyId, LoadSurveyAiSummaryPort.SurveyAiSummaryRecord summary) {
+        return new SurveyAiSummaryViewResult(
+                surveyId,
+                SurveyAiSummaryJobStatus.COMPLETED.name(),
+                null,
+                summary.commentCount(),
+                summary.summaryText(),
+                summary.highlights(),
+                summary.concerns(),
+                summary.actions(),
+                null,
+                summary.createdAt(),
+                summary.createdAt(),
+                summary.createdAt()
         );
     }
 

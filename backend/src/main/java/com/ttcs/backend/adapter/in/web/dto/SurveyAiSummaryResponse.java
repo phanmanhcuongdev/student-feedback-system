@@ -12,7 +12,6 @@ public record SurveyAiSummaryResponse(
         List<String> highlights,
         List<String> concerns,
         List<String> actions,
-        String modelName,
         String errorMessage,
         LocalDateTime requestedAt,
         LocalDateTime startedAt,

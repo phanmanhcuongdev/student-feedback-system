@@ -7,7 +7,6 @@ export type SurveyAiSummary = {
     highlights: string[];
     concerns: string[];
     actions: string[];
-    modelName: string | null;
     errorMessage: string | null;
     requestedAt: string | null;
     startedAt: string | null;

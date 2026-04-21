@@ -54,7 +54,6 @@ public class SurveyAiSummaryController {
                 result.highlights(),
                 result.concerns(),
                 result.actions(),
-                result.modelName(),
                 result.errorMessage(),
                 result.requestedAt(),
                 result.startedAt(),

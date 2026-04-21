@@ -330,11 +330,6 @@ export default function SurveyResultDetailPage() {
                                                     <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                                                         {getSummaryStatusLabel(aiSummary.status)}
                                                     </span>
-                                                    {aiSummary.modelName ? (
-                                                        <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-amber-700">
-                                                            {aiSummary.modelName}
-                                                        </span>
-                                                    ) : null}
                                                 </div>
 
                                                 <div className="mt-4">
