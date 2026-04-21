@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import DataTable, { type DataTableColumn } from "../../../components/data-view/DataTable";
 import DataToolbar from "../../../components/data-view/DataToolbar";
 import PaginationControls from "../../../components/data-view/PaginationControls";
@@ -17,8 +18,8 @@ import { getApiErrorMessage } from "../../../api/apiError";
 import { getAllFeedback, respondToFeedback } from "../../../api/feedbackApi";
 import type { FeedbackResponse, StaffFeedback } from "../../../types/feedback";
 
-function formatDate(date: string) {
-    return new Intl.DateTimeFormat("en-GB", {
+function formatDate(date: string, language: string) {
+    return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", {
         day: "2-digit",
         month: "short",
         year: "numeric",
@@ -32,6 +33,7 @@ function getFeedbackStatus(item: StaffFeedback) {
 }
 
 export default function ManageFeedbackPage() {
+    const { i18n, t } = useTranslation(["feedback", "validation"]);
     const [items, setItems] = useState<StaffFeedback[]>([]);
     const [totalElements, setTotalElements] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
@@ -79,7 +81,7 @@ export default function ManageFeedbackPage() {
                 return response.items[0]?.id ?? null;
             });
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to load feedback."));
+            setError(getApiErrorMessage(requestError, t("feedback:feedback.staff.errors.load")));
         } finally {
             setLoading(false);
         }
@@ -100,7 +102,7 @@ export default function ManageFeedbackPage() {
     async function handleRespond(feedbackId: number) {
         const content = drafts[feedbackId]?.trim() ?? "";
         if (!content) {
-            setError("Response content is required.");
+            setError(t("validation:validation.feedback.responseRequired"));
             setActiveFeedbackId(feedbackId);
             return;
         }
@@ -110,7 +112,7 @@ export default function ManageFeedbackPage() {
             setError("");
             const response = await respondToFeedback(feedbackId, content);
             if (!response.success) {
-                setError(response.message || "Unable to submit response.");
+                setError(response.message || t("feedback:feedback.staff.errors.submit"));
                 return;
             }
 
@@ -118,7 +120,7 @@ export default function ManageFeedbackPage() {
             await loadFeedback();
             setActiveFeedbackId(feedbackId);
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to submit response right now."));
+            setError(getApiErrorMessage(requestError, t("feedback:feedback.staff.errors.submitUnavailable")));
         } finally {
             setSubmittingId(null);
         }
@@ -139,17 +141,17 @@ export default function ManageFeedbackPage() {
     const columns: DataTableColumn<StaffFeedback>[] = [
         {
             key: "student",
-            header: "Student",
+            header: t("feedback:feedback.staff.table.student"),
             render: (item) => (
                 <div>
                     <p className="font-bold text-slate-950">{item.studentName}</p>
-                    <p className="mt-1 text-sm text-slate-500">{item.studentEmail || "No email"}</p>
+                    <p className="mt-1 text-sm text-slate-500">{item.studentEmail || t("feedback:feedback.common.noEmail")}</p>
                 </div>
             ),
         },
         {
             key: "title",
-            header: "Feedback",
+            header: t("feedback:feedback.staff.table.feedback"),
             render: (item) => (
                 <div>
                     <p className="font-semibold text-slate-900">{item.title}</p>
@@ -159,22 +161,22 @@ export default function ManageFeedbackPage() {
         },
         {
             key: "status",
-            header: "Status",
+            header: t("feedback:feedback.staff.table.status"),
             render: (item) => <StatusBadge kind="feedback" value={getFeedbackStatus(item)} />,
         },
         {
             key: "created",
-            header: "Created",
-            render: (item) => formatDate(item.createdAt),
+            header: t("feedback:feedback.staff.table.created"),
+            render: (item) => formatDate(item.createdAt, i18n.language),
         },
         {
             key: "actions",
-            header: "Actions",
+            header: t("feedback:feedback.staff.table.actions"),
             className: "text-right",
             render: (item) => (
                 <div className="flex justify-end">
                     <button type="button" onClick={() => setActiveFeedbackId(item.id)} className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
-                        Open queue item
+                        {t("feedback:feedback.staff.buttons.openQueueItem")}
                     </button>
                 </div>
             ),
@@ -185,24 +187,24 @@ export default function ManageFeedbackPage() {
         <main className="bg-slate-100">
             <div className="mx-auto max-w-screen-2xl px-6 py-10">
                 <PageHeader
-                    eyebrow="Staff Feedback"
-                    title="Review student feedback"
-                    description="Work feedback as a queue with clear response status, searchable student context, and an in-place reply panel."
-                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{totalElements} queue item{totalElements === 1 ? "" : "s"}</div>}
+                    eyebrow={t("feedback:feedback.staff.header.eyebrow")}
+                    title={t("feedback:feedback.staff.header.title")}
+                    description={t("feedback:feedback.staff.header.description")}
+                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{t("feedback:feedback.staff.header.queueCount", { count: totalElements })}</div>}
                 />
 
                 <div className="mt-6 space-y-6">
                     <DataToolbar
                         filters={(
                             <>
-                                <SearchInput value={query} onChange={setQuery} placeholder="Search by student, title, or feedback content" />
-                                <SelectFilter label="Status" value={statusFilter} onChange={setStatusFilter} options={[{ label: "All statuses", value: "ALL" }, { label: "Unresolved", value: "UNRESOLVED" }, { label: "Responded", value: "RESPONDED" }]} />
+                                <SearchInput value={query} onChange={setQuery} placeholder={t("feedback:feedback.staff.filters.search")} />
+                                <SelectFilter label={t("feedback:feedback.staff.filters.status")} value={statusFilter} onChange={setStatusFilter} options={[{ label: t("feedback:feedback.staff.filters.allStatuses"), value: "ALL" }, { label: t("feedback:feedback.staff.filters.unresolved"), value: "UNRESOLVED" }, { label: t("feedback:feedback.staff.filters.responded"), value: "RESPONDED" }]} />
                                 <label className="flex min-w-[170px] items-center gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
-                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Date</span>
+                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{t("feedback:feedback.staff.filters.date")}</span>
                                     <input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none" />
                                 </label>
                                 <SelectFilter
-                                    label="Sort"
+                                    label={t("feedback:feedback.staff.filters.sort")}
                                     value={`${sortBy}:${sortDir}`}
                                     onChange={(value) => {
                                         const [nextSortBy, nextSortDir] = value.split(":");
@@ -210,8 +212,8 @@ export default function ManageFeedbackPage() {
                                         setSortDir(nextSortDir);
                                     }}
                                     options={[
-                                        { label: "Newest first", value: "createdAt:desc" },
-                                        { label: "Oldest first", value: "createdAt:asc" },
+                                        { label: t("feedback:feedback.staff.filters.newestFirst"), value: "createdAt:desc" },
+                                        { label: t("feedback:feedback.staff.filters.oldestFirst"), value: "createdAt:asc" },
                                     ]}
                                 />
                             </>
@@ -221,9 +223,9 @@ export default function ManageFeedbackPage() {
                     {error ? (
                         <ErrorState description={error} onRetry={() => void loadFeedback()} />
                     ) : loading ? (
-                        <LoadingState label="Loading feedback..." />
+                        <LoadingState label={t("feedback:feedback.staff.loading")} />
                     ) : items.length === 0 ? (
-                        <EmptyState title="No feedback in this queue view" description="Adjust the filters or search terms to find the student feedback item you need." icon="forum" />
+                        <EmptyState title={t("feedback:feedback.staff.empty.title")} description={t("feedback:feedback.staff.empty.description")} icon="forum" />
                     ) : (
                         <>
                             <div className="hidden lg:block">
@@ -239,13 +241,13 @@ export default function ManageFeedbackPage() {
                                             <div>
                                                 <StatusBadge kind="feedback" value={getFeedbackStatus(item)} />
                                                 <h2 className="mt-3 text-xl font-bold text-slate-950">{item.title}</h2>
-                                                <p className="mt-2 text-sm text-slate-500">{item.studentName} | {item.studentEmail || "No email"}</p>
+                                                <p className="mt-2 text-sm text-slate-500">{item.studentName} | {item.studentEmail || t("feedback:feedback.common.noEmail")}</p>
                                             </div>
-                                            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{formatDate(item.createdAt)}</span>
+                                            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{formatDate(item.createdAt, i18n.language)}</span>
                                         </div>
                                         <p className="mt-4 text-sm leading-6 text-slate-600">{item.content}</p>
                                         <button type="button" onClick={() => setActiveFeedbackId(item.id)} className="mt-5 inline-flex w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
-                                            Open queue item
+                                            {t("feedback:feedback.staff.buttons.openQueueItem")}
                                         </button>
                                     </article>
                                 )}
@@ -254,15 +256,15 @@ export default function ManageFeedbackPage() {
                             <PaginationControls page={page + 1} pageCount={Math.max(totalPages, 1)} onPageChange={(nextPage) => setPage(nextPage - 1)} />
 
                             {activeItem ? (
-                                <SectionCard title="Feedback detail" description="Respond in the same queue context without losing the list position.">
+                                <SectionCard title={t("feedback:feedback.staff.detail.title")} description={t("feedback:feedback.staff.detail.description")}>
                                     <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
                                         <DetailPanel
-                                            title="Context"
+                                            title={t("feedback:feedback.staff.detail.context.title")}
                                             items={[
-                                                { label: "Student", value: activeItem.studentName },
-                                                { label: "Email", value: activeItem.studentEmail || "No email" },
-                                                { label: "Status", value: <StatusBadge kind="feedback" value={getFeedbackStatus(activeItem)} /> },
-                                                { label: "Created", value: formatDate(activeItem.createdAt) },
+                                                { label: t("feedback:feedback.staff.detail.context.student"), value: activeItem.studentName },
+                                                { label: t("feedback:feedback.staff.detail.context.email"), value: activeItem.studentEmail || t("feedback:feedback.common.noEmail") },
+                                                { label: t("feedback:feedback.staff.detail.context.status"), value: <StatusBadge kind="feedback" value={getFeedbackStatus(activeItem)} /> },
+                                                { label: t("feedback:feedback.staff.detail.context.created"), value: formatDate(activeItem.createdAt, i18n.language) },
                                             ]}
                                         />
 
@@ -272,21 +274,21 @@ export default function ManageFeedbackPage() {
                                                 <p className="mt-3 text-sm leading-6 text-slate-600">{activeItem.content}</p>
                                             </div>
 
-                                            <SectionCard title="Responses" description="Existing replies remain visible above the current draft.">
+                                            <SectionCard title={t("feedback:feedback.staff.responses.title")} description={t("feedback:feedback.staff.responses.description")}>
                                                 {activeItem.responses.length === 0 ? (
-                                                    <EmptyState title="No responses yet" description="This feedback item is still unresolved." icon="reply" />
+                                                    <EmptyState title={t("feedback:feedback.staff.responses.empty.title")} description={t("feedback:feedback.staff.responses.empty.description")} icon="reply" />
                                                 ) : (
                                                     <div className="space-y-3">
                                                         {activeItem.responses.map((response) => (
-                                                            <ResponseCard key={response.id} response={response} />
+                                                            <ResponseCard key={response.id} response={response} language={i18n.language} />
                                                         ))}
                                                     </div>
                                                 )}
                                             </SectionCard>
 
-                                            <SectionCard title="Reply" description="Responses are added to the shared reply stream for this feedback item.">
+                                            <SectionCard title={t("feedback:feedback.staff.reply.title")} description={t("feedback:feedback.staff.reply.description")}>
                                                 <label className="block space-y-2">
-                                                    <span className="text-sm font-semibold text-slate-700">Response</span>
+                                                    <span className="text-sm font-semibold text-slate-700">{t("feedback:feedback.staff.reply.field")}</span>
                                                     <textarea
                                                         rows={5}
                                                         value={drafts[activeItem.id] ?? ""}
@@ -297,7 +299,7 @@ export default function ManageFeedbackPage() {
                                                 <div className="flex justify-end">
                                                     <button type="button" onClick={() => void handleRespond(activeItem.id)} disabled={submittingId === activeItem.id} className={`${darkActionButtonClass} px-5 py-3 text-sm font-semibold`} style={darkActionButtonStyle}>
                                                         <span className="text-white" style={darkActionButtonStyle}>
-                                                            {submittingId === activeItem.id ? "Sending..." : "Send response"}
+                                                            {submittingId === activeItem.id ? t("feedback:feedback.staff.buttons.sending") : t("feedback:feedback.staff.buttons.sendResponse")}
                                                         </span>
                                                     </button>
                                                 </div>
@@ -314,7 +316,7 @@ export default function ManageFeedbackPage() {
     );
 }
 
-function ResponseCard({ response }: { response: FeedbackResponse }) {
+function ResponseCard({ response, language }: { response: FeedbackResponse; language: string }) {
     return (
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="mb-2 flex items-center justify-between gap-3">
@@ -322,7 +324,7 @@ function ResponseCard({ response }: { response: FeedbackResponse }) {
                     <p className="text-sm font-bold text-slate-900">{response.responderEmail}</p>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{response.responderRole}</p>
                 </div>
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{formatDate(response.createdAt)}</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{formatDate(response.createdAt, language)}</span>
             </div>
             <p className="text-sm leading-6 text-slate-600">{response.content}</p>
         </div>

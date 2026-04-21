@@ -1,0 +1,686 @@
+{
+  "admin": {
+    "dashboard": {
+      "header": {
+        "eyebrow": "Bảng điều khiển quản trị",
+        "title": "Tình trạng khảo sát và vận hành",
+        "description": "Theo dõi khối lượng xác minh, số lượng theo vòng đời khảo sát, tình trạng tham gia và các điểm truy cập hoạt động đặc quyền."
+      },
+      "filters": {
+        "start": "Bắt đầu",
+        "end": "Kết thúc",
+        "department": "Khoa",
+        "startDate": "Ngày bắt đầu",
+        "endDate": "Ngày kết thúc",
+        "datePlaceholder": "dd/mm/yyyy",
+        "allDepartments": "Tất cả khoa"
+      },
+      "stats": {
+        "pendingStudents": "Sinh viên chờ duyệt",
+        "totalSurveys": "Tổng khảo sát",
+        "openSurveys": "Khảo sát đang mở",
+        "responseRate": "Tỷ lệ phản hồi"
+      },
+      "pendingApprovals": {
+        "title": "Hồ sơ chờ duyệt",
+        "description": "Các tài khoản sinh viên mới nhất đang chờ xét duyệt.",
+        "reviewAll": "Duyệt tất cả",
+        "emptyTitle": "Không có sinh viên chờ duyệt",
+        "emptyDescription": "Tất cả sinh viên đã vào quy trình hiện đều được xét duyệt.",
+        "studentCode": "Mã sinh viên",
+        "department": "Khoa"
+      },
+      "lifecycle": {
+        "title": "Tổng quan vòng đời",
+        "description": "Số lượng theo vòng đời khảo sát đang hoạt động và trạng thái hiển thị.",
+        "draft": "Bản nháp",
+        "published": "Đã xuất bản",
+        "closed": "Đã đóng",
+        "archived": "Đã lưu trữ"
+      },
+      "topResponses": {
+        "title": "Lượng phản hồi cao nhất",
+        "descriptionAll": "Các khảo sát có số phản hồi cao nhất trong khoảng ngày đã chọn.",
+        "descriptionDepartment": "Lượng phản hồi toàn hệ thống trong khoảng ngày đã chọn; mức tham gia theo khoa hiển thị bên dưới.",
+        "emptyTitle": "Chưa có hoạt động khảo sát",
+        "emptyDescription": "Hoạt động kết quả sẽ xuất hiện tại đây sau khi khảo sát bắt đầu thu phản hồi."
+      },
+      "participation": {
+        "title": "Tình trạng tham gia",
+        "description": "Số lượt mở và nộp từ theo dõi người nhận.",
+        "targeted": "Được giao",
+        "opened": "Đã mở",
+        "submitted": "Đã nộp",
+        "submittedCount": "{{submitted}} / {{targeted}} đã nộp"
+      },
+      "attention": {
+        "title": "Khảo sát cần chú ý",
+        "description": "Các khảo sát đang mở còn người nhận chưa hoàn tất, sắp xếp theo tỷ lệ phản hồi thấp nhất.",
+        "openResults": "Mở kết quả",
+        "emptyTitle": "Không có khoảng trống tham gia",
+        "emptyDescription": "Các khảo sát đang mở có mức tham gia chưa hoàn tất sẽ xuất hiện tại đây.",
+        "surveyProgress": "{{department}} - {{submitted}} / {{targeted}} đã nộp"
+      },
+      "common": {
+        "allStudents": "Tất cả sinh viên",
+        "noSurveyDescription": "Chưa có mô tả khảo sát.",
+        "unassigned": "Chưa phân công"
+      },
+      "student": {
+        "header": {
+          "eyebrow": "Bảng điều khiển sinh viên",
+          "title": "Tổng quan khảo sát",
+          "description": "Kiểm tra khảo sát đang mở, khảo sát sắp diễn ra và các khảo sát gần đến hạn."
+        },
+        "stats": {
+          "openSurveys": "Khảo sát đang mở",
+          "upcomingSurveys": "Khảo sát sắp tới",
+          "closedSurveys": "Khảo sát đã đóng"
+        },
+        "available": {
+          "title": "Có thể làm ngay",
+          "description": "Các khảo sát đang mở mà bạn có thể truy cập ngay.",
+          "viewAll": "Xem tất cả khảo sát",
+          "empty": "Hiện chưa có khảo sát nào đang mở.",
+          "closes": "Đóng vào {{date}}",
+          "openSurvey": "Mở khảo sát"
+        },
+        "closingSoon": {
+          "title": "Sắp đóng",
+          "description": "Các khảo sát đang mở được sắp xếp theo hạn gần nhất.",
+          "empty": "Hiện không có hạn khảo sát khẩn cấp.",
+          "ends": "Kết thúc {{date}}"
+        },
+        "upcoming": {
+          "title": "Khảo sát sắp tới",
+          "description": "Các khảo sát đã lên lịch nhưng chưa mở.",
+          "empty": "Chưa có khảo sát sắp tới.",
+          "starts": "Bắt đầu {{date}}"
+        }
+      },
+      "lecturer": {
+        "header": {
+          "eyebrow": "Bảng điều khiển giảng viên",
+          "title": "Tổng quan kết quả",
+          "description": "Xem hoạt động khảo sát trong phạm vi khoa của bạn và truy cập nhanh các bộ kết quả hoạt động nhiều nhất."
+        },
+        "stats": {
+          "trackedSurveys": "Khảo sát theo dõi",
+          "totalResponses": "Tổng phản hồi",
+          "closedSurveys": "Khảo sát đã đóng"
+        },
+        "mostActive": {
+          "title": "Khảo sát hoạt động nhiều nhất",
+          "description": "Các khảo sát được sắp xếp theo lượng phản hồi hiện tại.",
+          "openResultList": "Mở danh sách kết quả",
+          "empty": "Chưa có kết quả khảo sát.",
+          "responseCount_one": "{{count}} phản hồi",
+          "responseCount_other": "{{count}} phản hồi",
+          "openStatistics": "Mở thống kê"
+        },
+        "openSurveys": {
+          "title": "Khảo sát đang mở",
+          "description": "Các mục kết quả vẫn đang thu phản hồi.",
+          "label": "lượt khảo sát vẫn đang mở"
+        },
+        "coverage": {
+          "title": "Mức bao phủ",
+          "description": "Số phản hồi trung bình trên tất cả khảo sát đang hiển thị.",
+          "label": "phản hồi trên mỗi khảo sát"
+        }
+      },
+      "loading": "Đang tải bảng điều khiển...",
+      "errors": {
+        "loadFailed": "Không thể tải dữ liệu bảng điều khiển."
+      }
+    },
+    "surveys": {
+      "form": {
+        "header": {
+          "eyebrow": "Quản trị / Khảo sát",
+          "manageTitle": "Quản lý khảo sát",
+          "createTitle": "Tạo khảo sát",
+          "manageDescription": "Xem cấu hình khảo sát, theo dõi hoạt động người nhận và điều khiển chuyển đổi vòng đời từ một trang vận hành.",
+          "createDescription": "Tạo bản nháp khảo sát với thông tin, lịch, đối tượng và cấu trúc câu hỏi rõ ràng trước khi phát hành."
+        },
+        "loading": "Đang tải khảo sát...",
+        "common": {
+          "notYet": "Chưa có"
+        },
+        "buttons": {
+          "backToSurveys": "Quay lại khảo sát",
+          "saving": "Đang lưu...",
+          "saveDraftChanges": "Lưu thay đổi bản nháp",
+          "createDraft": "Tạo bản nháp"
+        },
+        "lifecycleHelp": {
+          "new": "Khảo sát mới bắt đầu dưới dạng bản nháp. Hãy cấu hình thông tin, lịch, đối tượng và câu hỏi trước khi phát hành.",
+          "draft": "Khảo sát nháp vẫn có thể chỉnh sửa. Chỉ phát hành khi ngày giờ, đối tượng và bộ câu hỏi đã hoàn tất.",
+          "published": "Khảo sát đã phát hành chạy theo lịch. Chỉ còn thao tác đổi hiển thị và đóng thủ công.",
+          "closed": "Khảo sát đã đóng ở chế độ chỉ đọc. Lưu trữ khi cần chuyển sang chế độ lưu hồ sơ.",
+          "archived": "Khảo sát đã lưu trữ là bản ghi lịch sử chỉ đọc."
+        },
+        "lifecycle": {
+          "title": "Tổng quan vòng đời"
+        },
+        "stats": {
+          "targeted": "Được giao",
+          "opened": "Đã mở",
+          "submitted": "Đã nộp",
+          "notOpened": "Chưa mở",
+          "responseRate": "Tỷ lệ phản hồi"
+        },
+        "lifecycleActions": {
+          "title": "Thao tác vòng đời",
+          "description": "Chỉ hiển thị phát hành, đóng, lưu trữ và đổi hiển thị khi vòng đời hiện tại cho phép.",
+          "publish": "Phát hành khảo sát",
+          "close": "Đóng khảo sát",
+          "archive": "Lưu trữ khảo sát",
+          "makeVisible": "Hiển thị lại khảo sát",
+          "show": "Hiển thị khảo sát",
+          "hide": "Ẩn khảo sát"
+        },
+        "confirm": {
+          "publish": "Phát hành \"{{title}}\" và gán cho người nhận đã cấu hình.",
+          "close": "Đóng \"{{title}}\" ngay và dừng thu thập phản hồi.",
+          "archive": "Lưu trữ \"{{title}}\" dưới dạng bản ghi lịch sử. Khảo sát sẽ ở chế độ chỉ đọc.",
+          "show": "Hiển thị lại \"{{title}}\" cho người nhận đủ điều kiện.",
+          "hide": "Ẩn \"{{title}}\" khỏi người nhận mà không đổi trạng thái vòng đời."
+        },
+        "information": {
+          "title": "Thông tin khảo sát",
+          "description": "Giữ tiêu đề và mô tả dễ đọc cho quản trị viên phải quản lý nhiều chiến dịch song song."
+        },
+        "templates": {
+          "select": "Chọn mẫu khảo sát",
+          "replace": "Thay bằng mẫu",
+          "help": "Chế độ thay thế sao chép mẫu đã chọn vào bản nháp này. Nó ghi đè tiêu đề, mô tả, đối tượng và câu hỏi hiện tại; thay đổi mẫu sau này sẽ không đồng bộ vào khảo sát này.",
+          "confirmTitle": "Thay bản nháp bằng mẫu",
+          "confirmDescription": "Thao tác này sẽ ghi đè tiêu đề, mô tả, đối tượng và danh sách câu hỏi hiện tại. Mẫu sẽ được sao chép vào bản nháp này và không liên kết với các thay đổi sau.",
+          "confirmLabel": "Thay bản nháp"
+        },
+        "fields": {
+          "title": "Tiêu đề",
+          "description": "Mô tả",
+          "descriptionHelp": "Nội dung này dùng trong tìm kiếm quản trị và giúp phân biệt nhanh các khảo sát.",
+          "startDate": "Ngày bắt đầu",
+          "endDate": "Ngày kết thúc",
+          "recipientScope": "Phạm vi người nhận",
+          "department": "Khoa",
+          "type": "Loại"
+        },
+        "schedule": {
+          "title": "Lịch",
+          "description": "Trạng thái chạy được suy ra từ trạng thái vòng đời và khoảng ngày này."
+        },
+        "audience": {
+          "title": "Đối tượng / người nhận",
+          "description": "Cấu hình người nhận nên mô tả ai nhận khảo sát mà không lộ ID theo cấu trúc backend.",
+          "allStudents": "Tất cả sinh viên",
+          "departmentOnly": "Chỉ theo khoa",
+          "selectDepartment": "Chọn khoa",
+          "departmentUnavailable": "Hiện chưa thể tra cứu khoa. Lựa chọn này sẽ trống cho đến khi tải được danh sách khoa.",
+          "locked": "Thiết lập người nhận bị khóa sau khi phát hành hoặc khi đã có phản hồi."
+        },
+        "questions": {
+          "title": "Câu hỏi",
+          "description": "Giai đoạn này giữ mô hình trình soạn thảo hiện tại nhưng sắp xếp thành phần vận hành rõ ràng hơn.",
+          "addFromBank": "Thêm từ ngân hàng câu hỏi",
+          "addQuestion": "Thêm câu hỏi",
+          "emptyTitle": "Chưa có câu hỏi",
+          "emptyDescription": "Thêm ít nhất một câu hỏi trước khi lưu hoặc phát hành khảo sát này.",
+          "questionNumber": "Câu hỏi {{number}}",
+          "ratingType": "Đánh giá (1-5)",
+          "textType": "Văn bản tự do",
+          "remove": "Xóa",
+          "locked": "Câu hỏi bị khóa sau khi phát hành hoặc khi đã có phản hồi.",
+          "bankHelp": "Câu hỏi từ ngân hàng được sao chép vào bản nháp. Chỉnh sửa hoặc lưu trữ sau này trong ngân hàng câu hỏi không làm thay đổi khảo sát này."
+        },
+        "recipientActivity": {
+          "title": "Hoạt động người nhận",
+          "description": "Số lượng người nhận và người tham gia còn chờ giúp giải thích hiệu suất khảo sát thực tế, không chỉ trạng thái cấu hình.",
+          "emptyTitle": "Không có người nhận còn chờ",
+          "emptyDescription": "Mọi người được gán khảo sát này đã nộp, hoặc khảo sát chưa gán người nhận.",
+          "firstOpened": "Mở lần đầu:",
+          "submitted": "Đã nộp:"
+        },
+        "feedback": {
+          "templateApplied": "Đã áp dụng mẫu \"{{name}}\" ở chế độ thay thế. Câu hỏi trong mẫu đã được sao chép vào bản nháp này.",
+          "draftCreated": "Đã tạo bản nháp khảo sát. Hãy xem lại và phát hành khi sẵn sàng."
+        },
+        "errors": {
+          "load": "Không thể tải khảo sát.",
+          "applyTemplate": "Không thể áp dụng mẫu khảo sát.",
+          "save": "Không thể lưu khảo sát.",
+          "update": "Không thể cập nhật khảo sát."
+        }
+      },
+      "list": {
+        "header": {
+          "title": "Quản lý khảo sát",
+          "description": "Vận hành khảo sát như các chiến dịch được quản lý với vòng đời, trạng thái chạy, hiển thị, phạm vi người nhận và hoạt động phản hồi rõ ràng.",
+          "matchingCount_one": "{{count}} khảo sát phù hợp",
+          "matchingCount_other": "{{count}} khảo sát phù hợp"
+        },
+        "stats": {
+          "totalSurveys": "Tổng khảo sát",
+          "drafts": "Bản nháp",
+          "published": "Đã phát hành",
+          "openNow": "Đang mở",
+          "closed": "Đã đóng",
+          "hidden": "Đã ẩn"
+        },
+        "table": {
+          "survey": "Khảo sát",
+          "lifecycle": "Vòng đời",
+          "runtime": "Thời gian chạy",
+          "visibility": "Hiển thị",
+          "audience": "Đối tượng",
+          "recipients": "Người nhận",
+          "window": "Thời gian",
+          "start": "Bắt đầu",
+          "end": "Kết thúc"
+        },
+        "filters": {
+          "search": "Tìm theo tiêu đề hoặc mô tả",
+          "allLifecycle": "Tất cả trạng thái vòng đời",
+          "draft": "Bản nháp",
+          "published": "Đã phát hành",
+          "closed": "Đã đóng",
+          "archived": "Đã lưu trữ",
+          "allRuntime": "Tất cả trạng thái chạy",
+          "notOpen": "Chưa mở",
+          "open": "Đang mở",
+          "allVisibility": "Tất cả trạng thái hiển thị",
+          "visible": "Hiển thị",
+          "hidden": "Đã ẩn",
+          "allAudiences": "Tất cả đối tượng",
+          "startFrom": "Bắt đầu từ",
+          "endBy": "Kết thúc trước",
+          "startDateNewest": "Ngày bắt đầu mới nhất",
+          "startDateOldest": "Ngày bắt đầu cũ nhất",
+          "endDateLatest": "Ngày kết thúc muộn nhất",
+          "endDateEarliest": "Ngày kết thúc sớm nhất",
+          "responseRateHighLow": "Tỷ lệ phản hồi cao-thấp",
+          "targetedHighLow": "Được giao cao-thấp",
+          "openedHighLow": "Đã mở cao-thấp",
+          "submittedHighLow": "Đã nộp cao-thấp",
+          "titleAsc": "Tiêu đề A-Z"
+        },
+        "buttons": {
+          "viewEdit": "Xem/Sửa",
+          "publish": "Phát hành",
+          "close": "Đóng",
+          "archive": "Lưu trữ",
+          "show": "Hiện",
+          "hide": "Ẩn"
+        },
+        "rowsOnPage_one": "{{count}} dòng trên trang",
+        "rowsOnPage_other": "{{count}} dòng trên trang",
+        "loading": "Đang tải khảo sát...",
+        "notSet": "Chưa đặt",
+        "departmentWithId": "Khoa {{id}}",
+        "departmentAudience": "Đối tượng theo khoa",
+        "empty": {
+          "title": "Không có khảo sát phù hợp",
+          "description": "Điều chỉnh bộ lọc, khoảng ngày hoặc từ khóa tìm kiếm để tìm chiến dịch khảo sát bạn cần."
+        },
+        "confirm": {
+          "publish": "Phát hành \"{{title}}\" và gán cho người nhận dựa trên cấu hình đối tượng.",
+          "close": "Đóng \"{{title}}\" ngay và dừng mọi phản hồi tiếp theo bất kể ngày kết thúc ban đầu.",
+          "archive": "Lưu trữ \"{{title}}\" dưới dạng bản ghi lịch sử. Khảo sát đã lưu trữ ở chế độ chỉ đọc.",
+          "show": "Hiển thị lại \"{{title}}\" cho người nhận đủ điều kiện.",
+          "hide": "Ẩn \"{{title}}\" khỏi người nhận mà không đổi trạng thái vòng đời."
+        },
+        "errors": {
+          "load": "Không thể tải khảo sát."
+        }
+      }
+    },
+    "users": {
+      "common": {
+        "notAvailable": "Không có"
+      },
+      "header": {
+        "eyebrow": "Quản trị / Tài khoản người dùng",
+        "title": "Quản lý tài khoản người dùng",
+        "description": "Tìm kiếm, xem xét, cập nhật chi tiết hồ sơ và kích hoạt hoặc vô hiệu hóa tài khoản mà không ngụ ý đổi vai trò.",
+        "matchingCount_one": "{{count}} người dùng phù hợp",
+        "matchingCount_other": "{{count}} người dùng phù hợp"
+      },
+      "stats": {
+        "totalUsers": "Tổng người dùng",
+        "students": "Sinh viên",
+        "lecturers": "Giảng viên",
+        "admins": "Quản trị viên",
+        "inactive": "Không hoạt động",
+        "pending": "Đang chờ"
+      },
+      "roleTabs": {
+        "all": "Tất cả",
+        "students": "Sinh viên",
+        "lecturers": "Giảng viên",
+        "admins": "Quản trị viên"
+      },
+      "filters": {
+        "search": "Tìm theo tên, email, mã sinh viên hoặc mã giảng viên",
+        "account": "Tài khoản",
+        "allStates": "Tất cả trạng thái",
+        "active": "Hoạt động",
+        "inactive": "Không hoạt động",
+        "department": "Khoa",
+        "allDepartments": "Tất cả khoa",
+        "studentStatus": "Trạng thái sinh viên",
+        "allStatuses": "Tất cả trạng thái",
+        "approved": "Đã duyệt",
+        "pendingReview": "Chờ duyệt",
+        "emailVerified": "Đã xác minh email",
+        "emailUnverified": "Chưa xác minh email",
+        "rejected": "Bị từ chối",
+        "sort": "Sắp xếp",
+        "nameAsc": "Tên A-Z",
+        "nameDesc": "Tên Z-A",
+        "emailAsc": "Email A-Z",
+        "roleAsc": "Vai trò A-Z",
+        "departmentAsc": "Khoa A-Z",
+        "accountStatus": "Trạng thái tài khoản"
+      },
+      "table": {
+        "user": "Người dùng",
+        "role": "Vai trò",
+        "code": "Mã",
+        "account": "Tài khoản",
+        "department": "Khoa",
+        "studentStatus": "Trạng thái sinh viên",
+        "actions": "Thao tác"
+      },
+      "buttons": {
+        "updating": "Đang cập nhật...",
+        "activate": "Kích hoạt",
+        "deactivate": "Vô hiệu hóa",
+        "activateUser": "Kích hoạt người dùng",
+        "deactivateUser": "Vô hiệu hóa người dùng",
+        "viewDetails": "Xem chi tiết"
+      },
+      "rowsOnPage_one": "{{count}} dòng trên trang",
+      "rowsOnPage_other": "{{count}} dòng trên trang",
+      "loading": "Đang tải người dùng...",
+      "empty": {
+        "title": "Không có người dùng phù hợp",
+        "description": "Điều chỉnh tab vai trò, tìm kiếm hoặc bộ lọc để tìm hồ sơ tài khoản bạn cần."
+      },
+      "card": {
+        "id": "ID {{id}}"
+      },
+      "errors": {
+        "load": "Không thể tải người dùng.",
+        "updateState": "Không thể cập nhật trạng thái người dùng."
+      },
+      "detail": {
+        "header": {
+          "eyebrow": "Quản trị / Chi tiết người dùng",
+          "title": "Chi tiết người dùng"
+        },
+        "loading": "Đang tải chi tiết người dùng...",
+        "buttons": {
+          "backToUsers": "Quay lại người dùng",
+          "saveChanges": "Lưu thay đổi"
+        },
+        "fields": {
+          "userId": "ID người dùng",
+          "email": "Email",
+          "name": "Tên",
+          "departmentId": "ID khoa",
+          "studentCode": "Mã sinh viên",
+          "lecturerCode": "Mã giảng viên"
+        },
+        "edit": {
+          "title": "Sửa thông tin cơ bản",
+          "description": "Cập nhật thông tin người dùng cốt lõi mà không thay đổi vai trò hoặc quyền khảo sát."
+        },
+        "errors": {
+          "load": "Không thể tải chi tiết người dùng.",
+          "invalidId": "ID người dùng không hợp lệ.",
+          "update": "Không thể cập nhật người dùng."
+        }
+      }
+    },
+    "pendingStudents": {
+      "header": {
+        "eyebrow": "Xét duyệt quản trị",
+        "title": "Duyệt sinh viên đang chờ",
+        "description": "Xem yêu cầu onboarding như một hàng đợi với ngữ cảnh sinh viên có thể tìm kiếm, ghi chú xét duyệt dùng lại và quyết định duyệt hoặc từ chối rõ ràng.",
+        "count_one": "{{count}} sinh viên đang chờ",
+        "count_other": "{{count}} sinh viên đang chờ"
+      },
+      "filters": {
+        "search": "Tìm theo tên, email hoặc mã sinh viên",
+        "submission": "Lần nộp",
+        "allSubmissions": "Tất cả lần nộp",
+        "resubmittedOnly": "Chỉ nộp lại",
+        "firstSubmission": "Nộp lần đầu",
+        "resubmissionCount": "Số lần nộp lại",
+        "studentNameAsc": "Tên sinh viên A-Z"
+      },
+      "table": {
+        "student": "Sinh viên"
+      },
+      "resubmitted": "Đã nộp lại {{count}} lần",
+      "buttons": {
+        "review": "Xét duyệt",
+        "approve": "Duyệt",
+        "approving": "Đang duyệt...",
+        "reject": "Từ chối",
+        "rejecting": "Đang từ chối..."
+      },
+      "loading": "Đang tải sinh viên chờ duyệt...",
+      "empty": {
+        "title": "Không có sinh viên chờ duyệt trong chế độ xem này",
+        "description": "Điều chỉnh tìm kiếm hoặc bộ lọc để tìm yêu cầu onboarding cần xử lý."
+      },
+      "detail": {
+        "title": "Chi tiết xét duyệt",
+        "description": "Duyệt hoặc từ chối mà không rời hàng đợi onboarding. Lý do từ chối vẫn là bắt buộc.",
+        "context": "Ngữ cảnh"
+      },
+      "documents": {
+        "title": "Giấy tờ đã nộp",
+        "description": "Giấy tờ được lấy từ backend và hiển thị trực tiếp khi có thể xem trước.",
+        "document": "tài liệu",
+        "loading": "Đang tải giấy tờ đã nộp...",
+        "studentCard": "Thẻ sinh viên",
+        "nationalId": "Căn cước công dân",
+        "missing": "Thiếu",
+        "openFullImage": "Mở ảnh đầy đủ",
+        "openPdf": "Mở PDF",
+        "openDocument": "Mở tài liệu"
+      },
+      "previous": {
+        "title": "Ngữ cảnh xét duyệt trước",
+        "description": "Phần này xuất hiện khi sinh viên đã từng bị từ chối và nộp lại.",
+        "reason": "Lý do:",
+        "notes": "Ghi chú:"
+      },
+      "decision": {
+        "title": "Quyết định xét duyệt",
+        "description": "Cung cấp lý do từ chối trước khi từ chối. Ghi chú là tùy chọn cho cả hai quyết định.",
+        "rejectionReason": "Lý do từ chối",
+        "rejectionPlaceholder": "Bắt buộc nếu bạn từ chối yêu cầu onboarding này",
+        "reviewerNotes": "Ghi chú người duyệt",
+        "notesPlaceholder": "Ghi chú tùy chọn được lưu cùng quyết định xét duyệt"
+      },
+      "confirm": {
+        "approveTitle": "Duyệt sinh viên",
+        "rejectTitle": "Từ chối sinh viên",
+        "approveDescription": "Duyệt {{name}} và kích hoạt yêu cầu onboarding này.",
+        "rejectDescription": "Từ chối {{name}}. Lý do từ chối sẽ được gửi lại qua luồng nộp lại hiện có.",
+        "approveLabel": "Duyệt sinh viên",
+        "rejectLabel": "Từ chối sinh viên"
+      },
+      "errors": {
+        "load": "Không thể tải sinh viên đang chờ.",
+        "approve": "Không thể duyệt sinh viên này.",
+        "reject": "Không thể từ chối sinh viên này.",
+        "loadDocuments": "Không thể tải giấy tờ sinh viên."
+      }
+    },
+    "audit": {
+      "header": {
+        "eyebrow": "Nhật ký quản trị",
+        "title": "Nhật ký kiểm toán",
+        "description": "Xem các thao tác đặc quyền, thay đổi vòng đời, quyết định onboarding và vận hành tài khoản.",
+        "count_one": "{{count}} sự kiện phù hợp",
+        "count_other": "{{count}} sự kiện phù hợp"
+      },
+      "filters": {
+        "search": "Tìm chi tiết nhật ký",
+        "allActions": "Tất cả thao tác",
+        "onboardingApproved": "Onboarding đã duyệt",
+        "onboardingRejected": "Onboarding bị từ chối",
+        "surveyPublished": "Khảo sát đã phát hành",
+        "surveyClosed": "Khảo sát đã đóng",
+        "surveyArchived": "Khảo sát đã lưu trữ",
+        "surveyVisibilityChanged": "Đã đổi hiển thị khảo sát",
+        "userProfileUpdated": "Đã cập nhật hồ sơ người dùng",
+        "userActivated": "Đã kích hoạt người dùng",
+        "userDeactivated": "Đã vô hiệu hóa người dùng",
+        "allTargets": "Tất cả đối tượng",
+        "student": "Sinh viên",
+        "survey": "Khảo sát",
+        "user": "Người dùng",
+        "target": "Đối tượng",
+        "idPlaceholder": "ID",
+        "from": "Từ",
+        "to": "Đến"
+      },
+      "table": {
+        "when": "Thời điểm",
+        "actor": "Người thực hiện",
+        "action": "Thao tác",
+        "summary": "Tóm tắt"
+      },
+      "detail": {
+        "details": "Chi tiết",
+        "oldState": "Trạng thái cũ",
+        "newState": "Trạng thái mới",
+        "noExtraDetails": "Không có chi tiết bổ sung"
+      },
+      "userRef": "Người dùng #{{id}}",
+      "mobileMeta": "Người dùng #{{actorId}} trên {{targetType}} #{{targetId}}",
+      "displayed": "Đang hiển thị {{count}}",
+      "loading": "Đang tải nhật ký kiểm toán...",
+      "empty": {
+        "title": "Không tìm thấy nhật ký kiểm toán",
+        "description": "Điều chỉnh bộ lọc để kiểm tra hoạt động đặc quyền."
+      },
+      "errors": {
+        "load": "Không thể tải nhật ký kiểm toán."
+      }
+    },
+    "assets": {
+      "eyebrow": "Quản trị / Tài sản khảo sát"
+    },
+    "questionBank": {
+      "header": {
+        "title": "Ngân hàng câu hỏi",
+        "description": "Tạo tài sản câu hỏi tái sử dụng để sao chép vào bản nháp khảo sát và mẫu khảo sát."
+      },
+      "form": {
+        "editTitle": "Sửa tài sản câu hỏi",
+        "createTitle": "Tạo tài sản câu hỏi",
+        "description": "Mục ngân hàng câu hỏi là câu hỏi nguồn có thể tái sử dụng. Việc lưu trữ vẫn giữ nguyên các bản sao khảo sát cũ.",
+        "copyHelp": "Thêm câu hỏi ngân hàng vào khảo sát hoặc mẫu sẽ sao chép nội dung và loại hiện tại. Chỉnh sửa sau này tại đây chỉ ảnh hưởng lần dùng trong tương lai.",
+        "contentPlaceholder": "Nội dung câu hỏi",
+        "categoryPlaceholder": "Danh mục"
+      },
+      "type": {
+        "rating": "Đánh giá",
+        "text": "Văn bản"
+      },
+      "buttons": {
+        "create": "Tạo",
+        "update": "Cập nhật",
+        "edit": "Sửa",
+        "archive": "Lưu trữ",
+        "restore": "Khôi phục"
+      },
+      "list": {
+        "title": "Câu hỏi tái sử dụng",
+        "description": "Tìm kiếm và quản lý các mục ngân hàng câu hỏi đang hoạt động hoặc đã lưu trữ.",
+        "showing": "Đang hiển thị {{shown}} / {{total}} mục ngân hàng câu hỏi."
+      },
+      "filters": {
+        "search": "Tìm nội dung hoặc danh mục",
+        "allTypes": "Tất cả loại",
+        "state": "Trạng thái",
+        "any": "Bất kỳ"
+      },
+      "loading": "Đang tải ngân hàng câu hỏi...",
+      "empty": {
+        "title": "Không có mục ngân hàng câu hỏi phù hợp",
+        "description": "Điều chỉnh tìm kiếm, loại, trạng thái hoặc bộ lọc danh mục."
+      },
+      "feedback": {
+        "updated": "Đã cập nhật mục ngân hàng câu hỏi.",
+        "created": "Đã tạo mục ngân hàng câu hỏi.",
+        "restored": "Đã khôi phục mục ngân hàng câu hỏi.",
+        "archived": "Đã lưu trữ mục ngân hàng câu hỏi."
+      },
+      "errors": {
+        "load": "Không thể tải ngân hàng câu hỏi.",
+        "save": "Không thể lưu mục ngân hàng câu hỏi.",
+        "update": "Không thể cập nhật mục ngân hàng câu hỏi."
+      }
+    },
+    "templates": {
+      "header": {
+        "title": "Mẫu khảo sát",
+        "description": "Tạo cấu trúc khảo sát tái sử dụng để khởi tạo bản nháp với gợi ý nội dung, đối tượng và câu hỏi."
+      },
+      "form": {
+        "editTitle": "Sửa mẫu",
+        "createTitle": "Tạo mẫu",
+        "description": "Câu hỏi trong mẫu có thể được sao chép từ ngân hàng câu hỏi hoặc viết riêng cho mẫu.",
+        "archivedNotice": "Mẫu này đã được lưu trữ. Lưu chỉnh sửa vẫn giữ trạng thái lưu trữ; dùng Khôi phục khi muốn mẫu có lại trong bản nháp khảo sát.",
+        "namePlaceholder": "Tên mẫu",
+        "suggestedTitlePlaceholder": "Tiêu đề khảo sát gợi ý",
+        "descriptionPlaceholder": "Mô tả mẫu",
+        "suggestedDescriptionPlaceholder": "Mô tả khảo sát gợi ý",
+        "departmentDefault": "Mặc định theo khoa",
+        "addCustomQuestion": "Thêm câu hỏi tùy chỉnh",
+        "bankCopyHelp": "Câu hỏi thêm từ ngân hàng được sao chép vào mẫu. Chỉnh sửa hoặc lưu trữ sau này trong ngân hàng câu hỏi không làm thay đổi mẫu hiện có.",
+        "bankLimitHelp": "Đang hiển thị {{shown}} câu hỏi ngân hàng đang hoạt động đầu tiên trong bộ chọn này; dùng tìm kiếm Ngân hàng câu hỏi để quản lý toàn bộ {{total}}."
+      },
+      "buttons": {
+        "create": "Tạo mẫu",
+        "update": "Cập nhật mẫu"
+      },
+      "list": {
+        "title": "Mẫu",
+        "description": "Áp dụng các mẫu này từ trình soạn thảo bản nháp khảo sát.",
+        "showing": "Đang hiển thị {{shown}} / {{total}} mẫu.",
+        "questionCount_one": "{{count}} câu hỏi",
+        "questionCount_other": "{{count}} câu hỏi"
+      },
+      "filters": {
+        "search": "Tìm tên hoặc mô tả mẫu"
+      },
+      "loading": "Đang tải mẫu...",
+      "empty": {
+        "title": "Không có mẫu phù hợp",
+        "description": "Điều chỉnh tìm kiếm hoặc bộ lọc trạng thái để tìm mẫu khảo sát tái sử dụng."
+      },
+      "feedback": {
+        "updated": "Đã cập nhật mẫu khảo sát.",
+        "created": "Đã tạo mẫu khảo sát.",
+        "restored": "Đã khôi phục mẫu khảo sát.",
+        "archived": "Đã lưu trữ mẫu khảo sát."
+      },
+      "errors": {
+        "load": "Không thể tải mẫu khảo sát.",
+        "save": "Không thể lưu mẫu khảo sát.",
+        "update": "Không thể cập nhật mẫu khảo sát."
+      }
+    }
+  }
+}

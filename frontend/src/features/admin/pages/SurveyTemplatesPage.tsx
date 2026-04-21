@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     archiveSurveyTemplate,
     createSurveyTemplate,
@@ -42,6 +43,7 @@ const emptyForm: TemplateForm = {
 };
 
 export default function SurveyTemplatesPage() {
+    const { t } = useTranslation(["admin", "validation", "common"]);
     const [templates, setTemplates] = useState<SurveyTemplate[]>([]);
     const [bank, setBank] = useState<QuestionBankEntry[]>([]);
     const [departments, setDepartments] = useState<DepartmentOption[]>([]);
@@ -86,11 +88,11 @@ export default function SurveyTemplatesPage() {
             setBankTotalElements(bankPage.totalElements);
             setDepartments(departmentItems);
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to load survey templates."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.templates.errors.load")));
         } finally {
             setLoading(false);
         }
-    }, [activeFilter, debouncedKeyword, templatePage]);
+    }, [activeFilter, debouncedKeyword, templatePage, t]);
 
     useEffect(() => {
         const timeout = window.setTimeout(() => setDebouncedKeyword(keyword.trim()), 300);
@@ -152,11 +154,11 @@ export default function SurveyTemplatesPage() {
         setError("");
         setFeedback("");
         if (!form.name.trim()) {
-            setError("Template name is required.");
+            setError(t("validation:validation.admin.templates.nameRequired"));
             return;
         }
         if (form.questions.length === 0 || form.questions.some((question) => !question.content.trim())) {
-            setError("Add at least one complete template question.");
+            setError(t("validation:validation.admin.templates.questionRequired"));
             return;
         }
 
@@ -178,15 +180,15 @@ export default function SurveyTemplatesPage() {
             setSaving(true);
             if (editingId) {
                 await updateSurveyTemplate(editingId, payload);
-                setFeedback("Survey template updated.");
+                setFeedback(t("admin:admin.templates.feedback.updated"));
             } else {
                 await createSurveyTemplate(payload);
-                setFeedback("Survey template created.");
+                setFeedback(t("admin:admin.templates.feedback.created"));
             }
             resetForm();
             await load();
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to save survey template."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.templates.errors.save")));
         } finally {
             setSaving(false);
         }
@@ -198,94 +200,94 @@ export default function SurveyTemplatesPage() {
             setFeedback("");
             if (active) {
                 await restoreSurveyTemplate(template.id);
-                setFeedback("Survey template restored.");
+                setFeedback(t("admin:admin.templates.feedback.restored"));
             } else {
                 await archiveSurveyTemplate(template.id);
-                setFeedback("Survey template archived.");
+                setFeedback(t("admin:admin.templates.feedback.archived"));
             }
             await load();
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to update survey template."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.templates.errors.update")));
         }
     }
 
     return (
         <main className="bg-slate-100">
             <div className="mx-auto max-w-screen-xl px-6 py-10">
-                <PageHeader eyebrow="Admin / Survey Assets" title="Survey templates" description="Create reusable survey structures that can initialize draft surveys with suggested copy, audience, and questions." />
+                <PageHeader eyebrow={t("admin:admin.assets.eyebrow")} title={t("admin:admin.templates.header.title")} description={t("admin:admin.templates.header.description")} />
                 <div className="mt-6 space-y-6">
                     {error ? <ErrorState description={error} onRetry={() => void load()} /> : null}
                     {feedback ? <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700">{feedback}</div> : null}
-                    <SectionCard title={editingId ? "Edit template" : "Create template"} description="Template questions can be copied from the question bank or written specifically for the template.">
+                    <SectionCard title={editingId ? t("admin:admin.templates.form.editTitle") : t("admin:admin.templates.form.createTitle")} description={t("admin:admin.templates.form.description")}>
                         <form onSubmit={submit} className="space-y-4">
-                            {editingWasArchived ? <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">This template is archived. Saving edits keeps it archived; use Restore when it should become available for survey drafts again.</div> : null}
+                            {editingWasArchived ? <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">{t("admin:admin.templates.form.archivedNotice")}</div> : null}
                             <div className="grid gap-4 md:grid-cols-2">
-                                <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Template name" className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500" />
-                                <input value={form.suggestedTitle} onChange={(event) => setForm((current) => ({ ...current, suggestedTitle: event.target.value }))} placeholder="Suggested survey title" className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500" />
+                                <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder={t("admin:admin.templates.form.namePlaceholder")} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500" />
+                                <input value={form.suggestedTitle} onChange={(event) => setForm((current) => ({ ...current, suggestedTitle: event.target.value }))} placeholder={t("admin:admin.templates.form.suggestedTitlePlaceholder")} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500" />
                             </div>
-                            <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={2} placeholder="Template description" className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500" />
-                            <textarea value={form.suggestedSurveyDescription} onChange={(event) => setForm((current) => ({ ...current, suggestedSurveyDescription: event.target.value }))} rows={3} placeholder="Suggested survey description" className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500" />
+                            <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={2} placeholder={t("admin:admin.templates.form.descriptionPlaceholder")} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500" />
+                            <textarea value={form.suggestedSurveyDescription} onChange={(event) => setForm((current) => ({ ...current, suggestedSurveyDescription: event.target.value }))} rows={3} placeholder={t("admin:admin.templates.form.suggestedDescriptionPlaceholder")} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500" />
                             <div className="grid gap-4 md:grid-cols-2">
                                 <select value={form.recipientScope} onChange={(event) => setForm((current) => ({ ...current, recipientScope: event.target.value as "ALL_STUDENTS" | "DEPARTMENT" }))} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500">
-                                    <option value="ALL_STUDENTS">All students</option>
-                                    <option value="DEPARTMENT">Department default</option>
+                                    <option value="ALL_STUDENTS">{t("admin:admin.surveys.form.audience.allStudents")}</option>
+                                    <option value="DEPARTMENT">{t("admin:admin.templates.form.departmentDefault")}</option>
                                 </select>
                                 <select value={form.recipientDepartmentId} onChange={(event) => setForm((current) => ({ ...current, recipientDepartmentId: event.target.value }))} disabled={form.recipientScope !== "DEPARTMENT"} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500 disabled:bg-slate-100">
-                                    <option value="">Select department</option>
+                                    <option value="">{t("admin:admin.surveys.form.audience.selectDepartment")}</option>
                                     {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
                                 </select>
                             </div>
                             <div className="flex flex-wrap gap-3">
-                                <button type="button" onClick={addBlankQuestion} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700">Add custom question</button>
+                                <button type="button" onClick={addBlankQuestion} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700">{t("admin:admin.templates.form.addCustomQuestion")}</button>
                                 <select defaultValue="" onChange={(event) => { addBankQuestion(event.target.value); event.currentTarget.value = ""; }} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
-                                    <option value="">Add from question bank</option>
+                                    <option value="">{t("admin:admin.surveys.form.questions.addFromBank")}</option>
                                     {bank.map((entry) => <option key={entry.id} value={entry.id}>{entry.content}</option>)}
                                 </select>
                             </div>
-                            <p className="text-sm text-slate-500">Questions added from the bank are copied into the template. Later question-bank edits or archives do not change existing templates. {bankTotalElements > bank.length ? `Showing first ${bank.length} active bank questions in this picker; use Question Bank search to manage the full ${bankTotalElements}.` : ""}</p>
+                            <p className="text-sm text-slate-500">{t("admin:admin.templates.form.bankCopyHelp")} {bankTotalElements > bank.length ? t("admin:admin.templates.form.bankLimitHelp", { shown: bank.length, total: bankTotalElements }) : ""}</p>
                             <div className="grid gap-3">
                                 {form.questions.map((question, index) => (
                                     <div key={index} className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[minmax(0,1fr)_160px_auto]">
                                         <input value={question.content} onChange={(event) => updateQuestion(index, "content", event.target.value)} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500" />
                                         <select value={question.type} onChange={(event) => updateQuestion(index, "type", event.target.value)} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500">
-                                            <option value="RATING">Rating</option>
-                                            <option value="TEXT">Text</option>
+                                            <option value="RATING">{t("admin:admin.questionBank.type.rating")}</option>
+                                            <option value="TEXT">{t("admin:admin.questionBank.type.text")}</option>
                                         </select>
-                                        <button type="button" onClick={() => setForm((current) => ({ ...current, questions: current.questions.filter((_, itemIndex) => itemIndex !== index) }))} className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">Remove</button>
+                                        <button type="button" onClick={() => setForm((current) => ({ ...current, questions: current.questions.filter((_, itemIndex) => itemIndex !== index) }))} className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{t("admin:admin.surveys.form.questions.remove")}</button>
                                     </div>
                                 ))}
                             </div>
                             <div className="flex justify-end gap-2">
-                                {editingId ? <button type="button" onClick={resetForm} className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700">Cancel</button> : null}
-                                <button type="submit" disabled={saving} className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">{saving ? "Saving..." : editingId ? "Update template" : "Create template"}</button>
+                                {editingId ? <button type="button" onClick={resetForm} className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700">{t("common:common.actions.cancel")}</button> : null}
+                                <button type="submit" disabled={saving} className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">{saving ? t("admin:admin.surveys.form.buttons.saving") : editingId ? t("admin:admin.templates.buttons.update") : t("admin:admin.templates.buttons.create")}</button>
                             </div>
                         </form>
                     </SectionCard>
-                    <SectionCard title="Templates" description="Apply these templates from the survey draft editor.">
+                    <SectionCard title={t("admin:admin.templates.list.title")} description={t("admin:admin.templates.list.description")}>
                         <div className="mb-4">
                             <DataToolbar
                                 filters={(
                                     <>
-                                        <SearchInput value={keyword} onChange={setKeyword} placeholder="Search template name or description" />
+                                        <SearchInput value={keyword} onChange={setKeyword} placeholder={t("admin:admin.templates.filters.search")} />
                                         <SelectFilter
-                                            label="State"
+                                            label={t("admin:admin.questionBank.filters.state")}
                                             value={activeFilter}
                                             onChange={setActiveFilter}
                                             options={[
-                                                { label: "Active", value: "ACTIVE" },
-                                                { label: "Archived", value: "ARCHIVED" },
-                                                { label: "All states", value: "ALL" },
+                                                { label: t("admin:admin.users.filters.active"), value: "ACTIVE" },
+                                                { label: t("admin:admin.surveys.list.filters.archived"), value: "ARCHIVED" },
+                                                { label: t("admin:admin.users.filters.allStates"), value: "ALL" },
                                             ]}
                                         />
                                     </>
                                 )}
-                                actions={<div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">{templates.length} displayed</div>}
+                                actions={<div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">{t("admin:admin.audit.displayed", { count: templates.length })}</div>}
                             />
                         </div>
-                        <p className="mb-4 text-sm text-slate-500">Showing {templates.length} of {totalTemplates} templates.</p>
-                        {loading ? <LoadingState label="Loading templates..." /> : (
+                        <p className="mb-4 text-sm text-slate-500">{t("admin:admin.templates.list.showing", { shown: templates.length, total: totalTemplates })}</p>
+                        {loading ? <LoadingState label={t("admin:admin.templates.loading")} /> : (
                             templates.length === 0 ? (
-                                <EmptyState title="No matching templates" description="Adjust search or state filters to find reusable survey templates." icon="library_add" />
+                                <EmptyState title={t("admin:admin.templates.empty.title")} description={t("admin:admin.templates.empty.description")} icon="library_add" />
                             ) : (
                                 <>
                                     <div className="grid gap-3">
@@ -294,11 +296,11 @@ export default function SurveyTemplatesPage() {
                                                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                                     <div>
                                                         <p className="font-bold text-slate-950">{template.name}</p>
-                                                        <p className="mt-1 text-sm text-slate-500">{template.questions.length} question{template.questions.length === 1 ? "" : "s"} | {template.recipientScope === "DEPARTMENT" ? "Department default" : "All students"} | {template.active ? "Active" : "Archived"}</p>
+                                                        <p className="mt-1 text-sm text-slate-500">{t("admin:admin.templates.list.questionCount", { count: template.questions.length })} | {template.recipientScope === "DEPARTMENT" ? t("admin:admin.templates.form.departmentDefault") : t("admin:admin.surveys.form.audience.allStudents")} | {template.active ? t("admin:admin.users.filters.active") : t("admin:admin.surveys.list.filters.archived")}</p>
                                                     </div>
                                                     <div className="flex gap-2">
-                                                        <button type="button" onClick={() => edit(template)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">Edit</button>
-                                                        <button type="button" onClick={() => void setActive(template, !template.active)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">{template.active ? "Archive" : "Restore"}</button>
+                                                        <button type="button" onClick={() => edit(template)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">{t("admin:admin.questionBank.buttons.edit")}</button>
+                                                        <button type="button" onClick={() => void setActive(template, !template.active)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">{template.active ? t("admin:admin.questionBank.buttons.archive") : t("admin:admin.questionBank.buttons.restore")}</button>
                                                     </div>
                                                 </div>
                                             </div>

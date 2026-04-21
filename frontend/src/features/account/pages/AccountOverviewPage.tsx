@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../auth/useAuth";
 import EmptyState from "../../../components/ui/EmptyState";
 import InfoCard from "../../../components/ui/InfoCard";
@@ -7,6 +8,7 @@ import StatusBadge from "../../../components/ui/StatusBadge";
 import { darkActionButtonClass, darkActionButtonStyle } from "../../../components/ui/buttonStyles";
 
 export default function AccountOverviewPage() {
+    const { t } = useTranslation(["account"]);
     const { session } = useAuth();
 
     if (!session) {
@@ -16,24 +18,24 @@ export default function AccountOverviewPage() {
     return (
         <div className="space-y-6">
             <SectionCard
-                title="Profile summary"
-                description="Safe account information currently available from your authenticated session."
+                title={t("account:account.overview.profile.title")}
+                description={t("account:account.overview.profile.description")}
             >
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <InfoCard label="Email" value={session.email} />
-                    <InfoCard label="Role" value={session.role} />
-                    <InfoCard label="User ID" value={String(session.userId)} />
+                    <InfoCard label={t("account:account.overview.profile.email")} value={session.email} />
+                    <InfoCard label={t("account:account.overview.profile.role")} value={session.role} />
+                    <InfoCard label={t("account:account.overview.profile.userId")} value={String(session.userId)} />
                     <InfoCard
-                        label="Student status"
-                        value={session.role === "STUDENT" && session.studentStatus ? session.studentStatus.replace(/_/g, " ").toLowerCase().replace(/^\w/, (letter) => letter.toUpperCase()) : "N/A"}
+                        label={t("account:account.overview.profile.studentStatus")}
+                        value={session.role === "STUDENT" && session.studentStatus ? session.studentStatus.replace(/_/g, " ").toLowerCase().replace(/^\w/, (letter) => letter.toUpperCase()) : t("account:account.common.notAvailable")}
                     />
                 </div>
             </SectionCard>
 
             <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
                 <SectionCard
-                    title="Available account details"
-                    description="This frontend currently uses authenticated session data for self-service account pages."
+                    title={t("account:account.overview.details.title")}
+                    description={t("account:account.overview.details.description")}
                 >
                     <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
                         <div className="flex flex-wrap items-center gap-2">
@@ -43,29 +45,29 @@ export default function AccountOverviewPage() {
                             ) : null}
                         </div>
                         <p className="text-sm leading-6 text-slate-600">
-                            Full name and richer personal metadata are not currently available in the authenticated session payload. This account area deliberately shows only supported data instead of inventing profile information.
+                            {t("account:account.overview.details.body")}
                         </p>
                     </div>
                 </SectionCard>
 
-                <SectionCard title="Security" description="Password and personal access settings.">
+                <SectionCard title={t("account:account.overview.security.title")} description={t("account:account.overview.security.description")}>
                     <p className="text-sm leading-6 text-slate-500">
-                        Use the dedicated security page to update your password and review password guidance for this account.
+                        {t("account:account.overview.security.body")}
                     </p>
                     <Link
                         to="/account/security"
                         className={`mt-5 w-full px-4 py-3 text-sm font-bold ${darkActionButtonClass}`}
                         style={darkActionButtonStyle}
                     >
-                        <span className="text-white" style={darkActionButtonStyle}>Open security settings</span>
+                        <span className="text-white" style={darkActionButtonStyle}>{t("account:account.overview.security.button")}</span>
                         <span className="material-symbols-outlined text-[18px] text-white" style={darkActionButtonStyle}>shield_lock</span>
                     </Link>
                 </SectionCard>
             </div>
 
             <EmptyState
-                title="More profile controls can be added later"
-                description="This account area now separates self-service from admin user management. Future profile enhancements should use a supported current-user endpoint rather than admin user APIs."
+                title={t("account:account.overview.empty.title")}
+                description={t("account:account.overview.empty.description")}
                 icon="account_circle"
             />
         </div>

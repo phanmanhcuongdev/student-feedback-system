@@ -1,14 +1,17 @@
 import { Outlet } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import PageHeader from "../../../components/ui/PageHeader";
 import AccountNavigationCard from "../components/AccountNavigationCard";
 
 export default function AccountLayout() {
+    const { t } = useTranslation(["account"]);
+
     return (
         <div className="mx-auto max-w-6xl space-y-6">
             <PageHeader
-                eyebrow="Account"
-                title="Account settings"
-                description="Manage your own authenticated account separately from operational work areas. Use this area for profile context and password security."
+                eyebrow={t("account:account.layout.eyebrow")}
+                title={t("account:account.layout.title")}
+                description={t("account:account.layout.description")}
             />
 
             <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">

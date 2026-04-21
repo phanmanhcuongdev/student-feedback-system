@@ -1,13 +1,13 @@
 export type NavigationRole = "STUDENT" | "LECTURER" | "ADMIN";
 
 export type NavigationItem = {
-    label: string;
+    labelKey: string;
     to: string;
     icon: string;
 };
 
 export type NavigationGroup = {
-    title: string;
+    titleKey: string;
     items: NavigationItem[];
 };
 
@@ -15,38 +15,38 @@ export function getNavigationGroups(role: string): NavigationGroup[] {
     const workspaceByRole: Record<NavigationRole, NavigationGroup[]> = {
         STUDENT: [
             {
-                title: "Student Workspace",
+                titleKey: "layout.nav.groups.studentWorkspace",
                 items: [
-                    { label: "Dashboard", to: "/dashboard/student", icon: "dashboard" },
-                    { label: "Surveys", to: "/surveys", icon: "assignment" },
-                    { label: "Notifications", to: "/notifications", icon: "notifications" },
-                    { label: "Feedback", to: "/feedback", icon: "forum" },
+                    { labelKey: "layout.nav.items.dashboard", to: "/dashboard/student", icon: "dashboard" },
+                    { labelKey: "layout.nav.items.surveys", to: "/surveys", icon: "assignment" },
+                    { labelKey: "layout.nav.items.notifications", to: "/notifications", icon: "notifications" },
+                    { labelKey: "layout.nav.items.feedback", to: "/feedback", icon: "forum" },
                 ],
             },
         ],
         LECTURER: [
             {
-                title: "Lecturer Workspace",
+                titleKey: "layout.nav.groups.lecturerWorkspace",
                 items: [
-                    { label: "Dashboard", to: "/dashboard/lecturer", icon: "dashboard" },
-                    { label: "Survey Results", to: "/survey-results", icon: "analytics" },
-                    { label: "Feedback Review", to: "/feedback/manage", icon: "rate_review" },
+                    { labelKey: "layout.nav.items.dashboard", to: "/dashboard/lecturer", icon: "dashboard" },
+                    { labelKey: "layout.nav.items.surveyResults", to: "/survey-results", icon: "analytics" },
+                    { labelKey: "layout.nav.items.feedbackReview", to: "/feedback/manage", icon: "rate_review" },
                 ],
             },
         ],
         ADMIN: [
             {
-                title: "Admin Operations",
+                titleKey: "layout.nav.groups.adminOperations",
                 items: [
-                    { label: "Dashboard", to: "/dashboard/admin", icon: "dashboard" },
-                    { label: "Users", to: "/admin/users", icon: "group" },
-                    { label: "Pending Students", to: "/admin/students/pending", icon: "pending_actions" },
-                    { label: "Surveys", to: "/admin/surveys", icon: "assignment" },
-                    { label: "Question Bank", to: "/admin/question-bank", icon: "quiz" },
-                    { label: "Survey Templates", to: "/admin/survey-templates", icon: "library_add" },
-                    { label: "Survey Results", to: "/survey-results", icon: "analytics" },
-                    { label: "Audit Logs", to: "/admin/audit-logs", icon: "manage_search" },
-                    { label: "Feedback Review", to: "/feedback/manage", icon: "rate_review" },
+                    { labelKey: "layout.nav.items.dashboard", to: "/dashboard/admin", icon: "dashboard" },
+                    { labelKey: "layout.nav.items.users", to: "/admin/users", icon: "group" },
+                    { labelKey: "layout.nav.items.pendingStudents", to: "/admin/students/pending", icon: "pending_actions" },
+                    { labelKey: "layout.nav.items.surveys", to: "/admin/surveys", icon: "assignment" },
+                    { labelKey: "layout.nav.items.questionBank", to: "/admin/question-bank", icon: "quiz" },
+                    { labelKey: "layout.nav.items.surveyTemplates", to: "/admin/survey-templates", icon: "library_add" },
+                    { labelKey: "layout.nav.items.surveyResults", to: "/survey-results", icon: "analytics" },
+                    { labelKey: "layout.nav.items.auditLogs", to: "/admin/audit-logs", icon: "manage_search" },
+                    { labelKey: "layout.nav.items.feedbackReview", to: "/feedback/manage", icon: "rate_review" },
                 ],
             },
         ],
@@ -59,46 +59,43 @@ export function getNavigationGroups(role: string): NavigationGroup[] {
     return [
         ...workspaceByRole[normalizedRole],
         {
-            title: "Account",
+            titleKey: "layout.nav.groups.account",
             items: [
-                { label: "Account Overview", to: "/account", icon: "account_circle" },
-                { label: "Security", to: "/account/security", icon: "shield_lock" },
+                { labelKey: "layout.nav.items.accountOverview", to: "/account", icon: "account_circle" },
+                { labelKey: "layout.nav.items.security", to: "/account/security", icon: "shield_lock" },
             ],
         },
     ];
 }
 
-export function getRoleLabel(role: string) {
+export function getRoleLabelKey(role: string) {
     switch (role) {
         case "STUDENT":
-            return "Student";
+            return "common.status.role.student";
         case "LECTURER":
-            return "Lecturer";
+            return "common.status.role.lecturer";
         case "ADMIN":
-            return "Administrator";
+            return "common.status.role.administrator";
         default:
-            return role;
+            return "";
     }
 }
 
-export function renderStatusLabel(status: string | null | undefined): string {
+export function getStatusLabelKey(status: string | null | undefined): string {
     if (!status) {
         return "";
     }
 
     const labels: Record<string, string> = {
-        ACTIVE: "Approved",
-        PENDING: "Pending Review",
-        REJECTED: "Rejected",
-        EMAIL_VERIFIED: "Email Verified",
-        EMAIL_UNVERIFIED: "Email Unverified",
-        OPEN: "Open",
-        NOT_OPEN: "Not Open",
-        CLOSED: "Closed",
+        ACTIVE: "common.status.onboarding.approved",
+        PENDING: "common.status.onboarding.pendingReview",
+        REJECTED: "common.status.onboarding.rejected",
+        EMAIL_VERIFIED: "common.status.onboarding.emailVerified",
+        EMAIL_UNVERIFIED: "common.status.onboarding.emailUnverified",
+        OPEN: "common.status.surveyRuntime.open",
+        NOT_OPEN: "common.status.surveyRuntime.notOpen",
+        CLOSED: "common.status.surveyRuntime.closed",
     };
 
-    return labels[status] ?? status
-        .replace(/_/g, " ")
-        .toLowerCase()
-        .replace(/^\w/, (letter) => letter.toUpperCase());
+    return labels[status] ?? "";
 }

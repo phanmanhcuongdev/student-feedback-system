@@ -1,0 +1,29 @@
+{
+  "notifications": {
+    "header": {
+      "eyebrow": "Hộp thư sinh viên - {{count}} chưa đọc",
+      "title": "Thông báo",
+      "description": "Xem bài khảo sát được giao, hạn sắp đến và cập nhật xét duyệt hồ sơ."
+    },
+    "buttons": {
+      "showUnread": "Hiện chưa đọc",
+      "showingUnread": "Đang hiện chưa đọc",
+      "markAllRead": "Đánh dấu tất cả đã đọc",
+      "markRead": "Đánh dấu đã đọc",
+      "open": "Mở"
+    },
+    "badges": {
+      "unread": "Chưa đọc"
+    },
+    "loading": "Đang tải thông báo...",
+    "empty": {
+      "title": "Không có thông báo",
+      "description": "Cập nhật về khảo sát và xét duyệt hồ sơ sẽ xuất hiện tại đây khi có liên quan."
+    },
+    "errors": {
+      "load": "Không thể tải thông báo.",
+      "markRead": "Không thể đánh dấu thông báo là đã đọc.",
+      "markAllRead": "Không thể đánh dấu các thông báo là đã đọc."
+    }
+  }
+}

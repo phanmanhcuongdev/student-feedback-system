@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { AnswersState, SurveyDetail } from "../../../types/surveyDetail";
 
 type SurveyDetailMainProps = {
@@ -20,14 +21,14 @@ function getStatusBadgeClasses(status: SurveyDetail["status"]) {
     }
 }
 
-function getDaysLeft(endDate: string) {
+function getDaysLeft(endDate: string, t: (key: string, options?: Record<string, unknown>) => string) {
     const now = new Date();
     const end = new Date(endDate);
     const diff = end.getTime() - now.getTime();
 
-    if (diff <= 0) return "Closed";
+    if (diff <= 0) return t("surveys:surveys.detail.daysLeft.closed");
     const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    return `Closes in ${days} day${days > 1 ? "s" : ""}`;
+    return t("surveys:surveys.detail.daysLeft.closesIn", { count: days });
 }
 
 export default function SurveyDetailMain({
@@ -38,6 +39,7 @@ export default function SurveyDetailMain({
     onSubmit,
     submitting,
 }: SurveyDetailMainProps) {
+    const { t } = useTranslation(["surveys"]);
     const answeredCount = survey.questions.filter((q) => {
         const value = answers[q.id];
         if (q.type === "RATING") return typeof value === "number";
@@ -51,11 +53,11 @@ export default function SurveyDetailMain({
     const canSubmit = answeredCount === survey.questions.length && survey.status === "OPEN" && !submitting;
 
     const ratingLabels: Record<number, string> = {
-        1: "Very Unsatisfied",
-        2: "Unsatisfied",
-        3: "Neutral",
-        4: "Satisfied",
-        5: "Very Satisfied",
+        1: t("surveys:surveys.detail.rating.veryUnsatisfied"),
+        2: t("surveys:surveys.detail.rating.unsatisfied"),
+        3: t("surveys:surveys.detail.rating.neutral"),
+        4: t("surveys:surveys.detail.rating.satisfied"),
+        5: t("surveys:surveys.detail.rating.verySatisfied"),
     };
 
     return (
@@ -72,7 +74,7 @@ export default function SurveyDetailMain({
                                 {survey.status}
                             </span>
                             <span className="text-sm font-medium text-slate-400">
-                                {getDaysLeft(survey.endDate)}
+                                {getDaysLeft(survey.endDate, t)}
                             </span>
                         </div>
 
@@ -88,9 +90,9 @@ export default function SurveyDetailMain({
                     <div className="mt-8">
                         <div className="mb-2 flex items-end justify-between">
                             <span className="text-sm font-semibold text-blue-700">
-                                Progress: {answeredCount} of {survey.questions.length} questions
+                                {t("surveys:surveys.detail.progress.answered", { answered: answeredCount, total: survey.questions.length })}
                             </span>
-                            <span className="text-sm text-slate-400">{progress}% Complete</span>
+                            <span className="text-sm text-slate-400">{t("surveys:surveys.detail.progress.complete", { progress })}</span>
                         </div>
 
                         <div className="h-2 w-full overflow-hidden rounded-full bg-[#d3e4fe]">
@@ -145,7 +147,7 @@ export default function SurveyDetailMain({
                                             <div className="px-1 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400">
                                                 {typeof answers[question.id] === "number"
                                                     ? ratingLabels[answers[question.id] as number]
-                                                    : "Select a rating"}
+                                                    : t("surveys:surveys.detail.rating.select")}
                                             </div>
                                         </div>
                                     ) : (
@@ -157,7 +159,7 @@ export default function SurveyDetailMain({
                                                     : ""
                                             }
                                             onChange={(e) => onTextChange(question.id, e.target.value)}
-                                            placeholder="Share your thoughts here..."
+                                            placeholder={t("surveys:surveys.detail.textPlaceholder")}
                                             className="w-full rounded-xl bg-[#eff4ff] p-4 text-[#0b1c30] placeholder:text-slate-400 outline-none ring-0 transition-all focus:ring-2 focus:ring-blue-300"
                                         />
                                     )}
@@ -178,7 +180,7 @@ export default function SurveyDetailMain({
                                     : "cursor-not-allowed bg-slate-300 text-slate-500",
                             ].join(" ")}
                         >
-                            <span>{submitting ? "Submitting..." : "Submit Survey"}</span>
+                            <span>{submitting ? t("surveys:surveys.detail.buttons.submitting") : t("surveys:surveys.detail.buttons.submit")}</span>
                             <span className="material-symbols-outlined text-sm">arrow_forward</span>
                         </button>
                     </div>

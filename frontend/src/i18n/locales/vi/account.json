@@ -1,0 +1,42 @@
+{
+  "account": {
+    "common": {
+      "notAvailable": "Không có"
+    },
+    "layout": {
+      "eyebrow": "Tài khoản",
+      "title": "Cài đặt tài khoản",
+      "description": "Quản lý tài khoản đã xác thực của bạn tách biệt với các khu vực vận hành. Dùng khu vực này để xem ngữ cảnh hồ sơ và bảo mật mật khẩu."
+    },
+    "navigation": {
+      "settings": "Cài đặt tài khoản",
+      "overview": "Tổng quan tài khoản",
+      "security": "Bảo mật"
+    },
+    "overview": {
+      "profile": {
+        "title": "Tóm tắt hồ sơ",
+        "description": "Thông tin tài khoản an toàn hiện có từ phiên đăng nhập đã xác thực của bạn.",
+        "email": "Email",
+        "role": "Vai trò",
+        "userId": "ID người dùng",
+        "studentStatus": "Trạng thái sinh viên"
+      },
+      "details": {
+        "title": "Chi tiết tài khoản hiện có",
+        "description": "Frontend hiện dùng dữ liệu phiên đăng nhập đã xác thực cho các trang tài khoản tự phục vụ.",
+        "body": "Họ tên và dữ liệu cá nhân chi tiết hơn hiện chưa có trong payload phiên đăng nhập. Khu vực tài khoản này chỉ hiển thị dữ liệu được hỗ trợ thay vì tự tạo thông tin hồ sơ."
+      },
+      "security": {
+        "title": "Bảo mật",
+        "description": "Mật khẩu và thiết lập truy cập cá nhân.",
+        "body": "Dùng trang bảo mật riêng để cập nhật mật khẩu và xem hướng dẫn mật khẩu cho tài khoản này.",
+        "button": "Mở cài đặt bảo mật"
+      },
+      "empty": {
+        "title": "Có thể bổ sung điều khiển hồ sơ sau",
+        "description": "Khu vực tài khoản này đã tách tự phục vụ khỏi quản lý người dùng của quản trị viên. Các cải tiến hồ sơ sau này nên dùng endpoint người dùng hiện tại được hỗ trợ thay vì API quản trị người dùng."
+      }
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { getSurveyResults } from "../../../api/surveyResultApi";
 import DataTable, { type DataTableColumn } from "../../../components/data-view/DataTable";
@@ -17,26 +18,27 @@ import StatusBadge from "../../../components/ui/StatusBadge";
 import { useAuth } from "../../auth/useAuth";
 import type { SurveyResultMetrics, SurveyResultSummary } from "../../../types/surveyResult";
 
-function formatDate(date: string) {
-    return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(date));
+function formatDate(date: string, language: string) {
+    return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(date));
 }
 
-function formatDateRange(startDate: string, endDate: string) {
-    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+function formatDateRange(startDate: string, endDate: string, language: string) {
+    return `${formatDate(startDate, language)} - ${formatDate(endDate, language)}`;
 }
 
 function formatRate(value: number) {
     return `${value.toFixed(1)}%`;
 }
 
-function getAudienceLabel(survey: SurveyResultSummary) {
+function getAudienceLabel(survey: SurveyResultSummary, t: (key: string) => string) {
     if (survey.recipientScope === "DEPARTMENT") {
-        return survey.recipientDepartmentName || "Department";
+        return survey.recipientDepartmentName || t("surveyResults:surveyResults.common.department");
     }
-    return "All students";
+    return t("surveyResults:surveyResults.common.allStudents");
 }
 
 export default function SurveyResultsPage() {
+    const { i18n, t } = useTranslation(["surveyResults"]);
     const { session } = useAuth();
     const [surveys, setSurveys] = useState<SurveyResultSummary[]>([]);
     const [metrics, setMetrics] = useState<SurveyResultMetrics>({
@@ -97,11 +99,11 @@ export default function SurveyResultsPage() {
             setTotalElements(response.totalElements);
             setTotalPages(response.totalPages);
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to load survey results."));
+            setError(getApiErrorMessage(requestError, t("surveyResults:surveyResults.errors.loadList")));
         } finally {
             setLoading(false);
         }
-    }, [audienceFilter, debouncedQuery, endDateTo, lifecycleFilter, page, runtimeFilter, sortBy, sortDir, startDateFrom]);
+    }, [audienceFilter, debouncedQuery, endDateTo, lifecycleFilter, page, runtimeFilter, sortBy, sortDir, startDateFrom, t]);
 
     useEffect(() => {
         void loadSurveyResults();
@@ -114,17 +116,17 @@ export default function SurveyResultsPage() {
     const columns: DataTableColumn<SurveyResultSummary>[] = [
         {
             key: "survey",
-            header: "Survey",
+            header: t("surveyResults:surveyResults.list.table.survey"),
             render: (survey) => (
                 <div>
                     <p className="font-bold text-slate-950">{survey.title}</p>
-                    <p className="mt-1 line-clamp-2 max-w-md text-sm text-slate-500">{survey.description || "No survey description provided."}</p>
+                    <p className="mt-1 line-clamp-2 max-w-md text-sm text-slate-500">{survey.description || t("surveyResults:surveyResults.common.noDescription")}</p>
                 </div>
             ),
         },
         {
             key: "status",
-            header: "Status",
+            header: t("surveyResults:surveyResults.list.table.status"),
             render: (survey) => (
                 <div className="flex flex-wrap gap-2">
                     <StatusBadge kind="surveyLifecycle" value={survey.lifecycleState} />
@@ -134,42 +136,42 @@ export default function SurveyResultsPage() {
         },
         {
             key: "audience",
-            header: "Audience",
-            render: (survey) => getAudienceLabel(survey),
+            header: t("surveyResults:surveyResults.list.table.audience"),
+            render: (survey) => getAudienceLabel(survey, t),
         },
         {
             key: "targeted",
-            header: "Targeted",
+            header: t("surveyResults:surveyResults.list.table.targeted"),
             render: (survey) => survey.targetedCount,
         },
         {
             key: "submitted",
-            header: "Submitted",
+            header: t("surveyResults:surveyResults.list.table.submitted"),
             render: (survey) => survey.submittedCount,
         },
         {
             key: "opened",
-            header: "Opened",
+            header: t("surveyResults:surveyResults.list.table.opened"),
             render: (survey) => survey.openedCount,
         },
         {
             key: "rate",
-            header: "Response rate",
+            header: t("surveyResults:surveyResults.list.table.responseRate"),
             render: (survey) => formatRate(survey.responseRate),
         },
         {
             key: "window",
-            header: "Window",
-            render: (survey) => formatDateRange(survey.startDate, survey.endDate),
+            header: t("surveyResults:surveyResults.list.table.window"),
+            render: (survey) => formatDateRange(survey.startDate, survey.endDate, i18n.language),
         },
         {
             key: "actions",
-            header: "Actions",
+            header: t("surveyResults:surveyResults.list.table.actions"),
             className: "text-right",
             render: (survey) => (
                 <div className="flex justify-end">
                     <Link to={`/survey-results/${survey.id}`} className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
-                        View details
+                        {t("surveyResults:surveyResults.list.buttons.viewDetails")}
                     </Link>
                 </div>
             ),
@@ -180,37 +182,37 @@ export default function SurveyResultsPage() {
         <main className="bg-slate-100">
             <div className="mx-auto max-w-screen-2xl px-6 py-10">
                 <PageHeader
-                    eyebrow="Result Review"
-                    title="Survey statistics"
-                    description="Review participation and question-level outcomes through an operational results list instead of a visual card wall."
-                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{totalElements} matching survey result{totalElements === 1 ? "" : "s"}</div>}
+                    eyebrow={t("surveyResults:surveyResults.list.header.eyebrow")}
+                    title={t("surveyResults:surveyResults.list.header.title")}
+                    description={t("surveyResults:surveyResults.list.header.description")}
+                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{t("surveyResults:surveyResults.list.header.matchingCount", { count: totalElements })}</div>}
                 />
 
                 <div className="mt-6 space-y-6">
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                        <StatCard label="Visible results" value={metrics.total} />
-                        <StatCard label="Open now" value={metrics.open} tone="blue" />
-                        <StatCard label="Average response rate" value={formatRate(metrics.averageResponseRate)} tone="emerald" />
-                        <StatCard label="Submitted responses" value={metrics.totalSubmitted} tone="slate" />
+                        <StatCard label={t("surveyResults:surveyResults.list.stats.visibleResults")} value={metrics.total} />
+                        <StatCard label={t("surveyResults:surveyResults.list.stats.openNow")} value={metrics.open} tone="blue" />
+                        <StatCard label={t("surveyResults:surveyResults.list.stats.averageResponseRate")} value={formatRate(metrics.averageResponseRate)} tone="emerald" />
+                        <StatCard label={t("surveyResults:surveyResults.list.stats.submittedResponses")} value={metrics.totalSubmitted} tone="slate" />
                     </div>
 
                     <DataToolbar
                         filters={(
                             <>
-                                <SearchInput value={query} onChange={setQuery} placeholder="Search by survey title" />
-                                <SelectFilter label="Lifecycle" value={lifecycleFilter} onChange={setLifecycleFilter} options={[{ label: "All lifecycle states", value: "ALL" }, { label: "Draft", value: "DRAFT" }, { label: "Published", value: "PUBLISHED" }, { label: "Closed", value: "CLOSED" }, { label: "Archived", value: "ARCHIVED" }]} />
-                                <SelectFilter label="Runtime" value={runtimeFilter} onChange={setRuntimeFilter} options={[{ label: "All runtime states", value: "ALL" }, { label: "Not open", value: "NOT_OPEN" }, { label: "Open", value: "OPEN" }, { label: "Closed", value: "CLOSED" }]} />
-                                <SelectFilter label="Audience" value={audienceFilter} onChange={setAudienceFilter} options={[{ label: "All audiences", value: "ALL" }, { label: "All students", value: "ALL_STUDENTS" }, { label: "Department", value: "DEPARTMENT" }]} />
+                                <SearchInput value={query} onChange={setQuery} placeholder={t("surveyResults:surveyResults.list.filters.search")} />
+                                <SelectFilter label={t("surveyResults:surveyResults.list.filters.lifecycle")} value={lifecycleFilter} onChange={setLifecycleFilter} options={[{ label: t("surveyResults:surveyResults.list.filters.allLifecycle"), value: "ALL" }, { label: t("surveyResults:surveyResults.list.filters.draft"), value: "DRAFT" }, { label: t("surveyResults:surveyResults.list.filters.published"), value: "PUBLISHED" }, { label: t("surveyResults:surveyResults.list.filters.closed"), value: "CLOSED" }, { label: t("surveyResults:surveyResults.list.filters.archived"), value: "ARCHIVED" }]} />
+                                <SelectFilter label={t("surveyResults:surveyResults.list.filters.runtime")} value={runtimeFilter} onChange={setRuntimeFilter} options={[{ label: t("surveyResults:surveyResults.list.filters.allRuntime"), value: "ALL" }, { label: t("surveyResults:surveyResults.list.filters.notOpen"), value: "NOT_OPEN" }, { label: t("surveyResults:surveyResults.list.filters.open"), value: "OPEN" }, { label: t("surveyResults:surveyResults.list.filters.closed"), value: "CLOSED" }]} />
+                                <SelectFilter label={t("surveyResults:surveyResults.list.filters.audience")} value={audienceFilter} onChange={setAudienceFilter} options={[{ label: t("surveyResults:surveyResults.list.filters.allAudiences"), value: "ALL" }, { label: t("surveyResults:surveyResults.common.allStudents"), value: "ALL_STUDENTS" }, { label: t("surveyResults:surveyResults.common.department"), value: "DEPARTMENT" }]} />
                                 <label className="flex min-w-[170px] items-center gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
-                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Start from</span>
+                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{t("surveyResults:surveyResults.list.filters.startFrom")}</span>
                                     <input type="date" value={startDateFrom} onChange={(event) => setStartDateFrom(event.target.value)} className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none" />
                                 </label>
                                 <label className="flex min-w-[170px] items-center gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
-                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">End by</span>
+                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{t("surveyResults:surveyResults.list.filters.endBy")}</span>
                                     <input type="date" value={endDateTo} onChange={(event) => setEndDateTo(event.target.value)} className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none" />
                                 </label>
                                 <SelectFilter
-                                    label="Sort"
+                                    label={t("surveyResults:surveyResults.list.filters.sort")}
                                     value={`${sortBy}:${sortDir}`}
                                     onChange={(value) => {
                                         const [nextSortBy, nextSortDir] = value.split(":");
@@ -218,27 +220,27 @@ export default function SurveyResultsPage() {
                                         setSortDir(nextSortDir);
                                     }}
                                     options={[
-                                        { label: "Response rate high-low", value: "responseRate:desc" },
-                                        { label: "Response rate low-high", value: "responseRate:asc" },
-                                        { label: "Submitted high-low", value: "submittedCount:desc" },
-                                        { label: "Targeted high-low", value: "targetedCount:desc" },
-                                        { label: "Start date newest", value: "startDate:desc" },
-                                        { label: "End date latest", value: "endDate:desc" },
+                                        { label: t("surveyResults:surveyResults.list.filters.responseRateHighLow"), value: "responseRate:desc" },
+                                        { label: t("surveyResults:surveyResults.list.filters.responseRateLowHigh"), value: "responseRate:asc" },
+                                        { label: t("surveyResults:surveyResults.list.filters.submittedHighLow"), value: "submittedCount:desc" },
+                                        { label: t("surveyResults:surveyResults.list.filters.targetedHighLow"), value: "targetedCount:desc" },
+                                        { label: t("surveyResults:surveyResults.list.filters.startDateNewest"), value: "startDate:desc" },
+                                        { label: t("surveyResults:surveyResults.list.filters.endDateLatest"), value: "endDate:desc" },
                                     ]}
                                 />
                             </>
                         )}
-                        actions={<div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">{surveys.length} row{surveys.length === 1 ? "" : "s"} on page</div>}
+                        actions={<div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">{t("surveyResults:surveyResults.list.rowsOnPage", { count: surveys.length })}</div>}
                     />
 
                     {error ? (
                         <ErrorState description={error} onRetry={() => void loadSurveyResults()} />
                     ) : loading ? (
-                        <LoadingState label="Loading survey results..." />
+                        <LoadingState label={t("surveyResults:surveyResults.list.loading")} />
                     ) : surveys.length === 0 ? (
                         <EmptyState
-                            title="No survey results found"
-                            description={session?.role === "LECTURER" ? "No results match your department scope and current filters." : "Adjust the filters to find the survey analytics you need."}
+                            title={t("surveyResults:surveyResults.list.empty.title")}
+                            description={session?.role === "LECTURER" ? t("surveyResults:surveyResults.list.empty.lecturerDescription") : t("surveyResults:surveyResults.list.empty.description")}
                             icon="bar_chart"
                         />
                     ) : (
@@ -257,17 +259,17 @@ export default function SurveyResultsPage() {
                                             <StatusBadge kind="surveyRuntime" value={survey.runtimeStatus} />
                                         </div>
                                         <h2 className="mt-3 text-xl font-bold text-slate-950">{survey.title}</h2>
-                                        <p className="mt-2 text-sm leading-6 text-slate-500">{survey.description || "No survey description provided."}</p>
+                                        <p className="mt-2 text-sm leading-6 text-slate-500">{survey.description || t("surveyResults:surveyResults.common.noDescription")}</p>
                                         <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Audience</span><span className="font-medium text-slate-900">{getAudienceLabel(survey)}</span></div>
-                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Targeted</span><span className="font-medium text-slate-900">{survey.targetedCount}</span></div>
-                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Opened</span><span className="font-medium text-slate-900">{survey.openedCount}</span></div>
-                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Submitted</span><span className="font-medium text-slate-900">{survey.submittedCount}</span></div>
-                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Response rate</span><span className="font-medium text-slate-900">{formatRate(survey.responseRate)}</span></div>
-                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Window</span><span className="text-right font-medium text-slate-900">{formatDateRange(survey.startDate, survey.endDate)}</span></div>
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.list.table.audience")}</span><span className="font-medium text-slate-900">{getAudienceLabel(survey, t)}</span></div>
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.list.table.targeted")}</span><span className="font-medium text-slate-900">{survey.targetedCount}</span></div>
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.list.table.opened")}</span><span className="font-medium text-slate-900">{survey.openedCount}</span></div>
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.list.table.submitted")}</span><span className="font-medium text-slate-900">{survey.submittedCount}</span></div>
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.list.table.responseRate")}</span><span className="font-medium text-slate-900">{formatRate(survey.responseRate)}</span></div>
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.list.table.window")}</span><span className="text-right font-medium text-slate-900">{formatDateRange(survey.startDate, survey.endDate, i18n.language)}</span></div>
                                         </div>
                                         <Link to={`/survey-results/${survey.id}`} className="mt-5 inline-flex w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
-                                            View details
+                                            {t("surveyResults:surveyResults.list.buttons.viewDetails")}
                                         </Link>
                                     </article>
                                 )}

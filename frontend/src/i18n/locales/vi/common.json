@@ -1,0 +1,67 @@
+{
+  "common": {
+    "actions": {
+      "cancel": "Hủy",
+      "confirm": "Xác nhận",
+      "retry": "Thử lại",
+      "save": "Lưu",
+      "search": "Tìm kiếm"
+    },
+    "state": {
+      "loading": "Đang tải...",
+      "working": "Đang xử lý...",
+      "unknown": "Không xác định"
+    },
+    "errors": {
+      "genericTitle": "Đã xảy ra lỗi"
+    },
+    "pagination": {
+      "pageOf": "Trang {{page}} / {{pageCount}}",
+      "previous": "Trước",
+      "next": "Sau"
+    },
+    "status": {
+      "role": {
+        "student": "Sinh viên",
+        "lecturer": "Giảng viên",
+        "admin": "Quản trị",
+        "administrator": "Quản trị viên"
+      },
+      "account": {
+        "active": "Đang hoạt động",
+        "inactive": "Ngừng hoạt động"
+      },
+      "onboarding": {
+        "emailVerified": "Đã xác minh email",
+        "emailUnverified": "Chưa xác minh email",
+        "pendingReview": "Chờ duyệt",
+        "rejected": "Đã từ chối",
+        "approved": "Đã duyệt"
+      },
+      "surveyLifecycle": {
+        "draft": "Bản nháp",
+        "published": "Đã xuất bản",
+        "closed": "Đã đóng",
+        "archived": "Đã lưu trữ"
+      },
+      "surveyRuntime": {
+        "notOpen": "Chưa mở",
+        "open": "Đang mở",
+        "closed": "Đã đóng"
+      },
+      "surveyVisibility": {
+        "visible": "Hiển thị",
+        "hidden": "Đã ẩn"
+      },
+      "surveyParticipation": {
+        "assigned": "Đã giao",
+        "opened": "Đã mở",
+        "submitted": "Đã nộp"
+      },
+      "feedback": {
+        "unresolved": "Chưa xử lý",
+        "responded": "Đã phản hồi"
+      }
+    }
+  }
+}
