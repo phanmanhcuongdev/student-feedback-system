@@ -4,10 +4,11 @@ on:
   push:
     branches:
       - main
-      - 'release/**'
+      - develop  # Thêm nhánh develop vào đây
   pull_request:
     branches:
       - main
+      - develop  # Thêm nhánh develop vào đây
 
 jobs:
   quality:
@@ -79,6 +80,9 @@ jobs:
           if [ "${BRANCH_NAME}" = "main" ]; then
             echo "BACKEND_TAGS=$REGISTRY/$IMAGE_NAME/backend:latest,$REGISTRY/$IMAGE_NAME/backend:${GITHUB_SHA}" >> $GITHUB_ENV
             echo "FRONTEND_TAGS=$REGISTRY/$IMAGE_NAME/frontend:latest,$REGISTRY/$IMAGE_NAME/frontend:${GITHUB_SHA}" >> $GITHUB_ENV
+          elif [ "${BRANCH_NAME}" = "develop" ]; then
+            echo "BACKEND_TAGS=$REGISTRY/$IMAGE_NAME/backend:dev,$REGISTRY/$IMAGE_NAME/backend:${GITHUB_SHA}" >> $GITHUB_ENV
+            echo "FRONTEND_TAGS=$REGISTRY/$IMAGE_NAME/frontend:dev,$REGISTRY/$IMAGE_NAME/frontend:${GITHUB_SHA}" >> $GITHUB_ENV
           else
             echo "BACKEND_TAGS=$REGISTRY/$IMAGE_NAME/backend:${BRANCH_NAME},$REGISTRY/$IMAGE_NAME/backend:${GITHUB_SHA}" >> $GITHUB_ENV
             echo "FRONTEND_TAGS=$REGISTRY/$IMAGE_NAME/frontend:${BRANCH_NAME},$REGISTRY/$IMAGE_NAME/frontend:${GITHUB_SHA}" >> $GITHUB_ENV
