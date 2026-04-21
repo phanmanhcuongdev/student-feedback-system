@@ -48,3 +48,7 @@ app:
       access-key: ${APP_STORAGE_MINIO_ACCESS_KEY}
       secret-key: ${APP_STORAGE_MINIO_SECRET_KEY}
       bucket: ${APP_STORAGE_MINIO_BUCKET}
+  ai:
+    api-key: ${APP_AI_API_KEY}
+    model: ${APP_AI_MODEL}
+    base-url: ${APP_AI_BASE_URL}

@@ -8,6 +8,8 @@ public interface SaveSurveyAiSummaryPort {
 
     void markJobProcessing(Integer jobId, LocalDateTime startedAt);
 
+    boolean markJobProcessingIfNoActiveJob(Integer jobId, Integer surveyId, LocalDateTime startedAt);
+
     void markJobCompleted(Integer jobId, Integer summaryId, LocalDateTime finishedAt);
 
     void markJobFailed(Integer jobId, String errorMessage, LocalDateTime finishedAt);

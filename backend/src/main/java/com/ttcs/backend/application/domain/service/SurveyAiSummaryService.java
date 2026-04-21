@@ -21,6 +21,9 @@ import com.ttcs.backend.application.port.out.SurveyCommentSummaryCommand;
 import com.ttcs.backend.application.port.out.SurveyCommentSummaryResult;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.charset.StandardCharsets;
@@ -28,21 +31,22 @@ import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.CompletableFuture;
 
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 
 @UseCase
 @RequiredArgsConstructor
+@Slf4j
 public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, GetSurveyAiSummaryUseCase {
 
     private final LoadSurveyPort loadSurveyPort;
     private final LoadSurveyAssignmentPort loadSurveyAssignmentPort;
     private final LoadLecturerByUserIdPort loadLecturerByUserIdPort;
     private final LoadSurveyAiSummaryPort loadSurveyAiSummaryPort;
-    private final SaveSurveyAiSummaryPort saveSurveyAiSummaryPort;
     private final GenerateSurveyCommentSummaryPort generateSurveyCommentSummaryPort;
-    private final ExecutorService surveyAiSummaryExecutor;
+    private final SaveSurveyAiSummaryPort saveSurveyAiSummaryPort;
+    private final ObjectProvider<SurveyAiSummaryService> selfProvider;
 
     @Override
     public SurveyAiSummaryViewResult getSummary(Integer surveyId, Integer viewerUserId, Role viewerRole) {
@@ -60,7 +64,7 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
     }
 
     @Override
-    public synchronized SurveyAiSummaryViewResult generate(Integer surveyId, Integer viewerUserId, Role viewerRole) {
+    public SurveyAiSummaryViewResult generate(Integer surveyId, Integer viewerUserId, Role viewerRole) {
         Survey survey = authorizeAccess(surveyId, viewerUserId, viewerRole);
         var payload = loadSurveyAiSummaryPort.loadSurveySummaryPayload(surveyId);
         String sourceHash = computeSourceHash(payload);
@@ -75,6 +79,17 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
                 && sourceHash.equals(latestJob.sourceHash())
                 && (latestJob.status() == SurveyAiSummaryJobStatus.QUEUED || latestJob.status() == SurveyAiSummaryJobStatus.PROCESSING)) {
             return toView(surveyId, latestJob, null);
+        }
+
+        var activeJob = loadSurveyAiSummaryPort.loadActiveJob(surveyId).orElse(null);
+        if (activeJob != null) {
+            log.warn(
+                    "Skip AI summary generation for surveyId={} because jobId={} is already {}",
+                    surveyId,
+                    activeJob.id(),
+                    activeJob.status()
+            );
+            return toView(surveyId, activeJob, null);
         }
 
         if (payload.commentCount() == 0) {
@@ -93,13 +108,29 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
         }
 
         var job = saveSurveyAiSummaryPort.createJob(surveyId, sourceHash, payload.commentCount(), viewerUserId);
-        surveyAiSummaryExecutor.submit(() -> processJob(job.id(), survey, payload, sourceHash, viewerUserId));
+        try {
+            selfProvider.getObject().processJob(job.id(), survey, payload, sourceHash, viewerUserId);
+        } catch (Exception exception) {
+            saveSurveyAiSummaryPort.markJobFailed(job.id(), errorMessage(exception), LocalDateTime.now());
+        }
         return toView(surveyId, job, null);
     }
 
-    private void processJob(Integer jobId, Survey survey, LoadSurveyAiSummaryPort.SurveyAiSummaryPayload payload, String sourceHash, Integer viewerUserId) {
+    @Async("aiTaskExecutor")
+    public CompletableFuture<Void> processJob(Integer jobId,
+                                              Survey survey,
+                                              LoadSurveyAiSummaryPort.SurveyAiSummaryPayload payload,
+                                              String sourceHash,
+                                              Integer viewerUserId) {
         try {
-            saveSurveyAiSummaryPort.markJobProcessing(jobId, LocalDateTime.now());
+            boolean claimed = saveSurveyAiSummaryPort.markJobProcessingIfNoActiveJob(jobId, survey.getId(), LocalDateTime.now());
+            if (!claimed) {
+                String message = "Another AI summary job is already queued or processing for surveyId=" + survey.getId();
+                log.warn("Skip AI summary jobId={} for surveyId={}: {}", jobId, survey.getId(), message);
+                saveSurveyAiSummaryPort.markJobFailed(jobId, message, LocalDateTime.now());
+                return CompletableFuture.completedFuture(null);
+            }
+
             SurveyCommentSummaryResult result = generateSurveyCommentSummaryPort.generateSummary(
                     new SurveyCommentSummaryCommand(
                             survey.getId(),
@@ -123,8 +154,9 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
             );
             saveSurveyAiSummaryPort.markJobCompleted(jobId, summary.id(), LocalDateTime.now());
         } catch (Exception exception) {
-            saveSurveyAiSummaryPort.markJobFailed(jobId, exception.getMessage(), LocalDateTime.now());
+            saveSurveyAiSummaryPort.markJobFailed(jobId, errorMessage(exception), LocalDateTime.now());
         }
+        return CompletableFuture.completedFuture(null);
     }
 
     private Survey authorizeAccess(Integer surveyId, Integer viewerUserId, Role viewerRole) {
@@ -219,5 +251,10 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
         } catch (Exception exception) {
             throw new IllegalStateException("Unable to compute AI summary source hash", exception);
         }
+    }
+
+    private String errorMessage(Exception exception) {
+        String message = exception.getMessage();
+        return exception.getClass().getSimpleName() + (message == null || message.isBlank() ? "" : ": " + message);
     }
 }

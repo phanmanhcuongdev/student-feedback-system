@@ -43,6 +43,21 @@ public class SurveyAiSummaryPersistenceAdapter implements LoadSurveyAiSummaryPor
     }
 
     @Override
+    public Optional<SurveyAiSummaryJobRecord> loadActiveJob(Integer surveyId) {
+        Query query = entityManager.createNativeQuery("""
+                SELECT TOP 1 *
+                FROM Survey_AI_Summary_Job
+                WHERE survey_id = :surveyId
+                    AND status IN ('QUEUED', 'PROCESSING')
+                ORDER BY created_at ASC, job_id ASC
+                """, SurveyAiSummaryJobEntity.class);
+        query.setParameter("surveyId", surveyId);
+        @SuppressWarnings("unchecked")
+        List<SurveyAiSummaryJobEntity> rows = query.getResultList();
+        return rows.stream().findFirst().map(this::toJobRecord);
+    }
+
+    @Override
     public Optional<SurveyAiSummaryRecord> loadSummaryById(Integer summaryId) {
         return surveyAiSummaryRepository.findById(summaryId)
                 .map(this::toSummaryRecord);
@@ -107,6 +122,37 @@ public class SurveyAiSummaryPersistenceAdapter implements LoadSurveyAiSummaryPor
         SurveyAiSummaryJobEntity entity = surveyAiSummaryJobRepository.getReferenceById(jobId);
         entity.setStatus(SurveyAiSummaryJobStatus.PROCESSING.name());
         entity.setStartedAt(startedAt);
+    }
+
+    @Override
+    @Transactional
+    public boolean markJobProcessingIfNoActiveJob(Integer jobId, Integer surveyId, LocalDateTime startedAt) {
+        Query query = entityManager.createNativeQuery("""
+                UPDATE Survey_AI_Summary_Job
+                SET status = 'PROCESSING',
+                    started_at = :startedAt,
+                    error_message = NULL
+                WHERE job_id = :jobId
+                    AND survey_id = :surveyId
+                    AND status = 'QUEUED'
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM Survey_AI_Summary_Job active WITH (UPDLOCK, HOLDLOCK)
+                        WHERE active.survey_id = :surveyId
+                            AND active.status = 'PROCESSING'
+                    )
+                    AND job_id = (
+                        SELECT TOP 1 queued.job_id
+                        FROM Survey_AI_Summary_Job queued WITH (UPDLOCK, HOLDLOCK)
+                        WHERE queued.survey_id = :surveyId
+                            AND queued.status = 'QUEUED'
+                        ORDER BY queued.created_at ASC, queued.job_id ASC
+                    )
+                """);
+        query.setParameter("jobId", jobId);
+        query.setParameter("surveyId", surveyId);
+        query.setParameter("startedAt", startedAt);
+        return query.executeUpdate() == 1;
     }
 
     @Override

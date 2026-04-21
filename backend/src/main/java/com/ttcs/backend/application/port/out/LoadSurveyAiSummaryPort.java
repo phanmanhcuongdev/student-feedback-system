@@ -11,6 +11,8 @@ public interface LoadSurveyAiSummaryPort {
 
     Optional<SurveyAiSummaryJobRecord> loadLatestJob(Integer surveyId);
 
+    Optional<SurveyAiSummaryJobRecord> loadActiveJob(Integer surveyId);
+
     Optional<SurveyAiSummaryRecord> loadSummaryById(Integer summaryId);
 
     SurveyAiSummaryPayload loadSurveySummaryPayload(Integer surveyId);
