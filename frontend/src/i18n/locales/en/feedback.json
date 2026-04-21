@@ -1,0 +1,105 @@
+{
+  "feedback": {
+    "common": {
+      "noEmail": "No email"
+    },
+    "student": {
+      "compose": {
+        "eyebrow": "Student Feedback",
+        "title": "Send feedback",
+        "description": "Share suggestions or report issues. Your submitted feedback stays visible here for reference.",
+        "fields": {
+          "title": "Title",
+          "content": "Content"
+        },
+        "buttons": {
+          "submit": "Submit feedback",
+          "submitting": "Submitting..."
+        }
+      },
+      "history": {
+        "eyebrow": "History",
+        "title": "Your feedback",
+        "loading": "Loading feedback...",
+        "empty": "You have not submitted any feedback yet."
+      },
+      "responses": {
+        "title": "Responses",
+        "count_one": "{{count}} reply",
+        "count_other": "{{count}} replies",
+        "empty": "No staff response yet."
+      },
+      "errors": {
+        "load": "Unable to load feedback.",
+        "submit": "Unable to submit feedback.",
+        "submitUnavailable": "Unable to submit feedback right now."
+      }
+    },
+    "staff": {
+      "header": {
+        "eyebrow": "Staff Feedback",
+        "title": "Review student feedback",
+        "description": "Work feedback as a queue with clear response status, searchable student context, and an in-place reply panel.",
+        "queueCount_one": "{{count}} queue item",
+        "queueCount_other": "{{count}} queue items"
+      },
+      "filters": {
+        "search": "Search by student, title, or feedback content",
+        "status": "Status",
+        "allStatuses": "All statuses",
+        "unresolved": "Unresolved",
+        "responded": "Responded",
+        "date": "Date",
+        "sort": "Sort",
+        "newestFirst": "Newest first",
+        "oldestFirst": "Oldest first"
+      },
+      "table": {
+        "student": "Student",
+        "feedback": "Feedback",
+        "status": "Status",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "buttons": {
+        "openQueueItem": "Open queue item",
+        "sendResponse": "Send response",
+        "sending": "Sending..."
+      },
+      "loading": "Loading feedback...",
+      "empty": {
+        "title": "No feedback in this queue view",
+        "description": "Adjust the filters or search terms to find the student feedback item you need."
+      },
+      "detail": {
+        "title": "Feedback detail",
+        "description": "Respond in the same queue context without losing the list position.",
+        "context": {
+          "title": "Context",
+          "student": "Student",
+          "email": "Email",
+          "status": "Status",
+          "created": "Created"
+        }
+      },
+      "responses": {
+        "title": "Responses",
+        "description": "Existing replies remain visible above the current draft.",
+        "empty": {
+          "title": "No responses yet",
+          "description": "This feedback item is still unresolved."
+        }
+      },
+      "reply": {
+        "title": "Reply",
+        "description": "Responses are added to the shared reply stream for this feedback item.",
+        "field": "Response"
+      },
+      "errors": {
+        "load": "Unable to load feedback.",
+        "submit": "Unable to submit response.",
+        "submitUnavailable": "Unable to submit response right now."
+      }
+    }
+  }
+}

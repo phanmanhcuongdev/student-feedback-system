@@ -1,0 +1,67 @@
+{
+  "common": {
+    "actions": {
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "retry": "Retry",
+      "save": "Save",
+      "search": "Search"
+    },
+    "state": {
+      "loading": "Loading...",
+      "working": "Working...",
+      "unknown": "Unknown"
+    },
+    "errors": {
+      "genericTitle": "Something went wrong"
+    },
+    "pagination": {
+      "pageOf": "Page {{page}} of {{pageCount}}",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "status": {
+      "role": {
+        "student": "Student",
+        "lecturer": "Lecturer",
+        "admin": "Admin",
+        "administrator": "Administrator"
+      },
+      "account": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "onboarding": {
+        "emailVerified": "Email Verified",
+        "emailUnverified": "Email Unverified",
+        "pendingReview": "Pending Review",
+        "rejected": "Rejected",
+        "approved": "Approved"
+      },
+      "surveyLifecycle": {
+        "draft": "Draft",
+        "published": "Published",
+        "closed": "Closed",
+        "archived": "Archived"
+      },
+      "surveyRuntime": {
+        "notOpen": "Not Open",
+        "open": "Open",
+        "closed": "Closed"
+      },
+      "surveyVisibility": {
+        "visible": "Visible",
+        "hidden": "Hidden"
+      },
+      "surveyParticipation": {
+        "assigned": "Assigned",
+        "opened": "Opened",
+        "submitted": "Submitted"
+      },
+      "feedback": {
+        "unresolved": "Unresolved",
+        "responded": "Responded"
+      }
+    }
+  }
+}

@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 export type SurveyFilter = "ALL" | "OPEN" | "CLOSED" | "NOT_OPEN";
 
 type SurveyFilterTabsProps = {
@@ -5,17 +7,19 @@ type SurveyFilterTabsProps = {
     onChange: (value: SurveyFilter) => void;
 };
 
-const tabs: { label: string; value: SurveyFilter }[] = [
-    { label: "All", value: "ALL" },
-    { label: "Open", value: "OPEN" },
-    { label: "Upcoming", value: "NOT_OPEN" },
-    { label: "Closed", value: "CLOSED" },
+const tabs: { labelKey: string; value: SurveyFilter }[] = [
+    { labelKey: "surveys:surveys.filters.all", value: "ALL" },
+    { labelKey: "surveys:surveys.filters.open", value: "OPEN" },
+    { labelKey: "surveys:surveys.filters.upcoming", value: "NOT_OPEN" },
+    { labelKey: "surveys:surveys.filters.closed", value: "CLOSED" },
 ];
 
 export default function SurveyFilterTabs({
     value,
     onChange,
 }: SurveyFilterTabsProps) {
+    const { t } = useTranslation(["surveys"]);
+
     return (
         <div className="flex flex-wrap gap-1 rounded-full border border-slate-200 bg-white p-1 shadow-sm">
             {tabs.map((tab) => {
@@ -33,7 +37,7 @@ export default function SurveyFilterTabs({
                                 : "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
                         ].join(" ")}
                     >
-                        {tab.label}
+                        {t(tab.labelKey)}
                     </button>
                 );
             })}

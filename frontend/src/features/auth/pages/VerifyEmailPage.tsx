@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { verifyEmail } from "../../../api/authApi";
 import type { VerifyEmailResponse } from "../../../types/auth";
@@ -14,6 +15,7 @@ const verificationRequests = new Map<string, Promise<VerifyEmailResponse>>();
 const verificationResults = new Map<string, VerifyEmailResponse>();
 
 export default function VerifyEmailPage() {
+    const { t } = useTranslation(["auth", "validation"]);
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const token = searchParams.get("token");
@@ -31,7 +33,7 @@ export default function VerifyEmailPage() {
                 setVerificationState({
                     status: "error",
                     result: null,
-                    error: "Missing verification token.",
+                    error: t("validation:validation.auth.verificationTokenMissing"),
                 });
                 return;
             }
@@ -44,7 +46,7 @@ export default function VerifyEmailPage() {
                         : {
                             status: "error",
                             result: null,
-                            error: cachedResult.message || "Email verification failed.",
+                            error: cachedResult.message || t("auth:auth.verifyEmail.errors.failed"),
                         }
                 );
                 return;
@@ -77,11 +79,11 @@ export default function VerifyEmailPage() {
                         : {
                             status: "error",
                             result: null,
-                            error: response.message || "Email verification failed.",
+                            error: response.message || t("auth:auth.verifyEmail.errors.failed"),
                         }
                 );
             } catch (requestError) {
-                const message = getApiErrorMessage(requestError, "Unable to verify email right now.");
+                const message = getApiErrorMessage(requestError, t("auth:auth.verifyEmail.errors.unavailable"));
                 verificationRequests.delete(token);
 
                 if (!cancelled) {
@@ -99,7 +101,7 @@ export default function VerifyEmailPage() {
         return () => {
             cancelled = true;
         };
-    }, [token]);
+    }, [t, token]);
 
     function continueToLogin() {
         navigate("/login");
@@ -107,15 +109,15 @@ export default function VerifyEmailPage() {
 
     return (
         <AuthShell
-            eyebrow="Email Verification"
-            title="Verify your student account"
-            description="We confirm your email before allowing you to sign in and upload your verification documents."
+            eyebrow={t("auth:auth.verifyEmail.eyebrow")}
+            title={t("auth:auth.verifyEmail.title")}
+            description={t("auth:auth.verifyEmail.description")}
             footer={
                 <p className="text-sm text-slate-500">
-                    Back to
+                    {t("auth:auth.verifyEmail.footer.backTo")}
                     {" "}
                     <Link className="font-semibold text-blue-700 hover:text-blue-800" to="/login">
-                        login
+                        {t("auth:auth.verifyEmail.links.login")}
                     </Link>
                 </p>
             }
@@ -123,7 +125,7 @@ export default function VerifyEmailPage() {
             <div className="space-y-4">
                 {verificationState.status === "loading" ? (
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium text-slate-600">
-                        Verifying your email...
+                        {t("auth:auth.verifyEmail.status.verifying")}
                     </div>
                 ) : null}
 
@@ -141,7 +143,7 @@ export default function VerifyEmailPage() {
 
                 {verificationState.status === "success" ? (
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                        Email verification is complete. Your next step is to sign in, upload your student card image and national ID image, then wait for administrator approval.
+                        {t("auth:auth.verifyEmail.successNextStep")}
                     </div>
                 ) : null}
 
@@ -151,7 +153,7 @@ export default function VerifyEmailPage() {
                     disabled={verificationState.status !== "success"}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#0f5bcf_0%,#1d78ec_100%)] px-5 py-3.5 text-sm font-bold text-white shadow-[0_16px_36px_rgba(29,120,236,0.28)] transition hover:translate-y-[-1px] hover:shadow-[0_20px_44px_rgba(29,120,236,0.32)] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
                 >
-                    <span>Continue to login</span>
+                    <span>{t("auth:auth.verifyEmail.buttons.continueToLogin")}</span>
                     <span className="material-symbols-outlined text-base">login</span>
                 </button>
             </div>

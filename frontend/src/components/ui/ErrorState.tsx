@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 type ErrorStateProps = {
     title?: string;
@@ -9,17 +10,21 @@ type ErrorStateProps = {
 };
 
 export default function ErrorState({
-    title = "Something went wrong",
+    title,
     description,
-    retryLabel = "Retry",
+    retryLabel,
     onRetry,
     action,
 }: ErrorStateProps) {
+    const { t } = useTranslation("common");
+    const resolvedTitle = title ?? t("common.errors.genericTitle");
+    const resolvedRetryLabel = retryLabel ?? t("common.actions.retry");
+
     return (
         <div className="rounded-[28px] border border-red-200 bg-red-50 px-5 py-5 text-red-900 shadow-sm">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <h2 className="text-base font-bold">{title}</h2>
+                    <h2 className="text-base font-bold">{resolvedTitle}</h2>
                     <p className="mt-2 text-sm leading-6 text-red-800">{description}</p>
                 </div>
                 {onRetry || action ? (
@@ -30,7 +35,7 @@ export default function ErrorState({
                                 onClick={onRetry}
                                 className="rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:border-red-400 hover:bg-red-100"
                             >
-                                {retryLabel}
+                                {resolvedRetryLabel}
                             </button>
                         ) : null}
                         {action}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
 import type { AnswersState } from "../../../types/surveyDetail";
@@ -15,6 +16,7 @@ type SubmitModalState = {
 };
 
 export default function SurveyDetailPage() {
+    const { t } = useTranslation(["surveys"]);
     const { id } = useParams();
     const navigate = useNavigate();
     const surveyId = Number(id);
@@ -76,13 +78,13 @@ export default function SurveyDetailPage() {
                         className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
                     >
                         <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-                        <span>Back to surveys</span>
+                        <span>{t("surveys:surveys.detail.backToSurveys")}</span>
                     </Link>
                 </div>
 
                 {loading && (
                     <div className="mx-auto max-w-3xl px-6 pt-12">
-                        <LoadingState label="Loading survey..." />
+                        <LoadingState label={t("surveys:surveys.detail.loading")} />
                     </div>
                 )}
 

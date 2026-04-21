@@ -1,10 +1,13 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { getSurveyResults } from "../../../api/surveyResultApi";
+import StatusBadge from "../../../components/ui/StatusBadge";
 import type { SurveyResultMetrics, SurveyResultSummary } from "../../../types/surveyResult";
 
 export default function LecturerDashboardPage() {
+    const { t } = useTranslation("admin");
     const [results, setResults] = useState<SurveyResultSummary[]>([]);
     const [metrics, setMetrics] = useState<SurveyResultMetrics>({
         total: 0,
@@ -26,7 +29,7 @@ export default function LecturerDashboardPage() {
                 setResults(response.items);
                 setMetrics(response.metrics);
             } catch (requestError) {
-                setError(getApiErrorMessage(requestError, "Unable to load dashboard data."));
+                setError(getApiErrorMessage(requestError, t("admin.dashboard.errors.loadFailed")));
             } finally {
                 setLoading(false);
             }
@@ -42,13 +45,13 @@ export default function LecturerDashboardPage() {
             <div className="mx-auto max-w-screen-xl px-6 py-10">
                     <div className="mb-10 max-w-3xl">
                         <span className="mb-3 inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-sky-700">
-                            Lecturer Dashboard
+                            {t("admin.dashboard.lecturer.header.eyebrow")}
                         </span>
                         <h1 className="text-4xl font-extrabold tracking-tight text-slate-950">
-                            Results overview
+                            {t("admin.dashboard.lecturer.header.title")}
                         </h1>
                         <p className="mt-4 text-base leading-7 text-slate-500">
-                            Review survey activity that is visible within your department scope and jump directly into the most active result sets.
+                            {t("admin.dashboard.lecturer.header.description")}
                         </p>
                     </div>
 
@@ -60,36 +63,36 @@ export default function LecturerDashboardPage() {
 
                     {loading ? (
                         <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-10 text-sm font-medium text-slate-500 shadow-sm">
-                            Loading dashboard...
+                            {t("admin.dashboard.loading")}
                         </div>
                     ) : (
                         <>
                             <div className="grid gap-5 md:grid-cols-3">
-                                <Metric label="Tracked surveys" value={metrics.total} tone="sky" />
-                                <Metric label="Total responses" value={metrics.totalResponses} tone="emerald" />
-                                <Metric label="Closed surveys" value={metrics.closed} tone="slate" />
+                                <Metric label={t("admin.dashboard.lecturer.stats.trackedSurveys")} value={metrics.total} tone="sky" />
+                                <Metric label={t("admin.dashboard.lecturer.stats.totalResponses")} value={metrics.totalResponses} tone="emerald" />
+                                <Metric label={t("admin.dashboard.lecturer.stats.closedSurveys")} value={metrics.closed} tone="slate" />
                             </div>
 
                             <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
                                 <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
                                     <div className="mb-5 flex items-center justify-between gap-4">
                                         <div>
-                                            <h2 className="text-2xl font-bold text-slate-950">Most active surveys</h2>
+                                            <h2 className="text-2xl font-bold text-slate-950">{t("admin.dashboard.lecturer.mostActive.title")}</h2>
                                             <p className="mt-2 text-sm text-slate-500">
-                                                Surveys ordered by current response volume.
+                                                {t("admin.dashboard.lecturer.mostActive.description")}
                                             </p>
                                         </div>
                                         <Link
                                             to="/survey-results"
                                             className="rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-bold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100"
                                         >
-                                            Open result list
+                                            {t("admin.dashboard.lecturer.mostActive.openResultList")}
                                         </Link>
                                     </div>
 
                                     {topResponseSurveys.length === 0 ? (
                                         <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
-                                            No survey results are available yet.
+                                            {t("admin.dashboard.lecturer.mostActive.empty")}
                                         </p>
                                     ) : (
                                         <div className="space-y-4">
@@ -99,17 +102,15 @@ export default function LecturerDashboardPage() {
                                                         <div>
                                                             <h3 className="text-lg font-bold text-slate-900">{survey.title}</h3>
                                                             <p className="mt-2 text-sm leading-6 text-slate-600">
-                                                                {survey.description || "No survey description provided."}
+                                                                {survey.description || t("admin.dashboard.common.noSurveyDescription")}
                                                             </p>
                                                         </div>
-                                                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-700">
-                                                            {survey.status}
-                                                        </span>
+                                                        <StatusBadge kind="surveyRuntime" value={survey.status} />
                                                     </div>
                                                     <div className="mt-4 flex items-center justify-between gap-4 text-sm text-slate-500">
-                                                        <span>{survey.responseCount} response{survey.responseCount === 1 ? "" : "s"}</span>
+                                                        <span>{t("admin.dashboard.lecturer.mostActive.responseCount", { count: survey.responseCount })}</span>
                                                         <Link to={`/survey-results/${survey.id}`} className="font-bold text-sky-700">
-                                                            Open statistics
+                                                            {t("admin.dashboard.lecturer.mostActive.openStatistics")}
                                                         </Link>
                                                     </div>
                                                 </article>
@@ -119,13 +120,13 @@ export default function LecturerDashboardPage() {
                                 </section>
 
                                 <section className="space-y-6">
-                                    <Panel title="Open surveys" subtitle="Result entries that are still collecting responses.">
-                                        <StatText value={metrics.open} label="survey runs still open" />
+                                    <Panel title={t("admin.dashboard.lecturer.openSurveys.title")} subtitle={t("admin.dashboard.lecturer.openSurveys.description")}>
+                                        <StatText value={metrics.open} label={t("admin.dashboard.lecturer.openSurveys.label")} />
                                     </Panel>
-                                    <Panel title="Coverage" subtitle="Average response count across all visible surveys.">
+                                    <Panel title={t("admin.dashboard.lecturer.coverage.title")} subtitle={t("admin.dashboard.lecturer.coverage.description")}>
                                         <StatText
                                             value={metrics.total === 0 ? 0 : Math.round(metrics.totalResponses / metrics.total)}
-                                            label="responses per survey"
+                                            label={t("admin.dashboard.lecturer.coverage.label")}
                                         />
                                     </Panel>
                                 </section>

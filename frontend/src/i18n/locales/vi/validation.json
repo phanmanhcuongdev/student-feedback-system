@@ -1,0 +1,36 @@
+{
+  "validation": {
+    "auth": {
+      "resetTokenMissing": "Thiếu mã đặt lại mật khẩu.",
+      "verificationTokenMissing": "Thiếu mã xác minh.",
+      "passwordMinLength": "Mật khẩu mới phải có ít nhất {{count}} ký tự.",
+      "passwordMismatch": "Mật khẩu xác nhận không khớp.",
+      "passwordConfirmationMismatch": "Mật khẩu mới và phần xác nhận không khớp.",
+      "fileMaxSize": "{{label}} không được vượt quá {{size}}.",
+      "eachFileMaxSize": "Mỗi tệp tải lên không được vượt quá {{size}}."
+    },
+    "feedback": {
+      "titleAndContentRequired": "Vui lòng nhập tiêu đề và nội dung.",
+      "responseRequired": "Vui lòng nhập nội dung trả lời."
+    },
+    "admin": {
+      "surveys": {
+        "selectTemplate": "Vui lòng chọn mẫu để áp dụng.",
+        "titleRequired": "Vui lòng nhập tiêu đề.",
+        "questionRequired": "Cần ít nhất một câu hỏi.",
+        "questionContentRequired": "Tất cả câu hỏi phải có nội dung.",
+        "departmentRequired": "Vui lòng chọn khoa cho người nhận theo khoa."
+      },
+      "pendingStudents": {
+        "rejectionReasonRequired": "Cần nhập lý do từ chối trước khi từ chối sinh viên."
+      },
+      "questionBank": {
+        "contentRequired": "Vui lòng nhập nội dung câu hỏi."
+      },
+      "templates": {
+        "nameRequired": "Vui lòng nhập tên mẫu.",
+        "questionRequired": "Thêm ít nhất một câu hỏi hoàn chỉnh cho mẫu."
+      }
+    }
+  }
+}
