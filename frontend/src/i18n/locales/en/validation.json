@@ -1,0 +1,36 @@
+{
+  "validation": {
+    "auth": {
+      "resetTokenMissing": "Missing reset token.",
+      "verificationTokenMissing": "Missing verification token.",
+      "passwordMinLength": "New password must be at least {{count}} characters.",
+      "passwordMismatch": "Passwords do not match.",
+      "passwordConfirmationMismatch": "New password and confirmation do not match.",
+      "fileMaxSize": "{{label}} must not exceed {{size}}.",
+      "eachFileMaxSize": "Each uploaded file must not exceed {{size}}."
+    },
+    "feedback": {
+      "titleAndContentRequired": "Title and content are required.",
+      "responseRequired": "Response content is required."
+    },
+    "admin": {
+      "surveys": {
+        "selectTemplate": "Select a template to apply.",
+        "titleRequired": "Title is required.",
+        "questionRequired": "At least one question is required.",
+        "questionContentRequired": "All questions must have content.",
+        "departmentRequired": "Select a department for department-scoped recipients."
+      },
+      "pendingStudents": {
+        "rejectionReasonRequired": "A rejection reason is required before rejecting a student."
+      },
+      "questionBank": {
+        "contentRequired": "Question content is required."
+      },
+      "templates": {
+        "nameRequired": "Template name is required.",
+        "questionRequired": "Add at least one complete template question."
+      }
+    }
+  }
+}

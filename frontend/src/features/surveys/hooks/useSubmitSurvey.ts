@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getApiErrorMessage, getApiErrorPayload } from "../../../api/apiError";
 import { submitSurvey } from "../../../api/surveyApi";
 import type { AnswersState, SurveyDetail, SubmitSurveyRequest, SubmitSurveyResponse } from "../../../types/surveyDetail";
@@ -26,6 +27,7 @@ function toSubmitRequest(survey: SurveyDetail, answers: AnswersState): SubmitSur
 }
 
 export function useSubmitSurvey() {
+    const { t } = useTranslation(["surveys"]);
     const [submitting, setSubmitting] = useState(false);
 
     async function submit(survey: SurveyDetail, answers: AnswersState): Promise<SubmitSurveyResponse> {
@@ -44,7 +46,7 @@ export function useSubmitSurvey() {
                     || payload?.code === "STUDENT_NOT_FOUND"
                     ? payload.code
                     : "INVALID_INPUT",
-                message: getApiErrorMessage(error, "Failed to submit survey"),
+                message: getApiErrorMessage(error, t("surveys:surveys.errors.submit")),
             };
         } finally {
             setSubmitting(false);

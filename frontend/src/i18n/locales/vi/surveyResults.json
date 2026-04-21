@@ -1,0 +1,177 @@
+{
+  "surveyResults": {
+    "common": {
+      "allStudents": "Tất cả sinh viên",
+      "department": "Khoa",
+      "noDescription": "Chưa có mô tả khảo sát."
+    },
+    "list": {
+      "header": {
+        "eyebrow": "Xem kết quả",
+        "title": "Thống kê khảo sát",
+        "description": "Xem mức độ tham gia và kết quả theo từng câu hỏi qua danh sách vận hành thay vì dạng thẻ trực quan.",
+        "matchingCount_one": "{{count}} kết quả khảo sát phù hợp",
+        "matchingCount_other": "{{count}} kết quả khảo sát phù hợp"
+      },
+      "stats": {
+        "visibleResults": "Kết quả hiển thị",
+        "openNow": "Đang mở",
+        "averageResponseRate": "Tỷ lệ phản hồi trung bình",
+        "submittedResponses": "Phản hồi đã nộp"
+      },
+      "filters": {
+        "search": "Tìm theo tiêu đề khảo sát",
+        "lifecycle": "Vòng đời",
+        "allLifecycle": "Tất cả trạng thái vòng đời",
+        "draft": "Bản nháp",
+        "published": "Đã phát hành",
+        "closed": "Đã đóng",
+        "archived": "Đã lưu trữ",
+        "runtime": "Thời gian chạy",
+        "allRuntime": "Tất cả trạng thái chạy",
+        "notOpen": "Chưa mở",
+        "open": "Đang mở",
+        "audience": "Đối tượng",
+        "allAudiences": "Tất cả đối tượng",
+        "startFrom": "Bắt đầu từ",
+        "endBy": "Kết thúc trước",
+        "sort": "Sắp xếp",
+        "responseRateHighLow": "Tỷ lệ phản hồi cao-thấp",
+        "responseRateLowHigh": "Tỷ lệ phản hồi thấp-cao",
+        "submittedHighLow": "Đã nộp cao-thấp",
+        "targetedHighLow": "Được giao cao-thấp",
+        "startDateNewest": "Ngày bắt đầu mới nhất",
+        "endDateLatest": "Ngày kết thúc muộn nhất"
+      },
+      "table": {
+        "survey": "Khảo sát",
+        "status": "Trạng thái",
+        "audience": "Đối tượng",
+        "targeted": "Được giao",
+        "submitted": "Đã nộp",
+        "opened": "Đã mở",
+        "responseRate": "Tỷ lệ phản hồi",
+        "window": "Thời gian",
+        "actions": "Thao tác"
+      },
+      "buttons": {
+        "viewDetails": "Xem chi tiết"
+      },
+      "rowsOnPage_one": "{{count}} dòng trên trang",
+      "rowsOnPage_other": "{{count}} dòng trên trang",
+      "loading": "Đang tải kết quả khảo sát...",
+      "empty": {
+        "title": "Không tìm thấy kết quả khảo sát",
+        "description": "Điều chỉnh bộ lọc để tìm phân tích khảo sát bạn cần.",
+        "lecturerDescription": "Không có kết quả phù hợp với phạm vi khoa và bộ lọc hiện tại."
+      }
+    },
+    "errors": {
+      "loadList": "Không thể tải kết quả khảo sát.",
+      "loadDetail": "Không thể tải thống kê khảo sát.",
+      "invalidId": "ID khảo sát không hợp lệ.",
+      "export": "Không thể xuất báo cáo khảo sát.",
+      "loadAiStatus": "Không thể tải trạng thái tóm tắt AI.",
+      "generateAi": "Không thể tạo tóm tắt AI.",
+      "aiFailed": "Tạo tóm tắt AI thất bại."
+    },
+    "detail": {
+      "header": {
+        "title": "Chi tiết kết quả khảo sát",
+        "description": "Xem chỉ số tổng quan, mức độ tham gia, phân bố đánh giá và bình luận ẩn danh theo từng nhóm phân tích.",
+        "emptyDescription": "Xem phân tích khảo sát."
+      },
+      "buttons": {
+        "exportCsv": "Xuất CSV",
+        "exporting": "Đang xuất...",
+        "backToResults": "Quay lại kết quả",
+        "collapse": "Thu gọn",
+        "showAll": "Hiển thị tất cả",
+        "showLess": "Hiển thị ít hơn",
+        "showMore": "Hiển thị thêm"
+      },
+      "loading": "Đang tải thống kê khảo sát...",
+      "overview": {
+        "title": "Chỉ số tổng quan",
+        "ratingQuestions": "Câu hỏi đánh giá",
+        "textQuestions": "Câu hỏi văn bản"
+      },
+      "participation": {
+        "title": "Tóm tắt tham gia",
+        "description": "Danh tính được loại trừ có chủ đích tại đây. Phần này giữ ở mức tổng hợp để nhân viên xem xét.",
+        "notOpened": "Chưa mở",
+        "openedNotSubmitted": "Đã mở nhưng chưa nộp",
+        "progress": "Tiến độ tham gia"
+      },
+      "questions": {
+        "title": "Phân tích câu hỏi",
+        "description": "Câu hỏi đánh giá hiển thị phân bố và điểm trung bình. Câu hỏi văn bản được tách bên dưới để dễ xem phản hồi định tính.",
+        "questionNumber": "Câu hỏi {{number}}",
+        "empty": {
+          "title": "Không có phân tích đánh giá",
+          "description": "Khảo sát này không có câu hỏi đánh giá kèm dữ liệu phân bố."
+        }
+      },
+      "rating": {
+        "average": "Đánh giá trung bình",
+        "basedOn_one": "Dựa trên {{count}} phản hồi",
+        "basedOn_other": "Dựa trên {{count}} phản hồi",
+        "responseCount_one": "{{count}} phản hồi",
+        "responseCount_other": "{{count}} phản hồi"
+      },
+      "ai": {
+        "title": "Tóm tắt AI",
+        "description": "Tạo tóm tắt dành cho quản trị viên từ phản hồi văn bản của sinh viên khi cần. Phân tích chạy nền và dùng lại kết quả mới nhất nếu phản hồi chưa thay đổi.",
+        "buttons": {
+          "generate": "Tạo tóm tắt AI",
+          "regenerate": "Tạo lại tóm tắt AI",
+          "submitting": "Đang gửi...",
+          "processing": "Đang xử lý..."
+        },
+        "loading": "Đang tải trạng thái tóm tắt AI...",
+        "status": {
+          "queued": "Đang chờ",
+          "processing": "Đang xử lý",
+          "completed": "Hoàn tất",
+          "failed": "Thất bại",
+          "notGenerated": "Chưa tạo"
+        },
+        "stats": {
+          "status": "Trạng thái",
+          "textComments": "Bình luận văn bản",
+          "requested": "Đã yêu cầu",
+          "finished": "Hoàn tất"
+        },
+        "notRequested": "Chưa có tóm tắt AI nào được tạo cho khảo sát này. Hệ thống chỉ phân tích phản hồi văn bản sau khi bạn yêu cầu rõ ràng.",
+        "processingNotice": "Tác vụ tóm tắt đang xử lý trong nền. Panel này tự làm mới cho đến khi có kết quả.",
+        "jobDetails": {
+          "title": "Chi tiết tác vụ",
+          "jobId": "ID tác vụ",
+          "requestedAt": "Yêu cầu lúc",
+          "startedAt": "Bắt đầu lúc",
+          "finishedAt": "Hoàn tất lúc"
+        },
+        "lists": {
+          "highlights": "Điểm nổi bật",
+          "concerns": "Mối quan ngại",
+          "actions": "Hành động đề xuất",
+          "emptyHighlights": "Không trích xuất được chủ đề tích cực nổi bật từ các phản hồi văn bản hiện tại.",
+          "emptyConcerns": "Không trích xuất được cụm mối quan ngại lặp lại từ các phản hồi văn bản hiện tại.",
+          "emptyActions": "Không tạo được đề xuất hành động cụ thể cho các phản hồi văn bản hiện tại."
+        }
+      },
+      "comments": {
+        "title": "Bình luận văn bản",
+        "description": "Bình luận ẩn danh được nhóm theo câu hỏi. Tìm kiếm chỉ áp dụng cho nội dung bình luận và câu hỏi.",
+        "search": "Tìm bình luận hoặc nội dung câu hỏi",
+        "textQuestionNumber": "Câu hỏi văn bản {{number}}",
+        "count_one": "{{count}} bình luận",
+        "count_other": "{{count}} bình luận",
+        "empty": {
+          "title": "Không có bình luận phù hợp",
+          "description": "Điều chỉnh tìm kiếm bình luận để tìm phản hồi định tính bạn cần."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "feedback": {
+    "common": {
+      "noEmail": "Không có email"
+    },
+    "student": {
+      "compose": {
+        "eyebrow": "Phản hồi sinh viên",
+        "title": "Gửi phản hồi",
+        "description": "Chia sẻ đề xuất hoặc báo cáo vấn đề. Phản hồi đã gửi sẽ được hiển thị tại đây để bạn tham khảo.",
+        "fields": {
+          "title": "Tiêu đề",
+          "content": "Nội dung"
+        },
+        "buttons": {
+          "submit": "Gửi phản hồi",
+          "submitting": "Đang gửi..."
+        }
+      },
+      "history": {
+        "eyebrow": "Lịch sử",
+        "title": "Phản hồi của bạn",
+        "loading": "Đang tải phản hồi...",
+        "empty": "Bạn chưa gửi phản hồi nào."
+      },
+      "responses": {
+        "title": "Phản hồi trả lời",
+        "count_one": "{{count}} trả lời",
+        "count_other": "{{count}} trả lời",
+        "empty": "Chưa có phản hồi từ nhân viên."
+      },
+      "errors": {
+        "load": "Không thể tải phản hồi.",
+        "submit": "Không thể gửi phản hồi.",
+        "submitUnavailable": "Hiện chưa thể gửi phản hồi. Vui lòng thử lại sau."
+      }
+    },
+    "staff": {
+      "header": {
+        "eyebrow": "Phản hồi cho nhân viên",
+        "title": "Xem phản hồi sinh viên",
+        "description": "Xử lý phản hồi như một hàng đợi với trạng thái trả lời rõ ràng, ngữ cảnh sinh viên có thể tìm kiếm và panel trả lời tại chỗ.",
+        "queueCount_one": "{{count}} mục trong hàng đợi",
+        "queueCount_other": "{{count}} mục trong hàng đợi"
+      },
+      "filters": {
+        "search": "Tìm theo sinh viên, tiêu đề hoặc nội dung phản hồi",
+        "status": "Trạng thái",
+        "allStatuses": "Tất cả trạng thái",
+        "unresolved": "Chưa xử lý",
+        "responded": "Đã trả lời",
+        "date": "Ngày",
+        "sort": "Sắp xếp",
+        "newestFirst": "Mới nhất trước",
+        "oldestFirst": "Cũ nhất trước"
+      },
+      "table": {
+        "student": "Sinh viên",
+        "feedback": "Phản hồi",
+        "status": "Trạng thái",
+        "created": "Ngày tạo",
+        "actions": "Thao tác"
+      },
+      "buttons": {
+        "openQueueItem": "Mở mục hàng đợi",
+        "sendResponse": "Gửi trả lời",
+        "sending": "Đang gửi..."
+      },
+      "loading": "Đang tải phản hồi...",
+      "empty": {
+        "title": "Không có phản hồi trong chế độ xem này",
+        "description": "Điều chỉnh bộ lọc hoặc từ khóa tìm kiếm để tìm phản hồi sinh viên cần xử lý."
+      },
+      "detail": {
+        "title": "Chi tiết phản hồi",
+        "description": "Trả lời trong cùng ngữ cảnh hàng đợi mà không mất vị trí danh sách.",
+        "context": {
+          "title": "Ngữ cảnh",
+          "student": "Sinh viên",
+          "email": "Email",
+          "status": "Trạng thái",
+          "created": "Ngày tạo"
+        }
+      },
+      "responses": {
+        "title": "Các trả lời",
+        "description": "Các trả lời hiện có vẫn hiển thị phía trên bản nháp hiện tại.",
+        "empty": {
+          "title": "Chưa có trả lời",
+          "description": "Mục phản hồi này vẫn chưa được xử lý."
+        }
+      },
+      "reply": {
+        "title": "Trả lời",
+        "description": "Trả lời sẽ được thêm vào luồng trả lời chung của mục phản hồi này.",
+        "field": "Nội dung trả lời"
+      },
+      "errors": {
+        "load": "Không thể tải phản hồi.",
+        "submit": "Không thể gửi trả lời.",
+        "submitUnavailable": "Hiện chưa thể gửi trả lời. Vui lòng thử lại sau."
+      }
+    }
+  }
+}

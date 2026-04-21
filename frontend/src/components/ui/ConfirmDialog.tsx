@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { darkActionButtonClass, darkActionButtonStyle } from "./buttonStyles";
 
 type ConfirmDialogProps = {
@@ -21,6 +22,8 @@ export default function ConfirmDialog({
     onConfirm,
     onCancel,
 }: ConfirmDialogProps) {
+    const { t } = useTranslation("common");
+
     if (!open) {
         return null;
     }
@@ -42,7 +45,7 @@ export default function ConfirmDialog({
                         disabled={busy}
                         className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        Cancel
+                        {t("common.actions.cancel")}
                     </button>
                     <button
                         type="button"
@@ -52,7 +55,7 @@ export default function ConfirmDialog({
                         style={tone === "danger" ? undefined : darkActionButtonStyle}
                     >
                         <span className={tone === "danger" ? "" : "text-white"} style={tone === "danger" ? undefined : darkActionButtonStyle}>
-                            {busy ? "Working..." : confirmLabel}
+                            {busy ? t("common.state.working") : confirmLabel}
                         </span>
                     </button>
                 </div>

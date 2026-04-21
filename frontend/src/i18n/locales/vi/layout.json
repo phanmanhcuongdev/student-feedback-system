@@ -1,0 +1,55 @@
+{
+  "layout": {
+    "brand": {
+      "name": "Quản trị đại học",
+      "subtitle": "Xác minh và phản hồi"
+    },
+    "header": {
+      "title": "Xác minh sinh viên và phản hồi khảo sát",
+      "accountMenu": {
+        "viewAccount": "Xem tài khoản",
+        "logout": "Đăng xuất"
+      }
+    },
+    "legacyHeader": {
+      "name": "Trung tâm phân tích",
+      "subtitle": "Cổng phản hồi sinh viên"
+    },
+    "languageSwitcher": {
+      "label": "Chọn ngôn ngữ"
+    },
+    "footer": {
+      "name": "Quản trị đại học",
+      "description": "Nền tảng nội bộ cho xác minh sinh viên và phản hồi khảo sát.",
+      "access": "Truy cập xác thực",
+      "copyright": "Bản quyền 2026"
+    },
+    "nav": {
+      "open": "Mở điều hướng",
+      "close": "Đóng điều hướng",
+      "groups": {
+        "studentWorkspace": "Không gian sinh viên",
+        "lecturerWorkspace": "Không gian giảng viên",
+        "adminOperations": "Vận hành quản trị",
+        "account": "Tài khoản"
+      },
+      "items": {
+        "dashboard": "Bảng điều khiển",
+        "surveys": "Khảo sát",
+        "notifications": "Thông báo",
+        "feedback": "Phản hồi",
+        "changePassword": "Đổi mật khẩu",
+        "studentFeedback": "Phản hồi sinh viên",
+        "surveyResults": "Kết quả khảo sát",
+        "feedbackReview": "Duyệt phản hồi",
+        "users": "Người dùng",
+        "pendingStudents": "Sinh viên chờ duyệt",
+        "questionBank": "Ngân hàng câu hỏi",
+        "surveyTemplates": "Mẫu khảo sát",
+        "auditLogs": "Nhật ký kiểm toán",
+        "accountOverview": "Tổng quan tài khoản",
+        "security": "Bảo mật"
+      }
+    }
+  }
+}

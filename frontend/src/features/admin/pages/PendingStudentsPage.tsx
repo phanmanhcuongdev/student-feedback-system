@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { approveStudent, getPendingStudents, getStudentDocument, getUserManagementDepartments, rejectStudent } from "../../../api/adminApi";
 import { getApiErrorMessage } from "../../../api/apiError";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
@@ -42,6 +43,7 @@ function getInitialDraft(student: PendingStudent): ReviewDraft {
 }
 
 export default function PendingStudentsPage() {
+    const { t } = useTranslation(["admin", "validation"]);
     const [students, setStudents] = useState<PendingStudent[]>([]);
     const [departments, setDepartments] = useState<DepartmentOption[]>([]);
     const [totalElements, setTotalElements] = useState(0);
@@ -108,11 +110,11 @@ export default function PendingStudentsPage() {
                 return response.items[0]?.id ?? null;
             });
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to load pending students."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.pendingStudents.errors.load")));
         } finally {
             setLoading(false);
         }
-    }, [debouncedSearch, departmentFilter, page, resubmissionFilter, sortBy, sortDir]);
+    }, [debouncedSearch, departmentFilter, page, resubmissionFilter, sortBy, sortDir, t]);
 
     useEffect(() => {
         const timeout = window.setTimeout(() => {
@@ -156,7 +158,7 @@ export default function PendingStudentsPage() {
             });
 
             if (!response.success) {
-                setError(response.message || "Unable to approve this student.");
+                setError(response.message || t("admin:admin.pendingStudents.errors.approve"));
                 return;
             }
 
@@ -164,7 +166,7 @@ export default function PendingStudentsPage() {
             setConfirmAction(null);
             await loadPendingStudents();
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to approve this student."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.pendingStudents.errors.approve")));
         } finally {
             setActionState({ studentId: null, type: null });
         }
@@ -173,7 +175,7 @@ export default function PendingStudentsPage() {
     async function handleReject(studentId: number) {
         const reviewReason = drafts[studentId]?.reviewReason?.trim() ?? "";
         if (!reviewReason) {
-            setError("A rejection reason is required before rejecting a student.");
+            setError(t("validation:validation.admin.pendingStudents.rejectionReasonRequired"));
             setConfirmAction(null);
             return;
         }
@@ -189,7 +191,7 @@ export default function PendingStudentsPage() {
             });
 
             if (!response.success) {
-                setError(response.message || "Unable to reject this student.");
+                setError(response.message || t("admin:admin.pendingStudents.errors.reject"));
                 return;
             }
 
@@ -197,16 +199,16 @@ export default function PendingStudentsPage() {
             setConfirmAction(null);
             await loadPendingStudents();
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to reject this student."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.pendingStudents.errors.reject")));
         } finally {
             setActionState({ studentId: null, type: null });
         }
     }
 
     const departmentOptions = useMemo(() => [
-        { label: "All departments", value: "ALL" },
+        { label: t("admin:admin.users.filters.allDepartments"), value: "ALL" },
         ...departments.map((department) => ({ label: department.name, value: String(department.id) })),
-    ], [departments]);
+    ], [departments, t]);
 
     useEffect(() => {
         setPage(0);
@@ -222,12 +224,12 @@ export default function PendingStudentsPage() {
 
     const getDocumentName = useCallback((storedPath: string | null): string => {
         if (!storedPath) {
-            return "document";
+            return t("admin:admin.pendingStudents.documents.document");
         }
 
         const normalized = storedPath.replace(/\\/g, "/");
-        return normalized.split("/").filter(Boolean).pop() || "document";
-    }, []);
+        return normalized.split("/").filter(Boolean).pop() || t("admin:admin.pendingStudents.documents.document");
+    }, [t]);
 
     const createPreview = useCallback((blob: Blob | null, storedPath: string | null): DocumentPreview | null => {
         if (!blob) {
@@ -286,7 +288,7 @@ export default function PendingStudentsPage() {
                 setDocumentPreviews(nextState);
             } catch (requestError) {
                 if (!disposed) {
-                    setDocumentError(getApiErrorMessage(requestError, "Unable to load student documents."));
+                    setDocumentError(getApiErrorMessage(requestError, t("admin:admin.pendingStudents.errors.loadDocuments")));
                 }
             } finally {
                 if (!disposed) {
@@ -322,7 +324,7 @@ export default function PendingStudentsPage() {
                         rel="noreferrer"
                         className="inline-flex text-sm font-semibold text-blue-700 hover:text-blue-800"
                     >
-                        Open full image
+                        {t("admin:admin.pendingStudents.documents.openFullImage")}
                     </a>
                 </div>
             );
@@ -342,7 +344,7 @@ export default function PendingStudentsPage() {
                         rel="noreferrer"
                         className="inline-flex text-sm font-semibold text-blue-700 hover:text-blue-800"
                     >
-                        Open PDF
+                        {t("admin:admin.pendingStudents.documents.openPdf")}
                     </a>
                 </div>
             );
@@ -355,7 +357,7 @@ export default function PendingStudentsPage() {
                 rel="noreferrer"
                 className="inline-flex text-sm font-semibold text-blue-700 hover:text-blue-800"
             >
-                Open document
+                {t("admin:admin.pendingStudents.documents.openDocument")}
             </a>
         );
     }
@@ -363,7 +365,7 @@ export default function PendingStudentsPage() {
     const columns: DataTableColumn<PendingStudent>[] = [
         {
             key: "student",
-            header: "Student",
+            header: t("admin:admin.pendingStudents.table.student"),
             render: (student) => (
                 <div>
                     <p className="font-bold text-slate-950">{student.name}</p>
@@ -373,32 +375,32 @@ export default function PendingStudentsPage() {
         },
         {
             key: "code",
-            header: "Student code",
+            header: t("admin:admin.users.detail.fields.studentCode"),
             render: (student) => student.studentCode,
         },
         {
             key: "department",
-            header: "Department",
-            render: (student) => student.departmentName ?? "Unassigned",
+            header: t("admin:admin.users.table.department"),
+            render: (student) => student.departmentName ?? t("admin:admin.dashboard.common.unassigned"),
         },
         {
             key: "status",
-            header: "Status",
+            header: t("admin:admin.users.table.studentStatus"),
             render: (student) => (
                 <div className="flex flex-wrap gap-2">
                     <StatusBadge kind="onboarding" value={student.status} />
-                    {student.resubmissionCount > 0 ? <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700">Resubmitted {student.resubmissionCount}x</span> : null}
+                    {student.resubmissionCount > 0 ? <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700">{t("admin:admin.pendingStudents.resubmitted", { count: student.resubmissionCount })}</span> : null}
                 </div>
             ),
         },
         {
             key: "actions",
-            header: "Actions",
+            header: t("admin:admin.users.table.actions"),
             className: "text-right",
             render: (student) => (
                 <div className="flex justify-end">
                     <button type="button" onClick={() => setActiveStudentId(student.id)} className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
-                        Review
+                        {t("admin:admin.pendingStudents.buttons.review")}
                     </button>
                 </div>
             ),
@@ -409,21 +411,21 @@ export default function PendingStudentsPage() {
         <main className="bg-slate-100">
             <div className="mx-auto max-w-screen-2xl px-6 py-10">
                 <PageHeader
-                    eyebrow="Admin Review"
-                    title="Pending student approvals"
-                    description="Review onboarding requests as a queue with searchable student context, reusable review notes, and explicit approve or reject decisions."
-                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{totalElements} pending student{totalElements === 1 ? "" : "s"}</div>}
+                    eyebrow={t("admin:admin.pendingStudents.header.eyebrow")}
+                    title={t("admin:admin.pendingStudents.header.title")}
+                    description={t("admin:admin.pendingStudents.header.description")}
+                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{t("admin:admin.pendingStudents.header.count", { count: totalElements })}</div>}
                 />
 
                 <div className="mt-6 space-y-6">
                     <DataToolbar
                         filters={(
                             <>
-                                <SearchInput value={search} onChange={setSearch} placeholder="Search by name, email, or student code" />
-                                <SelectFilter label="Department" value={departmentFilter} onChange={setDepartmentFilter} options={departmentOptions} />
-                                <SelectFilter label="Submission" value={resubmissionFilter} onChange={setResubmissionFilter} options={[{ label: "All submissions", value: "ALL" }, { label: "Resubmitted only", value: "RESUBMITTED" }, { label: "First submission", value: "FIRST_SUBMISSION" }]} />
+                                <SearchInput value={search} onChange={setSearch} placeholder={t("admin:admin.pendingStudents.filters.search")} />
+                                <SelectFilter label={t("admin:admin.users.filters.department")} value={departmentFilter} onChange={setDepartmentFilter} options={departmentOptions} />
+                                <SelectFilter label={t("admin:admin.pendingStudents.filters.submission")} value={resubmissionFilter} onChange={setResubmissionFilter} options={[{ label: t("admin:admin.pendingStudents.filters.allSubmissions"), value: "ALL" }, { label: t("admin:admin.pendingStudents.filters.resubmittedOnly"), value: "RESUBMITTED" }, { label: t("admin:admin.pendingStudents.filters.firstSubmission"), value: "FIRST_SUBMISSION" }]} />
                                 <SelectFilter
-                                    label="Sort"
+                                    label={t("admin:admin.users.filters.sort")}
                                     value={`${sortBy}:${sortDir}`}
                                     onChange={(value) => {
                                         const [nextSortBy, nextSortDir] = value.split(":");
@@ -431,9 +433,9 @@ export default function PendingStudentsPage() {
                                         setSortDir(nextSortDir);
                                     }}
                                     options={[
-                                        { label: "Resubmission count", value: "resubmissionCount:desc" },
-                                        { label: "Student name A-Z", value: "name:asc" },
-                                        { label: "Department A-Z", value: "department:asc" },
+                                        { label: t("admin:admin.pendingStudents.filters.resubmissionCount"), value: "resubmissionCount:desc" },
+                                        { label: t("admin:admin.pendingStudents.filters.studentNameAsc"), value: "name:asc" },
+                                        { label: t("admin:admin.users.filters.departmentAsc"), value: "department:asc" },
                                     ]}
                                 />
                             </>
@@ -444,9 +446,9 @@ export default function PendingStudentsPage() {
                     {feedback ? <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700">{feedback}</div> : null}
 
                     {loading ? (
-                        <LoadingState label="Loading pending students..." />
+                        <LoadingState label={t("admin:admin.pendingStudents.loading")} />
                     ) : students.length === 0 ? (
-                        <EmptyState title="No pending students in this queue view" description="Adjust the search or filters to find the onboarding request you need." icon="task_alt" />
+                        <EmptyState title={t("admin:admin.pendingStudents.empty.title")} description={t("admin:admin.pendingStudents.empty.description")} icon="task_alt" />
                     ) : (
                         <>
                             <div className="hidden lg:block">
@@ -462,18 +464,18 @@ export default function PendingStudentsPage() {
                                             <div>
                                                 <div className="flex flex-wrap gap-2">
                                                     <StatusBadge kind="onboarding" value={student.status} />
-                                                    {student.resubmissionCount > 0 ? <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700">Resubmitted {student.resubmissionCount}x</span> : null}
+                                                    {student.resubmissionCount > 0 ? <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700">{t("admin:admin.pendingStudents.resubmitted", { count: student.resubmissionCount })}</span> : null}
                                                 </div>
                                                 <h2 className="mt-3 text-xl font-bold text-slate-950">{student.name}</h2>
                                                 <p className="mt-1 text-sm text-slate-500">{student.email}</p>
                                             </div>
                                         </div>
                                         <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Student code</span><span className="font-medium text-slate-900">{student.studentCode}</span></div>
-                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Department</span><span className="font-medium text-slate-900">{student.departmentName ?? "Unassigned"}</span></div>
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("admin:admin.users.detail.fields.studentCode")}</span><span className="font-medium text-slate-900">{student.studentCode}</span></div>
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("admin:admin.users.table.department")}</span><span className="font-medium text-slate-900">{student.departmentName ?? t("admin:admin.dashboard.common.unassigned")}</span></div>
                                         </div>
                                         <button type="button" onClick={() => setActiveStudentId(student.id)} className="mt-5 inline-flex w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
-                                            Review
+                                            {t("admin:admin.pendingStudents.buttons.review")}
                                         </button>
                                     </article>
                                 )}
@@ -482,63 +484,63 @@ export default function PendingStudentsPage() {
                             <PaginationControls page={page + 1} pageCount={Math.max(totalPages, 1)} onPageChange={(nextPage) => setPage(nextPage - 1)} />
 
                             {activeStudent ? (
-                                <SectionCard title="Review detail" description="Approve or reject without leaving the onboarding queue. Rejection reason remains required.">
+                                <SectionCard title={t("admin:admin.pendingStudents.detail.title")} description={t("admin:admin.pendingStudents.detail.description")}>
                                     <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
                                         <DetailPanel
-                                            title="Context"
+                                            title={t("admin:admin.pendingStudents.detail.context")}
                                             items={[
-                                                { label: "Student", value: activeStudent.name },
-                                                { label: "Email", value: activeStudent.email },
-                                                { label: "Student code", value: activeStudent.studentCode },
-                                                { label: "Department", value: activeStudent.departmentName ?? "Unassigned" },
+                                                { label: t("admin:admin.pendingStudents.table.student"), value: activeStudent.name },
+                                                { label: t("admin:admin.users.detail.fields.email"), value: activeStudent.email },
+                                                { label: t("admin:admin.users.detail.fields.studentCode"), value: activeStudent.studentCode },
+                                                { label: t("admin:admin.users.table.department"), value: activeStudent.departmentName ?? t("admin:admin.dashboard.common.unassigned") },
                                             ]}
                                         />
 
                                         <div className="space-y-5">
-                                            <SectionCard title="Submitted documents" description="Documents are fetched from the backend and rendered inline when previewable.">
+                                            <SectionCard title={t("admin:admin.pendingStudents.documents.title")} description={t("admin:admin.pendingStudents.documents.description")}>
                                                 <div className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                                                    {documentLoading ? <p>Loading submitted documents...</p> : null}
+                                                    {documentLoading ? <p>{t("admin:admin.pendingStudents.documents.loading")}</p> : null}
                                                     {documentError ? <p className="font-medium text-red-700">{documentError}</p> : null}
                                                     <div className="space-y-3">
-                                                        <span className="font-semibold text-slate-500">Student card</span>
+                                                        <span className="font-semibold text-slate-500">{t("admin:admin.pendingStudents.documents.studentCard")}</span>
                                                         <p className="text-xs text-slate-500">{getDocumentName(activeStudent.studentCardImageUrl)}</p>
-                                                        {renderDocumentPreview(documentPreviews.studentCard, "Missing")}
+                                                        {renderDocumentPreview(documentPreviews.studentCard, t("admin:admin.pendingStudents.documents.missing"))}
                                                     </div>
                                                     <div className="space-y-3">
-                                                        <span className="font-semibold text-slate-500">National ID</span>
+                                                        <span className="font-semibold text-slate-500">{t("admin:admin.pendingStudents.documents.nationalId")}</span>
                                                         <p className="text-xs text-slate-500">{getDocumentName(activeStudent.nationalIdImageUrl)}</p>
-                                                        {renderDocumentPreview(documentPreviews.nationalId, "Missing")}
+                                                        {renderDocumentPreview(documentPreviews.nationalId, t("admin:admin.pendingStudents.documents.missing"))}
                                                     </div>
                                                 </div>
                                             </SectionCard>
 
                                             {(activeStudent.reviewReason || activeStudent.reviewNotes) ? (
-                                                <SectionCard title="Previous review context" description="This appears when the student has been previously rejected and resubmitted.">
+                                                <SectionCard title={t("admin:admin.pendingStudents.previous.title")} description={t("admin:admin.pendingStudents.previous.description")}>
                                                     <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                                                        {activeStudent.reviewReason ? <p><span className="font-semibold text-slate-900">Reason:</span> {activeStudent.reviewReason}</p> : null}
-                                                        {activeStudent.reviewNotes ? <p className="whitespace-pre-wrap"><span className="font-semibold text-slate-900">Notes:</span> {activeStudent.reviewNotes}</p> : null}
+                                                        {activeStudent.reviewReason ? <p><span className="font-semibold text-slate-900">{t("admin:admin.pendingStudents.previous.reason")}</span> {activeStudent.reviewReason}</p> : null}
+                                                        {activeStudent.reviewNotes ? <p className="whitespace-pre-wrap"><span className="font-semibold text-slate-900">{t("admin:admin.pendingStudents.previous.notes")}</span> {activeStudent.reviewNotes}</p> : null}
                                                     </div>
                                                 </SectionCard>
                                             ) : null}
 
-                                            <SectionCard title="Review decision" description="Provide the rejection reason before rejecting. Notes are optional for both decisions.">
+                                            <SectionCard title={t("admin:admin.pendingStudents.decision.title")} description={t("admin:admin.pendingStudents.decision.description")}>
                                                 <div className="space-y-4">
                                                     <label className="block space-y-2">
-                                                        <span className="text-sm font-semibold text-slate-700">Rejection reason</span>
-                                                        <input type="text" value={drafts[activeStudent.id]?.reviewReason ?? ""} onChange={(event) => updateDraft(activeStudent.id, { reviewReason: event.target.value })} placeholder="Required if you reject this onboarding request" className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5" />
+                                                        <span className="text-sm font-semibold text-slate-700">{t("admin:admin.pendingStudents.decision.rejectionReason")}</span>
+                                                        <input type="text" value={drafts[activeStudent.id]?.reviewReason ?? ""} onChange={(event) => updateDraft(activeStudent.id, { reviewReason: event.target.value })} placeholder={t("admin:admin.pendingStudents.decision.rejectionPlaceholder")} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5" />
                                                     </label>
                                                     <label className="block space-y-2">
-                                                        <span className="text-sm font-semibold text-slate-700">Reviewer notes</span>
-                                                        <textarea value={drafts[activeStudent.id]?.reviewNotes ?? ""} onChange={(event) => updateDraft(activeStudent.id, { reviewNotes: event.target.value })} rows={5} placeholder="Optional notes recorded with the review decision" className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5" />
+                                                        <span className="text-sm font-semibold text-slate-700">{t("admin:admin.pendingStudents.decision.reviewerNotes")}</span>
+                                                        <textarea value={drafts[activeStudent.id]?.reviewNotes ?? ""} onChange={(event) => updateDraft(activeStudent.id, { reviewNotes: event.target.value })} rows={5} placeholder={t("admin:admin.pendingStudents.decision.notesPlaceholder")} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5" />
                                                     </label>
                                                     <div className="grid gap-3 md:grid-cols-2">
                                                         <button type="button" onClick={() => setConfirmAction("approve")} disabled={actionState.studentId === activeStudent.id} className={`${darkActionButtonClass} px-4 py-3 text-sm font-semibold`} style={darkActionButtonStyle}>
                                                             <span className="text-white" style={darkActionButtonStyle}>
-                                                                {actionState.studentId === activeStudent.id && actionState.type === "approve" ? "Approving..." : "Approve"}
+                                                                {actionState.studentId === activeStudent.id && actionState.type === "approve" ? t("admin:admin.pendingStudents.buttons.approving") : t("admin:admin.pendingStudents.buttons.approve")}
                                                             </span>
                                                         </button>
                                                         <button type="button" onClick={() => setConfirmAction("reject")} disabled={actionState.studentId === activeStudent.id} className="inline-flex items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60">
-                                                            {actionState.studentId === activeStudent.id && actionState.type === "reject" ? "Rejecting..." : "Reject"}
+                                                            {actionState.studentId === activeStudent.id && actionState.type === "reject" ? t("admin:admin.pendingStudents.buttons.rejecting") : t("admin:admin.pendingStudents.buttons.reject")}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -554,9 +556,9 @@ export default function PendingStudentsPage() {
 
             <ConfirmDialog
                 open={confirmAction != null && activeStudent != null}
-                title={confirmAction === "approve" ? "Approve student" : "Reject student"}
-                description={confirmAction === "approve" ? `Approve ${activeStudent?.name} and activate this onboarding request.` : `Reject ${activeStudent?.name}. A rejection reason will be sent back through the existing resubmission flow.`}
-                confirmLabel={confirmAction === "approve" ? "Approve student" : "Reject student"}
+                title={confirmAction === "approve" ? t("admin:admin.pendingStudents.confirm.approveTitle") : t("admin:admin.pendingStudents.confirm.rejectTitle")}
+                description={confirmAction === "approve" ? t("admin:admin.pendingStudents.confirm.approveDescription", { name: activeStudent?.name }) : t("admin:admin.pendingStudents.confirm.rejectDescription", { name: activeStudent?.name })}
+                confirmLabel={confirmAction === "approve" ? t("admin:admin.pendingStudents.confirm.approveLabel") : t("admin:admin.pendingStudents.confirm.rejectLabel")}
                 tone={confirmAction === "reject" ? "danger" : "default"}
                 busy={activeStudent != null && actionState.studentId === activeStudent.id}
                 onCancel={() => setConfirmAction(null)}

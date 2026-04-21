@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "../../../api/apiError";
 import AuthShell from "../components/AuthShell";
 import { getDefaultAppRoute } from "../defaultRoute";
@@ -10,20 +11,21 @@ type LocationState = {
     notice?: string;
 };
 
-function getLoginErrorMessage(code: string, fallback: string): string {
+function getLoginErrorMessage(code: string, fallback: string, translate: (key: string) => string): string {
     switch (code) {
         case "ACCOUNT_PENDING":
-            return "Your account is pending review and cannot sign in yet.";
+            return translate("auth.login.errors.accountPending");
         case "ACCOUNT_REJECTED":
-            return "Your account was rejected. Sign in again to review feedback and resubmit corrected documents.";
+            return translate("auth.login.errors.accountRejected");
         case "ACCOUNT_INACTIVE":
-            return "Your account is inactive. Complete verification or contact an administrator.";
+            return translate("auth.login.errors.accountInactive");
         default:
             return fallback;
     }
 }
 
 export default function LoginPage() {
+    const { t } = useTranslation(["auth", "validation"]);
     const navigate = useNavigate();
     const location = useLocation();
     const { login } = useAuth();
@@ -47,13 +49,13 @@ export default function LoginPage() {
             });
 
             if (!response.success) {
-                setError(getLoginErrorMessage(response.code, response.message || "Login failed"));
+                setError(getLoginErrorMessage(response.code, response.message || t("auth:auth.login.errors.failed"), t));
                 return;
             }
 
             navigate(targetPath ?? getDefaultAppRoute(response.role, response.studentStatus), { replace: true });
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to sign in right now."));
+            setError(getApiErrorMessage(requestError, t("auth:auth.login.errors.unavailable")));
         } finally {
             setSubmitting(false);
         }
@@ -61,23 +63,23 @@ export default function LoginPage() {
 
     return (
         <AuthShell
-            eyebrow="Secure Login"
-            title="Welcome back"
-            description="Sign in with your registered account to access the survey workspace."
+            eyebrow={t("auth:auth.login.eyebrow")}
+            title={t("auth:auth.login.title")}
+            description={t("auth:auth.login.description")}
             footer={
                 <div className="space-y-2 text-sm text-slate-500">
                     <p>
-                        New student?
+                        {t("auth:auth.login.footer.newStudent")}
                         {" "}
                         <Link className="font-semibold text-blue-700 hover:text-blue-800" to="/register">
-                            Create an account
+                            {t("auth:auth.login.links.createAccount")}
                         </Link>
                     </p>
                     <p>
-                        Forgot your password?
+                        {t("auth:auth.login.footer.forgotPassword")}
                         {" "}
                         <Link className="font-semibold text-blue-700 hover:text-blue-800" to="/forgot-password">
-                            Reset it here
+                            {t("auth:auth.login.links.resetPassword")}
                         </Link>
                     </p>
                 </div>
@@ -91,12 +93,12 @@ export default function LoginPage() {
                 )}
 
                 <label className="block space-y-2">
-                    <span className="text-sm font-semibold text-slate-700">Email</span>
+                    <span className="text-sm font-semibold text-slate-700">{t("auth:auth.login.fields.email")}</span>
                     <input
                         type="email"
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
-                        placeholder="student@example.com"
+                        placeholder={t("auth:auth.login.placeholders.email")}
                         autoComplete="email"
                         className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
                         required
@@ -104,12 +106,12 @@ export default function LoginPage() {
                 </label>
 
                 <label className="block space-y-2">
-                    <span className="text-sm font-semibold text-slate-700">Password</span>
+                    <span className="text-sm font-semibold text-slate-700">{t("auth:auth.login.fields.password")}</span>
                     <input
                         type="password"
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
-                        placeholder="Enter your password"
+                        placeholder={t("auth:auth.login.placeholders.password")}
                         autoComplete="current-password"
                         className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
                         required
@@ -127,7 +129,7 @@ export default function LoginPage() {
                     disabled={submitting}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#0f5bcf_0%,#1d78ec_100%)] px-5 py-3.5 text-sm font-bold text-white shadow-[0_16px_36px_rgba(29,120,236,0.28)] transition hover:translate-y-[-1px] hover:shadow-[0_20px_44px_rgba(29,120,236,0.32)] disabled:cursor-not-allowed disabled:opacity-65 disabled:shadow-none"
                 >
-                    <span>{submitting ? "Signing in..." : "Sign In"}</span>
+                    <span>{submitting ? t("auth:auth.login.buttons.submitting") : t("auth:auth.login.buttons.submit")}</span>
                     <span className="material-symbols-outlined text-base">login</span>
                 </button>
             </form>

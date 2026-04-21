@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     archiveQuestionBankEntry,
     createQuestionBankEntry,
@@ -27,6 +28,7 @@ type QuestionBankForm = {
 const emptyForm: QuestionBankForm = { content: "", type: "RATING", category: "" };
 
 export default function QuestionBankPage() {
+    const { t } = useTranslation(["admin", "validation", "common"]);
     const [items, setItems] = useState<QuestionBankEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -65,11 +67,11 @@ export default function QuestionBankPage() {
             setTotalElements(response.totalElements);
             setTotalPages(response.totalPages);
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to load question bank."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.questionBank.errors.load")));
         } finally {
             setLoading(false);
         }
-    }, [activeFilter, debouncedCategoryFilter, debouncedKeyword, page, typeFilter]);
+    }, [activeFilter, debouncedCategoryFilter, debouncedKeyword, page, typeFilter, t]);
 
     useEffect(() => {
         const timeout = window.setTimeout(() => setDebouncedKeyword(keyword.trim()), 300);
@@ -104,7 +106,7 @@ export default function QuestionBankPage() {
         setError("");
         setFeedback("");
         if (!form.content.trim()) {
-            setError("Question content is required.");
+            setError(t("validation:validation.admin.questionBank.contentRequired"));
             return;
         }
 
@@ -117,15 +119,15 @@ export default function QuestionBankPage() {
             };
             if (editingId) {
                 await updateQuestionBankEntry(editingId, payload);
-                setFeedback("Question-bank entry updated.");
+                setFeedback(t("admin:admin.questionBank.feedback.updated"));
             } else {
                 await createQuestionBankEntry(payload);
-                setFeedback("Question-bank entry created.");
+                setFeedback(t("admin:admin.questionBank.feedback.created"));
             }
             resetForm();
             await load();
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to save question-bank entry."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.questionBank.errors.save")));
         } finally {
             setSaving(false);
         }
@@ -137,14 +139,14 @@ export default function QuestionBankPage() {
             setFeedback("");
             if (active) {
                 await restoreQuestionBankEntry(item.id);
-                setFeedback("Question-bank entry restored.");
+                setFeedback(t("admin:admin.questionBank.feedback.restored"));
             } else {
                 await archiveQuestionBankEntry(item.id);
-                setFeedback("Question-bank entry archived.");
+                setFeedback(t("admin:admin.questionBank.feedback.archived"));
             }
             await load();
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to update question-bank entry."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.questionBank.errors.update")));
         }
     }
 
@@ -152,70 +154,70 @@ export default function QuestionBankPage() {
         <main className="bg-slate-100">
             <div className="mx-auto max-w-screen-xl px-6 py-10">
                 <PageHeader
-                    eyebrow="Admin / Survey Assets"
-                    title="Question bank"
-                    description="Create reusable question assets that can be copied into draft surveys and survey templates."
+                    eyebrow={t("admin:admin.assets.eyebrow")}
+                    title={t("admin:admin.questionBank.header.title")}
+                    description={t("admin:admin.questionBank.header.description")}
                 />
 
                 <div className="mt-6 space-y-6">
                     {error ? <ErrorState description={error} onRetry={() => void load()} /> : null}
                     {feedback ? <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700">{feedback}</div> : null}
 
-                    <SectionCard title={editingId ? "Edit question asset" : "Create question asset"} description="Question-bank entries are reusable source questions. Archiving keeps old survey copies intact.">
-                        <p className="mb-4 text-sm text-slate-500">Adding a bank question to a survey or template copies its current text and type. Later edits here affect future use only.</p>
+                    <SectionCard title={editingId ? t("admin:admin.questionBank.form.editTitle") : t("admin:admin.questionBank.form.createTitle")} description={t("admin:admin.questionBank.form.description")}>
+                        <p className="mb-4 text-sm text-slate-500">{t("admin:admin.questionBank.form.copyHelp")}</p>
                         <form onSubmit={submit} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px_220px_auto]">
-                            <input value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder="Question content" className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500" />
+                            <input value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={t("admin:admin.questionBank.form.contentPlaceholder")} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500" />
                             <select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: event.target.value as "RATING" | "TEXT" }))} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500">
-                                <option value="RATING">Rating</option>
-                                <option value="TEXT">Text</option>
+                                <option value="RATING">{t("admin:admin.questionBank.type.rating")}</option>
+                                <option value="TEXT">{t("admin:admin.questionBank.type.text")}</option>
                             </select>
-                            <input value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} placeholder="Category" className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500" />
+                            <input value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} placeholder={t("admin:admin.questionBank.form.categoryPlaceholder")} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500" />
                             <div className="flex gap-2">
-                                <button type="submit" disabled={saving} className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">{saving ? "Saving..." : editingId ? "Update" : "Create"}</button>
-                                {editingId ? <button type="button" onClick={resetForm} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700">Cancel</button> : null}
+                                <button type="submit" disabled={saving} className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">{saving ? t("admin:admin.surveys.form.buttons.saving") : editingId ? t("admin:admin.questionBank.buttons.update") : t("admin:admin.questionBank.buttons.create")}</button>
+                                {editingId ? <button type="button" onClick={resetForm} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700">{t("common:common.actions.cancel")}</button> : null}
                             </div>
                         </form>
                     </SectionCard>
 
-                    <SectionCard title="Reusable questions" description="Search and manage active or archived question-bank entries.">
+                    <SectionCard title={t("admin:admin.questionBank.list.title")} description={t("admin:admin.questionBank.list.description")}>
                         <div className="mb-4">
                             <DataToolbar
                                 filters={(
                                     <>
-                                        <SearchInput value={keyword} onChange={setKeyword} placeholder="Search content or category" />
+                                        <SearchInput value={keyword} onChange={setKeyword} placeholder={t("admin:admin.questionBank.filters.search")} />
                                         <SelectFilter
-                                            label="Type"
+                                            label={t("admin:admin.surveys.form.fields.type")}
                                             value={typeFilter}
                                             onChange={setTypeFilter}
                                             options={[
-                                                { label: "All types", value: "ALL" },
-                                                { label: "Rating", value: "RATING" },
-                                                { label: "Text", value: "TEXT" },
+                                                { label: t("admin:admin.questionBank.filters.allTypes"), value: "ALL" },
+                                                { label: t("admin:admin.questionBank.type.rating"), value: "RATING" },
+                                                { label: t("admin:admin.questionBank.type.text"), value: "TEXT" },
                                             ]}
                                         />
                                         <SelectFilter
-                                            label="State"
+                                            label={t("admin:admin.questionBank.filters.state")}
                                             value={activeFilter}
                                             onChange={setActiveFilter}
                                             options={[
-                                                { label: "Active", value: "ACTIVE" },
-                                                { label: "Archived", value: "ARCHIVED" },
-                                                { label: "All states", value: "ALL" },
+                                                { label: t("admin:admin.users.filters.active"), value: "ACTIVE" },
+                                                { label: t("admin:admin.surveys.list.filters.archived"), value: "ARCHIVED" },
+                                                { label: t("admin:admin.users.filters.allStates"), value: "ALL" },
                                             ]}
                                         />
                                         <label className="flex min-w-[210px] items-center gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
-                                            <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Category</span>
-                                            <input value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} placeholder="Any" className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none" />
+                                            <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{t("admin:admin.questionBank.form.categoryPlaceholder")}</span>
+                                            <input value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} placeholder={t("admin:admin.questionBank.filters.any")} className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none" />
                                         </label>
                                     </>
                                 )}
-                                actions={<div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">{items.length} displayed</div>}
+                                actions={<div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">{t("admin:admin.audit.displayed", { count: items.length })}</div>}
                             />
                         </div>
-                        <p className="mb-4 text-sm text-slate-500">Showing {items.length} of {totalElements} question-bank entries.</p>
-                        {loading ? <LoadingState label="Loading question bank..." /> : (
+                        <p className="mb-4 text-sm text-slate-500">{t("admin:admin.questionBank.list.showing", { shown: items.length, total: totalElements })}</p>
+                        {loading ? <LoadingState label={t("admin:admin.questionBank.loading")} /> : (
                             items.length === 0 ? (
-                                <EmptyState title="No matching question-bank entries" description="Adjust search, type, state, or category filters." icon="quiz" />
+                                <EmptyState title={t("admin:admin.questionBank.empty.title")} description={t("admin:admin.questionBank.empty.description")} icon="quiz" />
                             ) : (
                                 <>
                                     <div className="grid gap-3">
@@ -224,11 +226,11 @@ export default function QuestionBankPage() {
                                                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                                     <div>
                                                         <p className="font-bold text-slate-950">{item.content}</p>
-                                                        <p className="mt-1 text-sm text-slate-500">{item.type}{item.category ? ` | ${item.category}` : ""} | {item.active ? "Active" : "Archived"}</p>
+                                                        <p className="mt-1 text-sm text-slate-500">{item.type}{item.category ? ` | ${item.category}` : ""} | {item.active ? t("admin:admin.users.filters.active") : t("admin:admin.surveys.list.filters.archived")}</p>
                                                     </div>
                                                     <div className="flex gap-2">
-                                                        <button type="button" onClick={() => edit(item)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">Edit</button>
-                                                        <button type="button" onClick={() => void setActive(item, !item.active)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">{item.active ? "Archive" : "Restore"}</button>
+                                                        <button type="button" onClick={() => edit(item)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">{t("admin:admin.questionBank.buttons.edit")}</button>
+                                                        <button type="button" onClick={() => void setActive(item, !item.active)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">{item.active ? t("admin:admin.questionBank.buttons.archive") : t("admin:admin.questionBank.buttons.restore")}</button>
                                                     </div>
                                                 </div>
                                             </div>

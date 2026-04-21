@@ -1,0 +1,55 @@
+{
+  "layout": {
+    "brand": {
+      "name": "University Operations",
+      "subtitle": "Onboarding and Feedback"
+    },
+    "header": {
+      "title": "Student Onboarding and Survey Feedback",
+      "accountMenu": {
+        "viewAccount": "View account",
+        "logout": "Logout"
+      }
+    },
+    "legacyHeader": {
+      "name": "Insight Observatory",
+      "subtitle": "Student Feedback Portal"
+    },
+    "languageSwitcher": {
+      "label": "Language selector"
+    },
+    "footer": {
+      "name": "University Operations",
+      "description": "Internal platform for student onboarding and survey feedback.",
+      "access": "Authenticated Access",
+      "copyright": "Copyright 2026"
+    },
+    "nav": {
+      "open": "Open navigation",
+      "close": "Close navigation",
+      "groups": {
+        "studentWorkspace": "Student Workspace",
+        "lecturerWorkspace": "Lecturer Workspace",
+        "adminOperations": "Admin Operations",
+        "account": "Account"
+      },
+      "items": {
+        "dashboard": "Dashboard",
+        "surveys": "Surveys",
+        "notifications": "Notifications",
+        "feedback": "Feedback",
+        "changePassword": "Change Password",
+        "studentFeedback": "Student Feedback",
+        "surveyResults": "Survey Results",
+        "feedbackReview": "Feedback Review",
+        "users": "Users",
+        "pendingStudents": "Pending Students",
+        "questionBank": "Question Bank",
+        "surveyTemplates": "Survey Templates",
+        "auditLogs": "Audit Logs",
+        "accountOverview": "Account Overview",
+        "security": "Security"
+      }
+    }
+  }
+}

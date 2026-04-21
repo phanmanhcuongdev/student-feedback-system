@@ -1,9 +1,11 @@
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../auth/useAuth";
 import RoleBadge from "../../../components/ui/RoleBadge";
 import StatusBadge from "../../../components/ui/StatusBadge";
 
 export default function AccountNavigationCard() {
+    const { t } = useTranslation(["account"]);
     const { session } = useAuth();
 
     if (!session) {
@@ -20,7 +22,7 @@ export default function AccountNavigationCard() {
                     <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-slate-950">{session.email}</p>
                         <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                            Account settings
+                            {t("account:account.navigation.settings")}
                         </p>
                     </div>
                 </div>
@@ -34,8 +36,8 @@ export default function AccountNavigationCard() {
             </div>
 
             <nav className="space-y-1.5">
-                <AccountNavLink to="/account" end icon="account_circle" label="Account overview" />
-                <AccountNavLink to="/account/security" icon="shield_lock" label="Security" />
+                <AccountNavLink to="/account" end icon="account_circle" label={t("account:account.navigation.overview")} />
+                <AccountNavLink to="/account/security" icon="shield_lock" label={t("account:account.navigation.security")} />
             </nav>
         </div>
     );

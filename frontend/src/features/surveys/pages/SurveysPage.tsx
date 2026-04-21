@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getAllSurveys } from "../../../api/surveyApi";
 import { getApiErrorMessage } from "../../../api/apiError";
 import PaginationControls from "../../../components/data-view/PaginationControls";
@@ -11,6 +12,7 @@ import SurveyHero from "../components/SurveyHero";
 import type { Survey } from "../../../types/survey";
 
 export default function SurveysPage() {
+    const { t } = useTranslation(["surveys"]);
     const [filter, setFilter] = useState<SurveyFilter>("ALL");
     const [surveys, setSurveys] = useState<Survey[]>([]);
     const [loading, setLoading] = useState(true);
@@ -37,14 +39,14 @@ export default function SurveysPage() {
                 setSurveys(response.items);
                 setTotalPages(response.totalPages);
             } catch (requestError) {
-                setError(getApiErrorMessage(requestError, "Khong the tai danh sach khao sat."));
+                setError(getApiErrorMessage(requestError, t("surveys:surveys.errors.loadList")));
             } finally {
                 setLoading(false);
             }
         }
 
         void loadSurveys();
-    }, [filter, page]);
+    }, [filter, page, t]);
 
     useEffect(() => {
         setPage(0);

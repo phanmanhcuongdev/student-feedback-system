@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 type StatusKind =
     | "role"
     | "account"
@@ -14,13 +16,13 @@ type StatusBadgeProps = {
 };
 
 type BadgeMeta = {
-    label: string;
+    labelKey: string;
     className: string;
 };
 
 function fallbackLabel(value: string | null | undefined) {
     if (!value) {
-        return "Unknown";
+        return "";
     }
 
     return value.replace(/_/g, " ").toLowerCase().replace(/^\w/, (letter) => letter.toUpperCase());
@@ -31,59 +33,61 @@ function getBadgeMeta(kind: StatusKind, value: string | null | undefined): Badge
 
     const maps: Record<StatusKind, Record<string, BadgeMeta>> = {
         role: {
-            STUDENT: { label: "Student", className: "border-blue-200 bg-blue-50 text-blue-700" },
-            LECTURER: { label: "Lecturer", className: "border-sky-200 bg-sky-50 text-sky-700" },
-            ADMIN: { label: "Admin", className: "border-slate-200 bg-slate-100 text-slate-700" },
+            STUDENT: { labelKey: "common.status.role.student", className: "border-blue-200 bg-blue-50 text-blue-700" },
+            LECTURER: { labelKey: "common.status.role.lecturer", className: "border-sky-200 bg-sky-50 text-sky-700" },
+            ADMIN: { labelKey: "common.status.role.admin", className: "border-slate-200 bg-slate-100 text-slate-700" },
         },
         account: {
-            ACTIVE: { label: "Active", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-            INACTIVE: { label: "Inactive", className: "border-red-200 bg-red-50 text-red-700" },
+            ACTIVE: { labelKey: "common.status.account.active", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+            INACTIVE: { labelKey: "common.status.account.inactive", className: "border-red-200 bg-red-50 text-red-700" },
         },
         onboarding: {
-            EMAIL_VERIFIED: { label: "Email Verified", className: "border-sky-200 bg-sky-50 text-sky-700" },
-            EMAIL_UNVERIFIED: { label: "Email Unverified", className: "border-slate-200 bg-slate-100 text-slate-700" },
-            PENDING: { label: "Pending Review", className: "border-amber-200 bg-amber-50 text-amber-700" },
-            REJECTED: { label: "Rejected", className: "border-red-200 bg-red-50 text-red-700" },
-            ACTIVE: { label: "Approved", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+            EMAIL_VERIFIED: { labelKey: "common.status.onboarding.emailVerified", className: "border-sky-200 bg-sky-50 text-sky-700" },
+            EMAIL_UNVERIFIED: { labelKey: "common.status.onboarding.emailUnverified", className: "border-slate-200 bg-slate-100 text-slate-700" },
+            PENDING: { labelKey: "common.status.onboarding.pendingReview", className: "border-amber-200 bg-amber-50 text-amber-700" },
+            REJECTED: { labelKey: "common.status.onboarding.rejected", className: "border-red-200 bg-red-50 text-red-700" },
+            ACTIVE: { labelKey: "common.status.onboarding.approved", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
         },
         surveyLifecycle: {
-            DRAFT: { label: "Draft", className: "border-slate-200 bg-slate-100 text-slate-700" },
-            PUBLISHED: { label: "Published", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-            CLOSED: { label: "Closed", className: "border-amber-200 bg-amber-50 text-amber-700" },
-            ARCHIVED: { label: "Archived", className: "border-indigo-200 bg-indigo-50 text-indigo-700" },
+            DRAFT: { labelKey: "common.status.surveyLifecycle.draft", className: "border-slate-200 bg-slate-100 text-slate-700" },
+            PUBLISHED: { labelKey: "common.status.surveyLifecycle.published", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+            CLOSED: { labelKey: "common.status.surveyLifecycle.closed", className: "border-amber-200 bg-amber-50 text-amber-700" },
+            ARCHIVED: { labelKey: "common.status.surveyLifecycle.archived", className: "border-indigo-200 bg-indigo-50 text-indigo-700" },
         },
         surveyRuntime: {
-            NOT_OPEN: { label: "Not Open", className: "border-slate-200 bg-slate-100 text-slate-700" },
-            OPEN: { label: "Open", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-            CLOSED: { label: "Closed", className: "border-red-200 bg-red-50 text-red-700" },
+            NOT_OPEN: { labelKey: "common.status.surveyRuntime.notOpen", className: "border-slate-200 bg-slate-100 text-slate-700" },
+            OPEN: { labelKey: "common.status.surveyRuntime.open", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+            CLOSED: { labelKey: "common.status.surveyRuntime.closed", className: "border-red-200 bg-red-50 text-red-700" },
         },
         surveyVisibility: {
-            VISIBLE: { label: "Visible", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-            HIDDEN: { label: "Hidden", className: "border-slate-200 bg-slate-100 text-slate-700" },
+            VISIBLE: { labelKey: "common.status.surveyVisibility.visible", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+            HIDDEN: { labelKey: "common.status.surveyVisibility.hidden", className: "border-slate-200 bg-slate-100 text-slate-700" },
         },
         surveyParticipation: {
-            ASSIGNED: { label: "Assigned", className: "border-slate-200 bg-slate-100 text-slate-700" },
-            OPENED: { label: "Opened", className: "border-sky-200 bg-sky-50 text-sky-700" },
-            SUBMITTED: { label: "Submitted", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+            ASSIGNED: { labelKey: "common.status.surveyParticipation.assigned", className: "border-slate-200 bg-slate-100 text-slate-700" },
+            OPENED: { labelKey: "common.status.surveyParticipation.opened", className: "border-sky-200 bg-sky-50 text-sky-700" },
+            SUBMITTED: { labelKey: "common.status.surveyParticipation.submitted", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
         },
         feedback: {
-            UNRESOLVED: { label: "Unresolved", className: "border-amber-200 bg-amber-50 text-amber-700" },
-            RESPONDED: { label: "Responded", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+            UNRESOLVED: { labelKey: "common.status.feedback.unresolved", className: "border-amber-200 bg-amber-50 text-amber-700" },
+            RESPONDED: { labelKey: "common.status.feedback.responded", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
         },
     };
 
     return maps[kind][normalizedValue] ?? {
-        label: fallbackLabel(value),
+        labelKey: "",
         className: "border-slate-200 bg-slate-50 text-slate-700",
     };
 }
 
 export default function StatusBadge({ kind, value }: StatusBadgeProps) {
+    const { t } = useTranslation("common");
     const meta = getBadgeMeta(kind, value);
+    const label = meta.labelKey ? t(meta.labelKey) : fallbackLabel(value) || t("common.state.unknown");
 
     return (
         <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${meta.className}`}>
-            {meta.label}
+            {label}
         </span>
     );
 }
