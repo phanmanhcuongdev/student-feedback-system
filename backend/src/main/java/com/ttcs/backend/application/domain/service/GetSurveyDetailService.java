@@ -27,7 +27,7 @@ public class GetSurveyDetailService implements GetSurveyDetailUseCase {
     private final SaveSurveyRecipientPort saveSurveyRecipientPort;
 
     @Override
-    public SurveyDetailResult getSurveyDetail(Integer surveyId, Integer studentId) {
+    public SurveyDetailResult getSurveyDetail(Integer surveyId, Integer studentId, String targetLang) {
         Survey survey = loadSurveyPort.loadById(surveyId)
                 .orElseThrow(() -> new SurveyNotFoundException(surveyId));
         SurveyRecipient recipient = loadSurveyRecipientPort.loadBySurveyIdAndStudentId(surveyId, studentId)
@@ -48,10 +48,11 @@ public class GetSurveyDetailService implements GetSurveyDetailUseCase {
         }
 
         List<Question> questions = loadQuestionPort.loadBySurveyId(surveyId);
+        String requestedLang = normalizeLanguage(targetLang);
         List<QuestionItemResult> questionItems = questions.stream()
                 .map(q -> new QuestionItemResult(
                         q.getId(),
-                        q.getContent(),
+                        displayContent(q, requestedLang),
                         q.getType()
                 ))
                 .toList();
@@ -65,5 +66,28 @@ public class GetSurveyDetailService implements GetSurveyDetailUseCase {
                 survey.status(),
                 questionItems
         );
+    }
+
+    private String displayContent(Question question, String requestedLang) {
+        if (requestedLang.equals(normalizeLanguage(question.getSourceLang()))) {
+            return question.getContent();
+        }
+        if (question.isAutoTranslated()
+                && requestedLang.equals(normalizeLanguage(question.getTargetLang()))
+                && !isBlank(question.getContentTranslated())) {
+            return question.getContentTranslated();
+        }
+        return question.getContent();
+    }
+
+    private String normalizeLanguage(String value) {
+        if (isBlank(value)) {
+            return "en";
+        }
+        return value.split(",")[0].trim().split("-")[0].toLowerCase();
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }

@@ -3,7 +3,10 @@ import { useTranslation } from "react-i18next";
 import { createFeedback, getStudentFeedback } from "../../../api/feedbackApi";
 import { getApiErrorMessage } from "../../../api/apiError";
 import PaginationControls from "../../../components/data-view/PaginationControls";
+import SmartTextDisplay from "../../../components/ui/SmartTextDisplay";
 import type { FeedbackResponse, StudentFeedback } from "../../../types/feedback";
+
+const TRANSLATION_POLL_INTERVAL_MS = 5000;
 
 function formatDate(date: string, language: string) {
     return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", {
@@ -13,6 +16,10 @@ function formatDate(date: string, language: string) {
         hour: "2-digit",
         minute: "2-digit",
     }).format(new Date(date));
+}
+
+function hasPendingTranslations(items: StudentFeedback[]) {
+    return items.some((item) => !item.isAutoTranslated && !item.contentTranslated);
 }
 
 export default function FeedbackPage() {
@@ -27,9 +34,11 @@ export default function FeedbackPage() {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
-    async function loadFeedback() {
+    async function loadFeedback(options: { silent?: boolean } = {}) {
         try {
-            setLoading(true);
+            if (!options.silent) {
+                setLoading(true);
+            }
             setError("");
             const response = await getStudentFeedback({
                 page,
@@ -46,13 +55,27 @@ export default function FeedbackPage() {
         } catch (requestError) {
             setError(getApiErrorMessage(requestError, t("feedback:feedback.student.errors.load")));
         } finally {
-            setLoading(false);
+            if (!options.silent) {
+                setLoading(false);
+            }
         }
     }
 
     useEffect(() => {
         void loadFeedback();
     }, [page]);
+
+    useEffect(() => {
+        if (!hasPendingTranslations(items)) {
+            return;
+        }
+
+        const intervalId = window.setInterval(() => {
+            void loadFeedback({ silent: true });
+        }, TRANSLATION_POLL_INTERVAL_MS);
+
+        return () => window.clearInterval(intervalId);
+    }, [items, page]);
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -178,7 +201,13 @@ export default function FeedbackPage() {
                                                     {formatDate(item.createdAt, i18n.language)}
                                                 </span>
                                             </div>
-                                            <p className="text-sm leading-6 text-slate-600">{item.content}</p>
+                                            <SmartTextDisplay
+                                                displayContent={item.displayContent}
+                                                originalContent={item.originalContent}
+                                                contentTranslated={item.contentTranslated}
+                                                isAutoTranslated={item.isAutoTranslated}
+                                                sourceLang={item.sourceLang}
+                                            />
                                             <div className="mt-5 space-y-3 border-t border-slate-200 pt-4">
                                                 <div className="flex items-center justify-between gap-3">
                                                     <h4 className="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-500">

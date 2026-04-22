@@ -29,7 +29,7 @@ class GetSurveyDetailServiceTest {
         Survey survey = new Survey(1, "Draft Survey", "Desc", LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(3), 1, false, SurveyLifecycleState.DRAFT);
         GetSurveyDetailService service = service(survey, false);
 
-        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyDetail(1, 3));
+        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyDetail(1, 3, "vi"));
     }
 
     @Test
@@ -37,7 +37,7 @@ class GetSurveyDetailServiceTest {
         Survey survey = new Survey(1, "Archived Survey", "Desc", LocalDateTime.now().minusDays(4), LocalDateTime.now().minusDays(1), 1, false, SurveyLifecycleState.ARCHIVED);
         GetSurveyDetailService service = service(survey, false);
 
-        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyDetail(1, 3));
+        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyDetail(1, 3, "vi"));
     }
 
     @Test
@@ -45,11 +45,12 @@ class GetSurveyDetailServiceTest {
         Survey survey = new Survey(1, "Published Survey", "Desc", LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(2), 1, false, SurveyLifecycleState.PUBLISHED);
         GetSurveyDetailService service = service(survey, false);
 
-        var result = service.getSurveyDetail(1, 3);
+        var result = service.getSurveyDetail(1, 3, "vi");
 
         assertEquals(1, result.id());
         assertEquals("Published Survey", result.title());
         assertEquals(1, result.questions().size());
+        assertEquals("Danh gia giang vien", result.questions().getFirst().content());
     }
 
     private GetSurveyDetailService service(Survey survey, boolean hidden) {
@@ -97,7 +98,17 @@ class GetSurveyDetailServiceTest {
     private static final class QuestionPort implements LoadQuestionPort {
         @Override
         public List<Question> loadBySurveyId(Integer surveyId) {
-            return List.of(new Question(1, surveyId, "Rate the lecturer", QuestionType.RATING));
+            return List.of(new Question(
+                    1,
+                    surveyId,
+                    "Rate the lecturer",
+                    "Danh gia giang vien",
+                    "en",
+                    true,
+                    "vi",
+                    QuestionType.RATING,
+                    null
+            ));
         }
     }
 

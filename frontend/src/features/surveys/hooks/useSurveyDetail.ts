@@ -5,7 +5,7 @@ import { getSurveyDetail } from "../../../api/surveyApi";
 import type { SurveyDetail } from "../../../types/surveyDetail";
 
 export function useSurveyDetail(surveyId: number) {
-    const { t } = useTranslation(["surveys"]);
+    const { i18n, t } = useTranslation(["surveys"]);
     const [survey, setSurvey] = useState<SurveyDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -30,7 +30,7 @@ export function useSurveyDetail(surveyId: number) {
         }
 
         fetchSurveyDetail();
-    }, [surveyId, t]);
+    }, [surveyId, i18n.resolvedLanguage, t]);
 
     return {
         survey,

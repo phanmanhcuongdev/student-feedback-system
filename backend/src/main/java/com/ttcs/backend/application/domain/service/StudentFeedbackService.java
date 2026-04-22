@@ -29,10 +29,14 @@ import com.ttcs.backend.application.port.out.StaffFeedbackSearchItem;
 import com.ttcs.backend.application.port.out.StudentFeedbackSearchItem;
 import com.ttcs.backend.application.port.out.SaveFeedbackPort;
 import com.ttcs.backend.application.port.out.SaveFeedbackResponsePort;
+import com.ttcs.backend.application.port.out.ai.SendTranslationTaskPort;
+import com.ttcs.backend.application.port.out.ai.TranslationTaskCommand;
 import com.ttcs.backend.application.port.out.auth.LoadUserByIdPort;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -53,6 +57,7 @@ public class StudentFeedbackService implements
     private final LoadUserByIdPort loadUserByIdPort;
     private final SaveFeedbackPort saveFeedbackPort;
     private final SaveFeedbackResponsePort saveFeedbackResponsePort;
+    private final SendTranslationTaskPort sendTranslationTaskPort;
 
     @Override
     @Transactional
@@ -69,14 +74,26 @@ public class StudentFeedbackService implements
             return CreateFeedbackResult.fail("STUDENT_NOT_FOUND", "Student profile not found.");
         }
 
+        String contentOriginal = command.content();
+        String content = contentOriginal.trim();
         Feedback feedback = new Feedback(
                 null,
                 student,
                 command.title().trim(),
-                command.content().trim(),
+                content,
+                contentOriginal,
+                null,
+                null,
+                false,
                 LocalDateTime.now()
         );
-        saveFeedbackPort.save(feedback);
+        Feedback savedFeedback = saveFeedbackPort.save(feedback);
+        sendTranslationTaskAfterCommit(new TranslationTaskCommand(
+                savedFeedback.getId(),
+                "FEEDBACK",
+                savedFeedback.getContentOriginal(),
+                normalizeLanguage(command.targetLang())
+        ));
         return CreateFeedbackResult.ok();
     }
 
@@ -100,6 +117,11 @@ public class StudentFeedbackService implements
                                 item.id(),
                                 item.title(),
                                 item.content(),
+                                item.contentOriginal(),
+                                item.contentTranslated(),
+                                item.sourceLang(),
+                                item.targetLang(),
+                                item.isAutoTranslated(),
                                 item.createdAt(),
                                 responsesByFeedbackId.getOrDefault(item.id(), List.of())
                         ))
@@ -136,6 +158,11 @@ public class StudentFeedbackService implements
                                 item.studentEmail(),
                                 item.title(),
                                 item.content(),
+                                item.contentOriginal(),
+                                item.contentTranslated(),
+                                item.sourceLang(),
+                                item.targetLang(),
+                                item.isAutoTranslated(),
                                 item.createdAt(),
                                 responsesByFeedbackId.getOrDefault(item.id(), List.of())
                         ))
@@ -183,6 +210,28 @@ public class StudentFeedbackService implements
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private String normalizeLanguage(String value) {
+        if (isBlank(value)) {
+            return "vi";
+        }
+        String language = value.split(",")[0].trim().split("-")[0].toLowerCase();
+        return "en".equals(language) ? "en" : "vi";
+    }
+
+    private void sendTranslationTaskAfterCommit(TranslationTaskCommand command) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            sendTranslationTaskPort.send(command);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                sendTranslationTaskPort.send(command);
+            }
+        });
     }
 
     private Map<Integer, List<FeedbackResponseResult>> mapResponsesByFeedbackIds(List<Integer> ids) {

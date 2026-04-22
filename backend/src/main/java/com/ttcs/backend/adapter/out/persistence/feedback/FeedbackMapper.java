@@ -14,6 +14,10 @@ public final class FeedbackMapper {
                 StudentMapper.toDomain(entity.getStudent()),
                 entity.getTitle(),
                 entity.getContent(),
+                entity.getContentOriginal(),
+                entity.getContentTranslated(),
+                entity.getSourceLang(),
+                entity.isAutoTranslated(),
                 entity.getCreatedAt()
         );
     }

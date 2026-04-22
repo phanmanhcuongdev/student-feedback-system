@@ -12,11 +12,14 @@ import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
 import PageHeader from "../../../components/ui/PageHeader";
 import SectionCard from "../../../components/ui/SectionCard";
+import SmartTextDisplay from "../../../components/ui/SmartTextDisplay";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { darkActionButtonClass, darkActionButtonStyle } from "../../../components/ui/buttonStyles";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { getAllFeedback, respondToFeedback } from "../../../api/feedbackApi";
 import type { FeedbackResponse, StaffFeedback } from "../../../types/feedback";
+
+const TRANSLATION_POLL_INTERVAL_MS = 5000;
 
 function formatDate(date: string, language: string) {
     return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", {
@@ -30,6 +33,10 @@ function formatDate(date: string, language: string) {
 
 function getFeedbackStatus(item: StaffFeedback) {
     return item.responses.length > 0 ? "RESPONDED" : "UNRESOLVED";
+}
+
+function hasPendingTranslations(items: StaffFeedback[]) {
+    return items.some((item) => !item.isAutoTranslated && !item.contentTranslated);
 }
 
 export default function ManageFeedbackPage() {
@@ -52,9 +59,11 @@ export default function ManageFeedbackPage() {
 
     const pageSize = 10;
 
-    const loadFeedback = useCallback(async () => {
+    const loadFeedback = useCallback(async (options: { silent?: boolean } = {}) => {
         try {
-            setLoading(true);
+            if (!options.silent) {
+                setLoading(true);
+            }
             setError("");
             const response = await getAllFeedback({
                 keyword: debouncedQuery || undefined,
@@ -83,7 +92,9 @@ export default function ManageFeedbackPage() {
         } catch (requestError) {
             setError(getApiErrorMessage(requestError, t("feedback:feedback.staff.errors.load")));
         } finally {
-            setLoading(false);
+            if (!options.silent) {
+                setLoading(false);
+            }
         }
     }, [dateFilter, debouncedQuery, page, sortBy, sortDir, statusFilter]);
 
@@ -98,6 +109,18 @@ export default function ManageFeedbackPage() {
     useEffect(() => {
         void loadFeedback();
     }, [loadFeedback]);
+
+    useEffect(() => {
+        if (!hasPendingTranslations(items)) {
+            return;
+        }
+
+        const intervalId = window.setInterval(() => {
+            void loadFeedback({ silent: true });
+        }, TRANSLATION_POLL_INTERVAL_MS);
+
+        return () => window.clearInterval(intervalId);
+    }, [items, loadFeedback]);
 
     async function handleRespond(feedbackId: number) {
         const content = drafts[feedbackId]?.trim() ?? "";
@@ -155,7 +178,7 @@ export default function ManageFeedbackPage() {
             render: (item) => (
                 <div>
                     <p className="font-semibold text-slate-900">{item.title}</p>
-                    <p className="mt-1 line-clamp-2 max-w-md text-sm text-slate-500">{item.content}</p>
+                    <p className="mt-1 line-clamp-2 max-w-md text-sm text-slate-500">{item.displayContent}</p>
                 </div>
             ),
         },
@@ -245,7 +268,15 @@ export default function ManageFeedbackPage() {
                                             </div>
                                             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{formatDate(item.createdAt, i18n.language)}</span>
                                         </div>
-                                        <p className="mt-4 text-sm leading-6 text-slate-600">{item.content}</p>
+                                        <div className="mt-4">
+                                            <SmartTextDisplay
+                                                displayContent={item.displayContent}
+                                                originalContent={item.originalContent}
+                                                contentTranslated={item.contentTranslated}
+                                                isAutoTranslated={item.isAutoTranslated}
+                                                sourceLang={item.sourceLang}
+                                            />
+                                        </div>
                                         <button type="button" onClick={() => setActiveFeedbackId(item.id)} className="mt-5 inline-flex w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
                                             {t("feedback:feedback.staff.buttons.openQueueItem")}
                                         </button>
@@ -271,7 +302,14 @@ export default function ManageFeedbackPage() {
                                         <div className="space-y-5">
                                             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                                                 <h3 className="text-xl font-bold text-slate-950">{activeItem.title}</h3>
-                                                <p className="mt-3 text-sm leading-6 text-slate-600">{activeItem.content}</p>
+                                                <SmartTextDisplay
+                                                    className="mt-3"
+                                                    displayContent={activeItem.displayContent}
+                                                    originalContent={activeItem.originalContent}
+                                                    contentTranslated={activeItem.contentTranslated}
+                                                    isAutoTranslated={activeItem.isAutoTranslated}
+                                                    sourceLang={activeItem.sourceLang}
+                                                />
                                             </div>
 
                                             <SectionCard title={t("feedback:feedback.staff.responses.title")} description={t("feedback:feedback.staff.responses.description")}>

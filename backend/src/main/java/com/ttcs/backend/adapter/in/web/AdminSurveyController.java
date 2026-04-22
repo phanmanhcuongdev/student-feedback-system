@@ -40,6 +40,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -122,7 +123,10 @@ public class AdminSurveyController {
     }
 
     @PostMapping
-    public ResponseEntity<CreateSurveyResponse> createSurvey(@RequestBody CreateSurveyRequest request) {
+    public ResponseEntity<CreateSurveyResponse> createSurvey(
+            @RequestBody CreateSurveyRequest request,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
+    ) {
         Integer adminId = currentIdentityProvider.currentUserId();
 
         List<CreateQuestionCommand> questionCommands = request.questions() == null ? List.of() :
@@ -138,7 +142,8 @@ public class AdminSurveyController {
                 adminId,
                 questionCommands,
                 parseScope(request.recipientScope()),
-                request.recipientDepartmentId()
+                request.recipientDepartmentId(),
+                acceptLanguage
         );
 
         Integer surveyId = createSurveyUseCase.createSurvey(command);
@@ -154,7 +159,8 @@ public class AdminSurveyController {
     @PutMapping("/{surveyId}")
     public ResponseEntity<SurveyManagementActionResponse> updateSurvey(
             @PathVariable Integer surveyId,
-            @RequestBody UpdateSurveyRequest request
+            @RequestBody UpdateSurveyRequest request,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
     ) {
         List<UpdateSurveyQuestionCommand> questions = request.questions() == null ? List.of() :
                 request.questions().stream()
@@ -170,7 +176,8 @@ public class AdminSurveyController {
                         request.endDate(),
                         questions,
                         parseScope(request.recipientScope()),
-                        request.recipientDepartmentId()
+                        request.recipientDepartmentId(),
+                        acceptLanguage
                 )
         );
         return ResponseEntity.ok(toActionResponse(result));

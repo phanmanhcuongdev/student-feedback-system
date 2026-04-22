@@ -7,6 +7,11 @@ public record StudentFeedbackResult(
         Integer id,
         String title,
         String content,
+        String contentOriginal,
+        String contentTranslated,
+        String sourceLang,
+        String targetLang,
+        boolean isAutoTranslated,
         LocalDateTime createdAt,
         List<FeedbackResponseResult> responses
 ) {
