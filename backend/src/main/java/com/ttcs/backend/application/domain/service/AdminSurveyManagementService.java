@@ -48,16 +48,19 @@ import com.ttcs.backend.application.port.out.SaveSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.SaveSurveyPort;
 import com.ttcs.backend.application.port.out.admin.ManageSurveyPort;
 import com.ttcs.backend.application.port.out.admin.ManageSurveysQuery;
+import com.ttcs.backend.application.port.out.ai.SendTranslationTaskPort;
+import com.ttcs.backend.application.port.out.ai.TranslationTaskCommand;
 import com.ttcs.backend.common.UseCase;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @UseCase
-@RequiredArgsConstructor
 public class AdminSurveyManagementService implements
         GetManagedSurveysUseCase,
         GetManagedSurveyDetailUseCase,
@@ -84,6 +87,78 @@ public class AdminSurveyManagementService implements
     private final SaveAuditLogPort saveAuditLogPort;
     private final SaveNotificationPort saveNotificationPort;
     private final ManageSurveyPort manageSurveyPort;
+    private final SendTranslationTaskPort sendTranslationTaskPort;
+
+    @Autowired
+    public AdminSurveyManagementService(
+            LoadSurveyPort loadSurveyPort,
+            SaveSurveyPort saveSurveyPort,
+            LoadQuestionPort loadQuestionPort,
+            SaveQuestionPort saveQuestionPort,
+            LoadSurveyAssignmentPort loadSurveyAssignmentPort,
+            SaveSurveyAssignmentPort saveSurveyAssignmentPort,
+            LoadSurveyResponsePort loadSurveyResponsePort,
+            LoadSurveyRecipientPort loadSurveyRecipientPort,
+            SaveSurveyRecipientPort saveSurveyRecipientPort,
+            LoadSurveyRecipientCandidatePort loadSurveyRecipientCandidatePort,
+            LoadStudentPort loadStudentPort,
+            SaveAuditLogPort saveAuditLogPort,
+            SaveNotificationPort saveNotificationPort,
+            ManageSurveyPort manageSurveyPort,
+            SendTranslationTaskPort sendTranslationTaskPort
+    ) {
+        this.loadSurveyPort = loadSurveyPort;
+        this.saveSurveyPort = saveSurveyPort;
+        this.loadQuestionPort = loadQuestionPort;
+        this.saveQuestionPort = saveQuestionPort;
+        this.loadSurveyAssignmentPort = loadSurveyAssignmentPort;
+        this.saveSurveyAssignmentPort = saveSurveyAssignmentPort;
+        this.loadSurveyResponsePort = loadSurveyResponsePort;
+        this.loadSurveyRecipientPort = loadSurveyRecipientPort;
+        this.saveSurveyRecipientPort = saveSurveyRecipientPort;
+        this.loadSurveyRecipientCandidatePort = loadSurveyRecipientCandidatePort;
+        this.loadStudentPort = loadStudentPort;
+        this.saveAuditLogPort = saveAuditLogPort;
+        this.saveNotificationPort = saveNotificationPort;
+        this.manageSurveyPort = manageSurveyPort;
+        this.sendTranslationTaskPort = sendTranslationTaskPort;
+    }
+
+    public AdminSurveyManagementService(
+            LoadSurveyPort loadSurveyPort,
+            SaveSurveyPort saveSurveyPort,
+            LoadQuestionPort loadQuestionPort,
+            SaveQuestionPort saveQuestionPort,
+            LoadSurveyAssignmentPort loadSurveyAssignmentPort,
+            SaveSurveyAssignmentPort saveSurveyAssignmentPort,
+            LoadSurveyResponsePort loadSurveyResponsePort,
+            LoadSurveyRecipientPort loadSurveyRecipientPort,
+            SaveSurveyRecipientPort saveSurveyRecipientPort,
+            LoadSurveyRecipientCandidatePort loadSurveyRecipientCandidatePort,
+            LoadStudentPort loadStudentPort,
+            SaveAuditLogPort saveAuditLogPort,
+            SaveNotificationPort saveNotificationPort,
+            ManageSurveyPort manageSurveyPort
+    ) {
+        this(
+                loadSurveyPort,
+                saveSurveyPort,
+                loadQuestionPort,
+                saveQuestionPort,
+                loadSurveyAssignmentPort,
+                saveSurveyAssignmentPort,
+                loadSurveyResponsePort,
+                loadSurveyRecipientPort,
+                saveSurveyRecipientPort,
+                loadSurveyRecipientCandidatePort,
+                loadStudentPort,
+                saveAuditLogPort,
+                saveNotificationPort,
+                manageSurveyPort,
+                command -> {
+                }
+        );
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -226,7 +301,7 @@ public class AdminSurveyManagementService implements
         );
         saveSurveyPort.save(updatedSurvey);
 
-        saveQuestionPort.replaceSurveyQuestions(
+        List<Question> savedQuestions = saveQuestionPort.replaceSurveyQuestionsReturning(
                 command.surveyId(),
                 command.questions().stream()
                         .map(question -> new Question(
@@ -238,6 +313,7 @@ public class AdminSurveyManagementService implements
                         ))
                         .toList()
         );
+        sendQuestionTranslationTasksAfterCommit(savedQuestions, normalizeLanguage(command.targetLang()));
 
         saveSurveyAssignmentPort.replaceAssignments(
                 command.surveyId(),
@@ -611,6 +687,36 @@ public class AdminSurveyManagementService implements
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private void sendQuestionTranslationTasksAfterCommit(List<Question> questions, String targetLang) {
+        if (questions == null || questions.isEmpty()) {
+            return;
+        }
+        Runnable dispatch = () -> questions.forEach(question -> sendTranslationTaskPort.send(new TranslationTaskCommand(
+                question.getId(),
+                "QUESTION",
+                question.getContent(),
+                targetLang
+        )));
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            dispatch.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                dispatch.run();
+            }
+        });
+    }
+
+    private String normalizeLanguage(String value) {
+        if (isBlank(value)) {
+            return "vi";
+        }
+        String language = value.split(",")[0].trim().split("-")[0].toLowerCase();
+        return "en".equals(language) ? "en" : "vi";
     }
 
     private String visibilityState(boolean hidden) {

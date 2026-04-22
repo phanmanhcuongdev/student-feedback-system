@@ -23,15 +23,27 @@ public class QuestionPersistenceAdapter implements LoadQuestionPort, com.ttcs.ba
 
     @Override
     public void saveAll(List<Question> questions) {
+        saveAllReturning(questions);
+    }
+
+    @Override
+    public List<Question> saveAllReturning(List<Question> questions) {
         List<QuestionEntity> entities = questions.stream()
                 .map(QuestionMapper::toEntity)
                 .toList();
-        questionRepository.saveAll(entities);
+        return questionRepository.saveAll(entities).stream()
+                .map(QuestionMapper::toDomain)
+                .toList();
     }
 
     @Override
     public void replaceSurveyQuestions(Integer surveyId, List<Question> questions) {
+        replaceSurveyQuestionsReturning(surveyId, questions);
+    }
+
+    @Override
+    public List<Question> replaceSurveyQuestionsReturning(Integer surveyId, List<Question> questions) {
         questionRepository.deleteBySurvey_Id(surveyId);
-        saveAll(questions);
+        return saveAllReturning(questions);
     }
 }

@@ -35,6 +35,26 @@ public class FeedbackEntity {
     @Nationalized
     private String content;
 
+    @Column(name = "content_original")
+    @Nationalized
+    private String contentOriginal;
+
+    @Column(name = "content_translated")
+    @Nationalized
+    private String contentTranslated;
+
+    @Column(name = "source_lang", length = 10)
+    private String sourceLang;
+
+    @Column(name = "is_auto_translated", nullable = false)
+    private boolean autoTranslated;
+
+    @Column(name = "model_info", length = 100)
+    private String modelInfo;
+
+    @Column(name = "target_lang", length = 10)
+    private String targetLang;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

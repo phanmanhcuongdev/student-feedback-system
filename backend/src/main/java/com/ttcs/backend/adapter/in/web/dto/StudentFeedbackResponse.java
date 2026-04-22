@@ -6,7 +6,10 @@ import java.util.List;
 public record StudentFeedbackResponse(
         Integer id,
         String title,
-        String content,
+        String displayContent,
+        String originalContent,
+        boolean isAutoTranslated,
+        String sourceLang,
         LocalDateTime createdAt,
         List<FeedbackResponseView> responses
 ) {

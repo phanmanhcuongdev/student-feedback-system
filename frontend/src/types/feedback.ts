@@ -1,3 +1,11 @@
+export interface TranslationContent {
+    displayContent: string;
+    originalContent: string | null;
+    contentTranslated: string | null;
+    isAutoTranslated: boolean;
+    sourceLang: string;
+}
+
 export type FeedbackResponse = {
     id: number;
     responderEmail: string;
@@ -6,21 +14,19 @@ export type FeedbackResponse = {
     createdAt: string;
 };
 
-export type StudentFeedback = {
+export type StudentFeedback = TranslationContent & {
     id: number;
     title: string;
-    content: string;
     createdAt: string;
     responses: FeedbackResponse[];
 };
 
-export type StaffFeedback = {
+export type StaffFeedback = TranslationContent & {
     id: number;
     studentId: number;
     studentName: string;
     studentEmail: string | null;
     title: string;
-    content: string;
     createdAt: string;
     responses: FeedbackResponse[];
 };

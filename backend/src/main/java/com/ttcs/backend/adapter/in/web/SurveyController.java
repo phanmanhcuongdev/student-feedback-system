@@ -64,10 +64,13 @@ public class SurveyController {
     }
 
     @GetMapping("/{id}/detail")
-    public ResponseEntity<SurveyDetailResponse> getSurveyDetail(@PathVariable("id") Integer surveyId) {
+    public ResponseEntity<SurveyDetailResponse> getSurveyDetail(
+            @PathVariable("id") Integer surveyId,
+            @RequestHeader(name = "Accept-Language", required = false) String acceptLanguage
+    ) {
         currentIdentityProvider.ensureActiveStudentAccount();
         return ResponseEntity.ok(toSurveyDetailResponse(
-                getSurveyDetailUseCase.getSurveyDetail(surveyId, currentIdentityProvider.currentStudentProfileId())
+                getSurveyDetailUseCase.getSurveyDetail(surveyId, currentIdentityProvider.currentStudentProfileId(), acceptLanguage)
         ));
     }
 

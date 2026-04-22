@@ -54,6 +54,10 @@ class FeedbackPersistenceAdapterTest {
                 "student.active@university.edu",
                 "Navigation issue",
                 "Please simplify the sidebar.",
+                "Please simplify the sidebar.",
+                "Vui long don gian hoa thanh ben.",
+                "en",
+                true,
                 Timestamp.valueOf(LocalDateTime.of(2026, 4, 20, 10, 0))
         }));
         when(countQuery.getSingleResult()).thenReturn(1);

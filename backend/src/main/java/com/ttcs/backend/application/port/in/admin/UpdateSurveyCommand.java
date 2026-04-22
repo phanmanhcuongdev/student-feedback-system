@@ -13,6 +13,19 @@ public record UpdateSurveyCommand(
         LocalDateTime endDate,
         List<UpdateSurveyQuestionCommand> questions,
         SurveyRecipientScope recipientScope,
-        Integer recipientDepartmentId
+        Integer recipientDepartmentId,
+        String targetLang
 ) {
+    public UpdateSurveyCommand(
+            Integer surveyId,
+            String title,
+            String description,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            List<UpdateSurveyQuestionCommand> questions,
+            SurveyRecipientScope recipientScope,
+            Integer recipientDepartmentId
+    ) {
+        this(surveyId, title, description, startDate, endDate, questions, recipientScope, recipientDepartmentId, null);
+    }
 }

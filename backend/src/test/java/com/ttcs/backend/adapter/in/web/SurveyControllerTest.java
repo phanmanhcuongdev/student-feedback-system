@@ -81,7 +81,7 @@ class SurveyControllerTest {
 
     private static final class StubGetSurveyDetailUseCase implements GetSurveyDetailUseCase {
         @Override
-        public SurveyDetailResult getSurveyDetail(Integer surveyId, Integer studentId) {
+        public SurveyDetailResult getSurveyDetail(Integer surveyId, Integer studentId, String targetLang) {
             return new SurveyDetailResult(
                     surveyId,
                     "Survey",

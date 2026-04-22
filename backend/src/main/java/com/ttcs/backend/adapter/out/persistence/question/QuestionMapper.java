@@ -12,6 +12,10 @@ public class QuestionMapper {
                 entity.getId(),
                 entity.getSurvey().getId(),
                 entity.getContent(),
+                entity.getContentTranslated(),
+                entity.getSourceLang(),
+                entity.isAutoTranslated(),
+                entity.getTargetLang(),
                 QuestionType.valueOf(entity.getType()),
                 entity.getQuestionBankEntryId()
         );
@@ -23,6 +27,10 @@ public class QuestionMapper {
         QuestionEntity entity = new QuestionEntity();
         entity.setId(domain.getId());
         entity.setContent(domain.getContent());
+        entity.setContentTranslated(domain.getContentTranslated());
+        entity.setSourceLang(domain.getSourceLang());
+        entity.setAutoTranslated(domain.isAutoTranslated());
+        entity.setTargetLang(domain.getTargetLang());
         entity.setType(QuestionTypeMapper.toEntity(domain.getType()));
         entity.setQuestionBankEntryId(domain.getQuestionBankEntryId());
 
