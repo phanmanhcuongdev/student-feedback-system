@@ -65,6 +65,11 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
                     f.feedback_id,
                     f.title,
                     f.content,
+                    COALESCE(f.content_original, f.content) AS content_original,
+                    f.content_translated,
+                    f.source_lang,
+                    f.target_lang,
+                    f.is_auto_translated,
                     f.created_at
                 FROM [Feedback] f
                 WHERE f.student_id = :studentId
@@ -101,6 +106,11 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
                     u.email,
                     f.title,
                     f.content,
+                    COALESCE(f.content_original, f.content) AS content_original,
+                    f.content_translated,
+                    f.source_lang,
+                    f.target_lang,
+                    f.is_auto_translated,
                     f.created_at
                 """
                 + STAFF_FEEDBACK_FROM
@@ -136,6 +146,10 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
         entity.setId(feedback.getId());
         entity.setTitle(feedback.getTitle());
         entity.setContent(feedback.getContent());
+        entity.setContentOriginal(feedback.getContentOriginal());
+        entity.setContentTranslated(feedback.getContentTranslated());
+        entity.setSourceLang(feedback.getSourceLang());
+        entity.setAutoTranslated(feedback.isAutoTranslated());
         entity.setCreatedAt(feedback.getCreatedAt());
 
         Integer studentId = feedback.getStudent() != null ? feedback.getStudent().getId() : null;
@@ -221,7 +235,8 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
     }
 
     private StudentFeedbackSearchItem toStudentSearchItem(Object[] row) {
-        Object createdAt = row[3];
+        boolean includesTargetLang = row.length > 8;
+        Object createdAt = row[includesTargetLang ? 8 : 7];
         LocalDateTime createdDateTime = createdAt instanceof java.sql.Timestamp timestamp
                 ? timestamp.toLocalDateTime()
                 : (LocalDateTime) createdAt;
@@ -229,12 +244,18 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
                 ((Number) row[0]).intValue(),
                 (String) row[1],
                 (String) row[2],
+                (String) row[3],
+                (String) row[4],
+                (String) row[5],
+                includesTargetLang ? (String) row[6] : null,
+                toBoolean(row[includesTargetLang ? 7 : 6]),
                 createdDateTime
         );
     }
 
     private StaffFeedbackSearchItem toSearchItem(Object[] row) {
-        Object createdAt = row[6];
+        boolean includesTargetLang = row.length > 11;
+        Object createdAt = row[includesTargetLang ? 11 : 10];
         LocalDateTime createdDateTime = createdAt instanceof java.sql.Timestamp timestamp
                 ? timestamp.toLocalDateTime()
                 : (LocalDateTime) createdAt;
@@ -245,7 +266,22 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
                 (String) row[3],
                 (String) row[4],
                 (String) row[5],
+                (String) row[6],
+                (String) row[7],
+                (String) row[8],
+                includesTargetLang ? (String) row[9] : null,
+                toBoolean(row[includesTargetLang ? 10 : 9]),
                 createdDateTime
         );
+    }
+
+    private boolean toBoolean(Object value) {
+        if (value instanceof Boolean booleanValue) {
+            return booleanValue;
+        }
+        if (value instanceof Number numberValue) {
+            return numberValue.intValue() != 0;
+        }
+        return false;
     }
 }

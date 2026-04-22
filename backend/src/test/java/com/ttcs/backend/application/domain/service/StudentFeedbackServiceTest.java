@@ -22,6 +22,8 @@ import com.ttcs.backend.application.port.out.StudentFeedbackSearchItem;
 import com.ttcs.backend.application.port.out.StudentFeedbackSearchPage;
 import com.ttcs.backend.application.port.out.SaveFeedbackPort;
 import com.ttcs.backend.application.port.out.SaveFeedbackResponsePort;
+import com.ttcs.backend.application.port.out.ai.SendTranslationTaskPort;
+import com.ttcs.backend.application.port.out.ai.TranslationTaskCommand;
 import com.ttcs.backend.application.port.out.auth.LoadUserByIdPort;
 import org.junit.jupiter.api.Test;
 
@@ -41,6 +43,7 @@ class StudentFeedbackServiceTest {
     void shouldCreateFeedbackWhenInputIsValid() {
         RecordingFeedbackPort feedbackPort = new RecordingFeedbackPort();
         RecordingFeedbackResponsePort responsePort = new RecordingFeedbackResponsePort();
+        RecordingTranslationTaskPort translationTaskPort = new RecordingTranslationTaskPort();
         Student student = student();
         StudentFeedbackService service = new StudentFeedbackService(
                 studentId -> Optional.of(student),
@@ -48,7 +51,8 @@ class StudentFeedbackServiceTest {
                 responsePort,
                 userId -> Optional.of(admin()),
                 feedbackPort,
-                responsePort
+                responsePort,
+                translationTaskPort
         );
 
         CreateFeedbackResult result = service.createFeedback(
@@ -58,6 +62,15 @@ class StudentFeedbackServiceTest {
         assertTrue(result.success());
         assertEquals("FEEDBACK_CREATED", result.code());
         assertEquals(1, feedbackPort.saved.size());
+        Feedback savedFeedback = feedbackPort.saved.getFirst();
+        assertEquals("Please simplify the sidebar.", savedFeedback.getContent());
+        assertEquals("Please simplify the sidebar.", savedFeedback.getContentOriginal());
+        assertFalse(savedFeedback.isAutoTranslated());
+        assertEquals(1, translationTaskPort.sent.size());
+        TranslationTaskCommand task = translationTaskPort.sent.getFirst();
+        assertEquals(savedFeedback.getId(), task.entityId());
+        assertEquals("FEEDBACK", task.entityType());
+        assertEquals(savedFeedback.getContentOriginal(), task.content());
     }
 
     @Test
@@ -70,7 +83,8 @@ class StudentFeedbackServiceTest {
                 responsePort,
                 userId -> Optional.of(admin()),
                 feedbackPort,
-                responsePort
+                responsePort,
+                new RecordingTranslationTaskPort()
         );
 
         CreateFeedbackResult result = service.createFeedback(
@@ -98,7 +112,8 @@ class StudentFeedbackServiceTest {
                 responsePort,
                 userId -> Optional.of(admin()),
                 feedbackPort,
-                responsePort
+                responsePort,
+                new RecordingTranslationTaskPort()
         );
 
         List<StudentFeedbackResult> result = service.getStudentFeedback(
@@ -126,7 +141,8 @@ class StudentFeedbackServiceTest {
                 responsePort,
                 userId -> Optional.of(admin()),
                 feedbackPort,
-                responsePort
+                responsePort,
+                new RecordingTranslationTaskPort()
         );
 
         RespondToFeedbackResult result = service.respond(
@@ -151,7 +167,8 @@ class StudentFeedbackServiceTest {
                 responsePort,
                 userId -> Optional.of(student.getUser()),
                 feedbackPort,
-                responsePort
+                responsePort,
+                new RecordingTranslationTaskPort()
         );
 
         RespondToFeedbackResult result = service.respond(
@@ -204,6 +221,10 @@ class StudentFeedbackServiceTest {
                             item.getId(),
                             item.getTitle(),
                             item.getContent(),
+                            item.getContentOriginal(),
+                            item.getContentTranslated(),
+                            item.getSourceLang(),
+                            item.isAutoTranslated(),
                             item.getCreatedAt()
                     ))
                     .toList();
@@ -227,10 +248,23 @@ class StudentFeedbackServiceTest {
                     feedback.getStudent(),
                     feedback.getTitle(),
                     feedback.getContent(),
+                    feedback.getContentOriginal(),
+                    feedback.getContentTranslated(),
+                    feedback.getSourceLang(),
+                    feedback.isAutoTranslated(),
                     feedback.getCreatedAt()
             );
             saved.add(savedFeedback);
             return savedFeedback;
+        }
+    }
+
+    private static final class RecordingTranslationTaskPort implements SendTranslationTaskPort {
+        private final List<TranslationTaskCommand> sent = new ArrayList<>();
+
+        @Override
+        public void send(TranslationTaskCommand command) {
+            sent.add(command);
         }
     }
 

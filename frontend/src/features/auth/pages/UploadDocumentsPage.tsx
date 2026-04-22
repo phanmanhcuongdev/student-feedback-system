@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { getOnboardingStatus, uploadDocuments } from "../../../api/authApi";
 import AuthShell from "../components/AuthShell";
@@ -9,6 +10,7 @@ import type { OnboardingStatusResponse } from "../../../types/auth";
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
 export default function UploadDocumentsPage() {
+    const { t } = useTranslation(["auth", "validation"]);
     const navigate = useNavigate();
     const { session, logout } = useAuth();
     const isRejectedSession = session?.studentStatus === "REJECTED";
@@ -39,7 +41,7 @@ export default function UploadDocumentsPage() {
 
         if (file.size > MAX_FILE_SIZE_BYTES) {
             assign(null);
-            setError(`${label} must not exceed 5MB.`);
+            setError(t("validation:validation.auth.fileMaxSize", { label, size: "5MB" }));
             return;
         }
 
@@ -54,7 +56,7 @@ export default function UploadDocumentsPage() {
                 setError("");
                 setStatus(await getOnboardingStatus());
             } catch (requestError) {
-                setError(getApiErrorMessage(requestError, "Unable to load your onboarding status right now."));
+                setError(getApiErrorMessage(requestError, t("auth:auth.uploadDocuments.errors.statusUnavailable")));
             } finally {
                 setStatusLoading(false);
             }
@@ -83,7 +85,7 @@ export default function UploadDocumentsPage() {
             return;
         }
         if (studentCard.size > MAX_FILE_SIZE_BYTES || nationalId.size > MAX_FILE_SIZE_BYTES) {
-            setError("Each uploaded file must not exceed 5MB.");
+            setError(t("validation:validation.auth.eachFileMaxSize", { size: "5MB" }));
             return;
         }
 
@@ -94,7 +96,7 @@ export default function UploadDocumentsPage() {
         try {
             const response = await uploadDocuments(studentCard, nationalId);
             if (!response.success) {
-                setError(response.message || "Upload failed");
+                setError(response.message || t("auth:auth.uploadDocuments.errors.failed"));
                 return;
             }
 
@@ -104,12 +106,12 @@ export default function UploadDocumentsPage() {
                 replace: true,
                 state: {
                     notice: isRejectedSession
-                        ? "Documents resubmitted successfully. Your account is back in the administrator review queue."
-                        : "Documents uploaded successfully. Your account is now pending administrator approval.",
+                        ? t("auth:auth.uploadDocuments.notices.resubmitted")
+                        : t("auth:auth.uploadDocuments.notices.uploaded"),
                 },
             });
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to upload your documents right now."));
+            setError(getApiErrorMessage(requestError, t("auth:auth.uploadDocuments.errors.unavailable")));
         } finally {
             setSubmitting(false);
         }
@@ -117,66 +119,66 @@ export default function UploadDocumentsPage() {
 
     return (
         <AuthShell
-            eyebrow={isRejectedSession ? "Document Resubmission" : "Document Upload"}
+            eyebrow={isRejectedSession ? t("auth:auth.uploadDocuments.eyebrow.resubmission") : t("auth:auth.uploadDocuments.eyebrow.upload")}
             title={isRejectedSession
-                ? "Correct and resubmit your verification documents"
-                : "Upload required verification documents"}
+                ? t("auth:auth.uploadDocuments.title.resubmission")
+                : t("auth:auth.uploadDocuments.title.upload")}
             description={isRejectedSession
-                ? "Your previous onboarding review was rejected. Fix the issues below and resubmit both documents."
-                : "Submit both document images so your student account can move into the approval queue."}
+                ? t("auth:auth.uploadDocuments.description.resubmission")
+                : t("auth:auth.uploadDocuments.description.upload")}
             footer={(
                 <p className="text-sm text-slate-500">
-                    Signed in as{" "}
+                    {t("auth:auth.uploadDocuments.footer.signedInAs")}{" "}
                     <span className="font-semibold text-blue-700">{session.email}</span>
                 </p>
             )}
         >
             {statusLoading ? (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                    Loading onboarding status...
+                    {t("auth:auth.uploadDocuments.status.loading")}
                 </div>
             ) : null}
 
             {status && isRejectedSession ? (
                 <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
-                    <p className="font-semibold uppercase tracking-[0.12em] text-amber-700">Review feedback</p>
+                    <p className="font-semibold uppercase tracking-[0.12em] text-amber-700">{t("auth:auth.uploadDocuments.review.title")}</p>
                     {status.reviewReason ? (
                         <p>
-                            <span className="font-semibold">Reason:</span> {status.reviewReason}
+                            <span className="font-semibold">{t("auth:auth.uploadDocuments.review.reason")}</span> {status.reviewReason}
                         </p>
                     ) : null}
                     {status.reviewNotes ? (
                         <p className="whitespace-pre-wrap">
-                            <span className="font-semibold">Notes:</span> {status.reviewNotes}
+                            <span className="font-semibold">{t("auth:auth.uploadDocuments.review.notes")}</span> {status.reviewNotes}
                         </p>
                     ) : null}
                     <p>
-                        <span className="font-semibold">Previous resubmissions:</span> {status.resubmissionCount}
+                        <span className="font-semibold">{t("auth:auth.uploadDocuments.review.previousResubmissions")}</span> {status.resubmissionCount}
                     </p>
                 </div>
             ) : null}
 
             <form className="space-y-4" onSubmit={handleSubmit}>
                 <label className="block space-y-2">
-                    <span className="text-sm font-semibold text-slate-700">Student card file</span>
+                    <span className="text-sm font-semibold text-slate-700">{t("auth:auth.uploadDocuments.fields.studentCard")}</span>
                     <input
                         type="file"
                         accept="image/*,.pdf,.doc,.docx"
-                        onChange={(event) => handleFileChange(event.target.files?.[0] ?? null, "Student card", setStudentCard)}
+                        onChange={(event) => handleFileChange(event.target.files?.[0] ?? null, t("auth:auth.uploadDocuments.fileLabels.studentCard"), setStudentCard)}
                         className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700"
                     />
-                    <span className="block text-xs text-slate-500">Maximum file size: 5MB.</span>
+                    <span className="block text-xs text-slate-500">{t("auth:auth.uploadDocuments.help.maxFileSize", { size: "5MB" })}</span>
                 </label>
 
                 <label className="block space-y-2">
-                    <span className="text-sm font-semibold text-slate-700">National ID file</span>
+                    <span className="text-sm font-semibold text-slate-700">{t("auth:auth.uploadDocuments.fields.nationalId")}</span>
                     <input
                         type="file"
                         accept="image/*,.pdf,.doc,.docx"
-                        onChange={(event) => handleFileChange(event.target.files?.[0] ?? null, "National ID", setNationalId)}
+                        onChange={(event) => handleFileChange(event.target.files?.[0] ?? null, t("auth:auth.uploadDocuments.fileLabels.nationalId"), setNationalId)}
                         className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700"
                     />
-                    <span className="block text-xs text-slate-500">Maximum file size: 5MB.</span>
+                    <span className="block text-xs text-slate-500">{t("auth:auth.uploadDocuments.help.maxFileSize", { size: "5MB" })}</span>
                 </label>
 
                 {error ? (
@@ -193,8 +195,8 @@ export default function UploadDocumentsPage() {
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
                     {isRejectedSession
-                        ? "After resubmission, your account will return to the pending review queue until an administrator reviews the corrected documents."
-                        : "After upload, your account will move into the pending approval queue until an administrator reviews and activates it."}
+                        ? t("auth:auth.uploadDocuments.noticeText.resubmission")
+                        : t("auth:auth.uploadDocuments.noticeText.upload")}
                 </div>
 
                 <button
@@ -202,7 +204,7 @@ export default function UploadDocumentsPage() {
                     disabled={!canSubmit}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#0f5bcf_0%,#1d78ec_100%)] px-5 py-3.5 text-sm font-bold text-white shadow-[0_16px_36px_rgba(29,120,236,0.28)] transition hover:translate-y-[-1px] hover:shadow-[0_20px_44px_rgba(29,120,236,0.32)] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
                 >
-                    <span>{submitting ? "Uploading..." : isRejectedSession ? "Resubmit documents" : "Upload documents"}</span>
+                    <span>{submitting ? t("auth:auth.uploadDocuments.buttons.submitting") : isRejectedSession ? t("auth:auth.uploadDocuments.buttons.resubmit") : t("auth:auth.uploadDocuments.buttons.upload")}</span>
                     <span className="material-symbols-outlined text-base">cloud_upload</span>
                 </button>
 
@@ -211,7 +213,7 @@ export default function UploadDocumentsPage() {
                         to="/login"
                         className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
                     >
-                        <span>Return to login</span>
+                        <span>{t("auth:auth.uploadDocuments.buttons.returnToLogin")}</span>
                         <span className="material-symbols-outlined text-base">arrow_forward</span>
                     </Link>
                 ) : null}

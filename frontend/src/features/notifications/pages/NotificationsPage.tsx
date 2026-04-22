@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { getStudentNotifications, markAllNotificationsRead, markNotificationRead } from "../../../api/notificationApi";
 import PaginationControls from "../../../components/data-view/PaginationControls";
 import type { StudentNotification } from "../../../types/notification";
 
-function formatDate(date: string) {
-    return new Intl.DateTimeFormat("en-GB", {
+function formatDate(date: string, language: string) {
+    return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", {
         day: "2-digit",
         month: "short",
         year: "numeric",
@@ -45,6 +46,7 @@ function getTarget(notification: StudentNotification) {
 }
 
 export default function NotificationsPage() {
+    const { i18n, t } = useTranslation(["notifications"]);
     const [notifications, setNotifications] = useState<StudentNotification[]>([]);
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
@@ -66,7 +68,7 @@ export default function NotificationsPage() {
             setTotalPages(response.totalPages);
             setUnreadCount(response.unreadCount);
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to load notifications."));
+            setError(getApiErrorMessage(requestError, t("notifications:notifications.errors.load")));
         } finally {
             setLoading(false);
         }
@@ -81,7 +83,7 @@ export default function NotificationsPage() {
             await markNotificationRead(notificationId);
             await fetchNotifications();
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to mark notification as read."));
+            setError(getApiErrorMessage(requestError, t("notifications:notifications.errors.markRead")));
         }
     }
 
@@ -90,7 +92,7 @@ export default function NotificationsPage() {
             await markAllNotificationsRead();
             await fetchNotifications();
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to mark notifications as read."));
+            setError(getApiErrorMessage(requestError, t("notifications:notifications.errors.markAllRead")));
         }
     }
 
@@ -100,13 +102,13 @@ export default function NotificationsPage() {
                     <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                         <div className="max-w-2xl">
                             <span className="mb-3 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-blue-700">
-                                Student Inbox - {unreadCount} unread
+                                {t("notifications:notifications.header.eyebrow", { count: unreadCount })}
                             </span>
                             <h1 className="text-4xl font-extrabold tracking-tight text-slate-950">
-                                Notifications
+                                {t("notifications:notifications.header.title")}
                             </h1>
                             <p className="mt-4 text-base leading-7 text-slate-500">
-                                Review survey assignments, approaching deadlines, and onboarding review updates.
+                                {t("notifications:notifications.header.description")}
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-3">
@@ -118,7 +120,7 @@ export default function NotificationsPage() {
                                 }}
                                 className={`rounded-2xl border px-4 py-3 text-sm font-bold transition ${unreadOnly ? "border-blue-300 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}`}
                             >
-                                {unreadOnly ? "Showing unread" : "Show unread"}
+                                {unreadOnly ? t("notifications:notifications.buttons.showingUnread") : t("notifications:notifications.buttons.showUnread")}
                             </button>
                             <button
                                 type="button"
@@ -126,7 +128,7 @@ export default function NotificationsPage() {
                                 disabled={unreadCount === 0}
                                 className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                Mark all read
+                                {t("notifications:notifications.buttons.markAllRead")}
                             </button>
                         </div>
                     </div>
@@ -139,16 +141,16 @@ export default function NotificationsPage() {
 
                     {loading ? (
                         <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-10 text-center text-sm font-medium text-slate-500 shadow-sm">
-                            Loading notifications...
+                            {t("notifications:notifications.loading")}
                         </div>
                     ) : notifications.length === 0 ? (
                         <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
                             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-500">
                                 <span className="material-symbols-outlined text-[30px]">notifications_none</span>
                             </div>
-                            <h2 className="text-2xl font-bold text-slate-900">No notifications</h2>
+                            <h2 className="text-2xl font-bold text-slate-900">{t("notifications:notifications.empty.title")}</h2>
                             <p className="mt-3 text-sm text-slate-500">
-                                Survey and onboarding updates will appear here when they become relevant.
+                                {t("notifications:notifications.empty.description")}
                             </p>
                         </div>
                     ) : (
@@ -165,7 +167,7 @@ export default function NotificationsPage() {
                                             </span>
                                             {!notification.read ? (
                                                 <span className="ml-2 inline-flex rounded-full border border-blue-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">
-                                                    Unread
+                                                    {t("notifications:notifications.badges.unread")}
                                                 </span>
                                             ) : null}
                                             <h2 className="mt-3 text-2xl font-bold text-slate-950">
@@ -181,7 +183,7 @@ export default function NotificationsPage() {
                                             ) : null}
                                         </div>
                                         <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-600">
-                                            {formatDate(notification.eventAt)}
+                                            {formatDate(notification.eventAt, i18n.language)}
                                         </div>
                                     </div>
 
@@ -191,7 +193,7 @@ export default function NotificationsPage() {
                                                 to={getTarget(notification)}
                                                 className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
                                             >
-                                                <span>{notification.actionLabel ?? "Open"}</span>
+                                                <span>{notification.actionLabel ?? t("notifications:notifications.buttons.open")}</span>
                                                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                                             </Link>
                                             {!notification.read ? (
@@ -200,7 +202,7 @@ export default function NotificationsPage() {
                                                     onClick={() => void handleMarkRead(notification.id)}
                                                     className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-white px-4 py-3 text-sm font-bold text-blue-700 transition hover:border-blue-300"
                                                 >
-                                                    Mark read
+                                                    {t("notifications:notifications.buttons.markRead")}
                                                 </button>
                                             ) : null}
                                         </div>

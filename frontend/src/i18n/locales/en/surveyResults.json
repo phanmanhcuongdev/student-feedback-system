@@ -1,0 +1,177 @@
+{
+  "surveyResults": {
+    "common": {
+      "allStudents": "All students",
+      "department": "Department",
+      "noDescription": "No survey description provided."
+    },
+    "list": {
+      "header": {
+        "eyebrow": "Result Review",
+        "title": "Survey statistics",
+        "description": "Review participation and question-level outcomes through an operational results list instead of a visual card wall.",
+        "matchingCount_one": "{{count}} matching survey result",
+        "matchingCount_other": "{{count}} matching survey results"
+      },
+      "stats": {
+        "visibleResults": "Visible results",
+        "openNow": "Open now",
+        "averageResponseRate": "Average response rate",
+        "submittedResponses": "Submitted responses"
+      },
+      "filters": {
+        "search": "Search by survey title",
+        "lifecycle": "Lifecycle",
+        "allLifecycle": "All lifecycle states",
+        "draft": "Draft",
+        "published": "Published",
+        "closed": "Closed",
+        "archived": "Archived",
+        "runtime": "Runtime",
+        "allRuntime": "All runtime states",
+        "notOpen": "Not open",
+        "open": "Open",
+        "audience": "Audience",
+        "allAudiences": "All audiences",
+        "startFrom": "Start from",
+        "endBy": "End by",
+        "sort": "Sort",
+        "responseRateHighLow": "Response rate high-low",
+        "responseRateLowHigh": "Response rate low-high",
+        "submittedHighLow": "Submitted high-low",
+        "targetedHighLow": "Targeted high-low",
+        "startDateNewest": "Start date newest",
+        "endDateLatest": "End date latest"
+      },
+      "table": {
+        "survey": "Survey",
+        "status": "Status",
+        "audience": "Audience",
+        "targeted": "Targeted",
+        "submitted": "Submitted",
+        "opened": "Opened",
+        "responseRate": "Response rate",
+        "window": "Window",
+        "actions": "Actions"
+      },
+      "buttons": {
+        "viewDetails": "View details"
+      },
+      "rowsOnPage_one": "{{count}} row on page",
+      "rowsOnPage_other": "{{count}} rows on page",
+      "loading": "Loading survey results...",
+      "empty": {
+        "title": "No survey results found",
+        "description": "Adjust the filters to find the survey analytics you need.",
+        "lecturerDescription": "No results match your department scope and current filters."
+      }
+    },
+    "errors": {
+      "loadList": "Unable to load survey results.",
+      "loadDetail": "Unable to load survey statistics.",
+      "invalidId": "Invalid survey id.",
+      "export": "Unable to export survey report.",
+      "loadAiStatus": "Unable to load AI summary status.",
+      "generateAi": "Unable to generate AI summary.",
+      "aiFailed": "AI summary generation failed."
+    },
+    "detail": {
+      "header": {
+        "title": "Survey result detail",
+        "description": "Review overview metrics, participation, rating distributions, and anonymous text comments in grouped analytics sections.",
+        "emptyDescription": "Review survey analytics."
+      },
+      "buttons": {
+        "exportCsv": "Export CSV",
+        "exporting": "Exporting...",
+        "backToResults": "Back to results",
+        "collapse": "Collapse",
+        "showAll": "Show all",
+        "showLess": "Show less",
+        "showMore": "Show more"
+      },
+      "loading": "Loading survey statistics...",
+      "overview": {
+        "title": "Overview metrics",
+        "ratingQuestions": "Rating questions",
+        "textQuestions": "Text questions"
+      },
+      "participation": {
+        "title": "Participation summary",
+        "description": "Identity is intentionally excluded here. This section stays at the aggregate level for staff review.",
+        "notOpened": "Not opened",
+        "openedNotSubmitted": "Opened but not submitted",
+        "progress": "Participation progress"
+      },
+      "questions": {
+        "title": "Question analytics",
+        "description": "Rating questions show distribution and averages. Text questions are separated below for easier qualitative review.",
+        "questionNumber": "Question {{number}}",
+        "empty": {
+          "title": "No rating analytics",
+          "description": "This survey does not contain rating questions with distribution data."
+        }
+      },
+      "rating": {
+        "average": "Average rating",
+        "basedOn_one": "Based on {{count}} response",
+        "basedOn_other": "Based on {{count}} responses",
+        "responseCount_one": "{{count}} response",
+        "responseCount_other": "{{count}} responses"
+      },
+      "ai": {
+        "title": "AI summary",
+        "description": "Generate an admin-facing summary from student text feedback only when you need it. The analysis runs in the background and reuses the latest result when the feedback has not changed.",
+        "buttons": {
+          "generate": "Generate AI summary",
+          "regenerate": "Regenerate AI summary",
+          "submitting": "Submitting...",
+          "processing": "Processing..."
+        },
+        "loading": "Loading AI summary status...",
+        "status": {
+          "queued": "Queued",
+          "processing": "Processing",
+          "completed": "Completed",
+          "failed": "Failed",
+          "notGenerated": "Not generated"
+        },
+        "stats": {
+          "status": "Status",
+          "textComments": "Text comments",
+          "requested": "Requested",
+          "finished": "Finished"
+        },
+        "notRequested": "No AI summary has been generated for this survey yet. The system only analyzes text feedback after you explicitly request it.",
+        "processingNotice": "The summary job is processing in the background. This panel refreshes automatically until a result is available.",
+        "jobDetails": {
+          "title": "Job details",
+          "jobId": "Job id",
+          "requestedAt": "Requested at",
+          "startedAt": "Started at",
+          "finishedAt": "Finished at"
+        },
+        "lists": {
+          "highlights": "Highlights",
+          "concerns": "Concerns",
+          "actions": "Recommended actions",
+          "emptyHighlights": "No strong positive theme was extracted from the current text responses.",
+          "emptyConcerns": "No repeated concern cluster was extracted from the current text responses.",
+          "emptyActions": "No concrete action recommendation was generated for the current text responses."
+        }
+      },
+      "comments": {
+        "title": "Text comments",
+        "description": "Anonymous comments are grouped by question. Search applies only to comment text and question copy.",
+        "search": "Search comments or question text",
+        "textQuestionNumber": "Text question {{number}}",
+        "count_one": "{{count}} comment",
+        "count_other": "{{count}} comments",
+        "empty": {
+          "title": "No matching comments",
+          "description": "Adjust the comment search to find the qualitative feedback you need."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "account": {
+    "common": {
+      "notAvailable": "N/A"
+    },
+    "layout": {
+      "eyebrow": "Account",
+      "title": "Account settings",
+      "description": "Manage your own authenticated account separately from operational work areas. Use this area for profile context and password security."
+    },
+    "navigation": {
+      "settings": "Account settings",
+      "overview": "Account overview",
+      "security": "Security"
+    },
+    "overview": {
+      "profile": {
+        "title": "Profile summary",
+        "description": "Safe account information currently available from your authenticated session.",
+        "email": "Email",
+        "role": "Role",
+        "userId": "User ID",
+        "studentStatus": "Student status"
+      },
+      "details": {
+        "title": "Available account details",
+        "description": "This frontend currently uses authenticated session data for self-service account pages.",
+        "body": "Full name and richer personal metadata are not currently available in the authenticated session payload. This account area deliberately shows only supported data instead of inventing profile information."
+      },
+      "security": {
+        "title": "Security",
+        "description": "Password and personal access settings.",
+        "body": "Use the dedicated security page to update your password and review password guidance for this account.",
+        "button": "Open security settings"
+      },
+      "empty": {
+        "title": "More profile controls can be added later",
+        "description": "This account area now separates self-service from admin user management. Future profile enhancements should use a supported current-user endpoint rather than admin user APIs."
+      }
+    }
+  }
+}

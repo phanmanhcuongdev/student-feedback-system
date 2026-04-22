@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { createFeedback, getStudentFeedback } from "../../../api/feedbackApi";
 import { getApiErrorMessage } from "../../../api/apiError";
 import PaginationControls from "../../../components/data-view/PaginationControls";
+import SmartTextDisplay from "../../../components/ui/SmartTextDisplay";
 import type { FeedbackResponse, StudentFeedback } from "../../../types/feedback";
 
-function formatDate(date: string) {
-    return new Intl.DateTimeFormat("en-GB", {
+const TRANSLATION_POLL_INTERVAL_MS = 5000;
+
+function formatDate(date: string, language: string) {
+    return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", {
         day: "2-digit",
         month: "short",
         year: "numeric",
@@ -14,7 +18,12 @@ function formatDate(date: string) {
     }).format(new Date(date));
 }
 
+function hasPendingTranslations(items: StudentFeedback[]) {
+    return items.some((item) => !item.isAutoTranslated && !item.contentTranslated);
+}
+
 export default function FeedbackPage() {
+    const { i18n, t } = useTranslation(["feedback", "validation"]);
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [items, setItems] = useState<StudentFeedback[]>([]);
@@ -25,9 +34,11 @@ export default function FeedbackPage() {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
-    async function loadFeedback() {
+    async function loadFeedback(options: { silent?: boolean } = {}) {
         try {
-            setLoading(true);
+            if (!options.silent) {
+                setLoading(true);
+            }
             setError("");
             const response = await getStudentFeedback({
                 page,
@@ -42,9 +53,11 @@ export default function FeedbackPage() {
             setItems(response.items);
             setTotalPages(response.totalPages);
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to load feedback."));
+            setError(getApiErrorMessage(requestError, t("feedback:feedback.student.errors.load")));
         } finally {
-            setLoading(false);
+            if (!options.silent) {
+                setLoading(false);
+            }
         }
     }
 
@@ -52,13 +65,25 @@ export default function FeedbackPage() {
         void loadFeedback();
     }, [page]);
 
+    useEffect(() => {
+        if (!hasPendingTranslations(items)) {
+            return;
+        }
+
+        const intervalId = window.setInterval(() => {
+            void loadFeedback({ silent: true });
+        }, TRANSLATION_POLL_INTERVAL_MS);
+
+        return () => window.clearInterval(intervalId);
+    }, [items, page]);
+
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setError("");
         setSuccess("");
 
         if (!title.trim() || !content.trim()) {
-            setError("Title and content are required.");
+            setError(t("validation:validation.feedback.titleAndContentRequired"));
             return;
         }
 
@@ -66,7 +91,7 @@ export default function FeedbackPage() {
         try {
             const response = await createFeedback(title.trim(), content.trim());
             if (!response.success) {
-                setError(response.message || "Unable to submit feedback.");
+                setError(response.message || t("feedback:feedback.student.errors.submit"));
                 return;
             }
 
@@ -76,7 +101,7 @@ export default function FeedbackPage() {
             setPage(0);
             await loadFeedback();
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to submit feedback right now."));
+            setError(getApiErrorMessage(requestError, t("feedback:feedback.student.errors.submitUnavailable")));
         } finally {
             setSubmitting(false);
         }
@@ -89,19 +114,19 @@ export default function FeedbackPage() {
                         <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
                             <div className="mb-8">
                                 <span className="mb-3 inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-indigo-700">
-                                    Student Feedback
+                                    {t("feedback:feedback.student.compose.eyebrow")}
                                 </span>
                                 <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">
-                                    Send feedback
+                                    {t("feedback:feedback.student.compose.title")}
                                 </h1>
                                 <p className="mt-3 text-sm leading-6 text-slate-500">
-                                    Share suggestions or report issues. Your submitted feedback stays visible here for reference.
+                                    {t("feedback:feedback.student.compose.description")}
                                 </p>
                             </div>
 
                             <form className="space-y-5" onSubmit={handleSubmit}>
                                 <label className="block space-y-2">
-                                    <span className="text-sm font-semibold text-slate-700">Title</span>
+                                    <span className="text-sm font-semibold text-slate-700">{t("feedback:feedback.student.compose.fields.title")}</span>
                                     <input
                                         type="text"
                                         value={title}
@@ -112,7 +137,7 @@ export default function FeedbackPage() {
                                 </label>
 
                                 <label className="block space-y-2">
-                                    <span className="text-sm font-semibold text-slate-700">Content</span>
+                                    <span className="text-sm font-semibold text-slate-700">{t("feedback:feedback.student.compose.fields.content")}</span>
                                     <textarea
                                         rows={6}
                                         value={content}
@@ -139,7 +164,7 @@ export default function FeedbackPage() {
                                     disabled={submitting}
                                     className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#0f5bcf_0%,#1d78ec_100%)] px-5 py-3.5 text-sm font-bold text-white shadow-[0_16px_36px_rgba(29,120,236,0.28)] transition hover:translate-y-[-1px] hover:shadow-[0_20px_44px_rgba(29,120,236,0.32)] disabled:cursor-not-allowed disabled:opacity-65 disabled:shadow-none"
                                 >
-                                    <span>{submitting ? "Submitting..." : "Submit feedback"}</span>
+                                    <span>{submitting ? t("feedback:feedback.student.compose.buttons.submitting") : t("feedback:feedback.student.compose.buttons.submit")}</span>
                                     <span className="material-symbols-outlined text-base">send</span>
                                 </button>
                             </form>
@@ -148,20 +173,20 @@ export default function FeedbackPage() {
                         <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
                             <div className="mb-8">
                                 <span className="mb-3 inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-slate-700">
-                                    History
+                                    {t("feedback:feedback.student.history.eyebrow")}
                                 </span>
                                 <h2 className="text-3xl font-extrabold tracking-tight text-slate-950">
-                                    Your feedback
+                                    {t("feedback:feedback.student.history.title")}
                                 </h2>
                             </div>
 
                             {loading ? (
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm font-medium text-slate-500">
-                                    Loading feedback...
+                                    {t("feedback:feedback.student.history.loading")}
                                 </div>
                             ) : items.length === 0 ? (
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                                    You have not submitted any feedback yet.
+                                    {t("feedback:feedback.student.history.empty")}
                                 </div>
                             ) : (
                                 <div className="space-y-4">
@@ -173,27 +198,33 @@ export default function FeedbackPage() {
                                             <div className="mb-3 flex items-start justify-between gap-4">
                                                 <h3 className="text-lg font-bold text-slate-900">{item.title}</h3>
                                                 <span className="shrink-0 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                                                    {formatDate(item.createdAt)}
+                                                    {formatDate(item.createdAt, i18n.language)}
                                                 </span>
                                             </div>
-                                            <p className="text-sm leading-6 text-slate-600">{item.content}</p>
+                                            <SmartTextDisplay
+                                                displayContent={item.displayContent}
+                                                originalContent={item.originalContent}
+                                                contentTranslated={item.contentTranslated}
+                                                isAutoTranslated={item.isAutoTranslated}
+                                                sourceLang={item.sourceLang}
+                                            />
                                             <div className="mt-5 space-y-3 border-t border-slate-200 pt-4">
                                                 <div className="flex items-center justify-between gap-3">
                                                     <h4 className="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-500">
-                                                        Responses
+                                                        {t("feedback:feedback.student.responses.title")}
                                                     </h4>
                                                     <span className="text-xs font-semibold text-slate-400">
-                                                        {item.responses.length} {item.responses.length === 1 ? "reply" : "replies"}
+                                                        {t("feedback:feedback.student.responses.count", { count: item.responses.length })}
                                                     </span>
                                                 </div>
                                                 {item.responses.length === 0 ? (
                                                     <p className="text-sm text-slate-400">
-                                                        No staff response yet.
+                                                        {t("feedback:feedback.student.responses.empty")}
                                                     </p>
                                                 ) : (
                                                     <div className="space-y-3">
                                                         {item.responses.map((response) => (
-                                                            <FeedbackResponseCard key={response.id} response={response} />
+                                                            <FeedbackResponseCard key={response.id} response={response} language={i18n.language} />
                                                         ))}
                                                     </div>
                                                 )}
@@ -214,7 +245,7 @@ export default function FeedbackPage() {
     );
 }
 
-function FeedbackResponseCard({ response }: { response: FeedbackResponse }) {
+function FeedbackResponseCard({ response, language }: { response: FeedbackResponse; language: string }) {
     return (
         <div className="rounded-2xl border border-blue-200 bg-white p-4">
             <div className="mb-2 flex items-center justify-between gap-3">
@@ -225,7 +256,7 @@ function FeedbackResponseCard({ response }: { response: FeedbackResponse }) {
                     </p>
                 </div>
                 <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                    {formatDate(response.createdAt)}
+                    {formatDate(response.createdAt, language)}
                 </span>
             </div>
             <p className="text-sm leading-6 text-slate-600">{response.content}</p>

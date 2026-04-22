@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { NavigationGroup } from "./appNavigation";
 
 type AppSidebarProps = {
@@ -7,6 +8,8 @@ type AppSidebarProps = {
 };
 
 export default function AppSidebar({ groups, onNavigate }: AppSidebarProps) {
+    const { t } = useTranslation("layout");
+
     return (
         <aside className="flex h-full flex-col border-r border-slate-200 bg-white">
             <div className="border-b border-slate-200 px-5 py-5">
@@ -16,10 +19,10 @@ export default function AppSidebar({ groups, onNavigate }: AppSidebarProps) {
                     </div>
                     <div>
                         <p className="text-sm font-extrabold tracking-tight text-slate-950">
-                            University Operations
+                            {t("layout.brand.name")}
                         </p>
                         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                            Onboarding and Feedback
+                            {t("layout.brand.subtitle")}
                         </p>
                     </div>
                 </div>
@@ -28,9 +31,9 @@ export default function AppSidebar({ groups, onNavigate }: AppSidebarProps) {
             <nav className="flex-1 overflow-y-auto px-4 py-5">
                 <div className="space-y-6">
                     {groups.map((group) => (
-                        <section key={group.title}>
+                        <section key={group.titleKey}>
                             <p className="px-3 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">
-                                {group.title}
+                                {t(group.titleKey)}
                             </p>
                             <div className="mt-3 space-y-1.5">
                                 {group.items.map((item) => (
@@ -57,7 +60,7 @@ export default function AppSidebar({ groups, onNavigate }: AppSidebarProps) {
                                                     {item.icon}
                                                 </span>
                                                 <span className={isActive ? "text-white" : "text-slate-700 group-hover:text-slate-950"}>
-                                                    {item.label}
+                                                    {t(item.labelKey)}
                                                 </span>
                                             </>
                                         )}

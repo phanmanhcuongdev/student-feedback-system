@@ -1,0 +1,42 @@
+{
+  "surveys": {
+    "filters": {
+      "all": "All",
+      "open": "Open",
+      "upcoming": "Upcoming",
+      "closed": "Closed"
+    },
+    "detail": {
+      "backToSurveys": "Back to surveys",
+      "loading": "Loading survey...",
+      "daysLeft": {
+        "closed": "Closed",
+        "closesIn_one": "Closes in {{count}} day",
+        "closesIn_other": "Closes in {{count}} days"
+      },
+      "progress": {
+        "answered": "Progress: {{answered}} of {{total}} questions",
+        "complete": "{{progress}}% Complete"
+      },
+      "rating": {
+        "veryUnsatisfied": "Very Unsatisfied",
+        "unsatisfied": "Unsatisfied",
+        "neutral": "Neutral",
+        "satisfied": "Satisfied",
+        "verySatisfied": "Very Satisfied",
+        "select": "Select a rating"
+      },
+      "textPlaceholder": "Share your thoughts here...",
+      "buttons": {
+        "submit": "Submit Survey",
+        "submitting": "Submitting..."
+      }
+    },
+    "errors": {
+      "loadList": "Unable to load surveys.",
+      "loadDetail": "Failed to load survey detail",
+      "invalidId": "Invalid survey id",
+      "submit": "Failed to submit survey"
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { getAuditLogs } from "../../../api/adminApi";
 import DataTable, { type DataTableColumn } from "../../../components/data-view/DataTable";
@@ -14,27 +15,27 @@ import PageHeader from "../../../components/ui/PageHeader";
 import type { AuditLogEntry } from "../../../types/admin";
 
 const ACTION_OPTIONS = [
-    { label: "All actions", value: "ALL" },
-    { label: "Onboarding approved", value: "ONBOARDING_APPROVED" },
-    { label: "Onboarding rejected", value: "ONBOARDING_REJECTED" },
-    { label: "Survey published", value: "SURVEY_PUBLISHED" },
-    { label: "Survey closed", value: "SURVEY_CLOSED" },
-    { label: "Survey archived", value: "SURVEY_ARCHIVED" },
-    { label: "Survey visibility changed", value: "SURVEY_VISIBILITY_CHANGED" },
-    { label: "User profile updated", value: "USER_PROFILE_UPDATED" },
-    { label: "User activated", value: "USER_ACTIVATED" },
-    { label: "User deactivated", value: "USER_DEACTIVATED" },
+    { labelKey: "admin:admin.audit.filters.allActions", value: "ALL" },
+    { labelKey: "admin:admin.audit.filters.onboardingApproved", value: "ONBOARDING_APPROVED" },
+    { labelKey: "admin:admin.audit.filters.onboardingRejected", value: "ONBOARDING_REJECTED" },
+    { labelKey: "admin:admin.audit.filters.surveyPublished", value: "SURVEY_PUBLISHED" },
+    { labelKey: "admin:admin.audit.filters.surveyClosed", value: "SURVEY_CLOSED" },
+    { labelKey: "admin:admin.audit.filters.surveyArchived", value: "SURVEY_ARCHIVED" },
+    { labelKey: "admin:admin.audit.filters.surveyVisibilityChanged", value: "SURVEY_VISIBILITY_CHANGED" },
+    { labelKey: "admin:admin.audit.filters.userProfileUpdated", value: "USER_PROFILE_UPDATED" },
+    { labelKey: "admin:admin.audit.filters.userActivated", value: "USER_ACTIVATED" },
+    { labelKey: "admin:admin.audit.filters.userDeactivated", value: "USER_DEACTIVATED" },
 ];
 
 const TARGET_OPTIONS = [
-    { label: "All targets", value: "ALL" },
-    { label: "Student", value: "STUDENT" },
-    { label: "Survey", value: "SURVEY" },
-    { label: "User", value: "USER" },
+    { labelKey: "admin:admin.audit.filters.allTargets", value: "ALL" },
+    { labelKey: "admin:admin.audit.filters.student", value: "STUDENT" },
+    { labelKey: "admin:admin.audit.filters.survey", value: "SURVEY" },
+    { labelKey: "admin:admin.audit.filters.user", value: "USER" },
 ];
 
-function formatDateTime(value: string) {
-    return new Intl.DateTimeFormat("en-GB", {
+function formatDateTime(value: string, language: string) {
+    return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", {
         day: "2-digit",
         month: "short",
         year: "numeric",
@@ -59,15 +60,15 @@ function parseOptionalNumber(value: string): number | undefined {
     return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function DetailBlock({ log }: { log: AuditLogEntry }) {
+function DetailBlock({ log, t }: { log: AuditLogEntry; t: (key: string) => string }) {
     const rows = [
-        { label: "Details", value: log.details },
-        { label: "Old state", value: log.oldState },
-        { label: "New state", value: log.newState },
+        { label: t("admin:admin.audit.detail.details"), value: log.details },
+        { label: t("admin:admin.audit.detail.oldState"), value: log.oldState },
+        { label: t("admin:admin.audit.detail.newState"), value: log.newState },
     ].filter((row) => row.value && row.value.trim().length > 0);
 
     if (rows.length === 0) {
-        return <span className="text-slate-400">No extra details</span>;
+        return <span className="text-slate-400">{t("admin:admin.audit.detail.noExtraDetails")}</span>;
     }
 
     return (
@@ -83,6 +84,7 @@ function DetailBlock({ log }: { log: AuditLogEntry }) {
 }
 
 export default function AuditLogsPage() {
+    const { i18n, t } = useTranslation(["admin"]);
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
     const [totalElements, setTotalElements] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
@@ -127,11 +129,11 @@ export default function AuditLogsPage() {
             setTotalElements(response.totalElements);
             setTotalPages(response.totalPages);
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to load audit logs."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.audit.errors.load")));
         } finally {
             setLoading(false);
         }
-    }, [actionType, actorUserId, createdFrom, createdTo, debouncedQuery, page, targetId, targetType]);
+    }, [actionType, actorUserId, createdFrom, createdTo, debouncedQuery, page, targetId, targetType, t]);
 
     useEffect(() => {
         void loadAuditLogs();
@@ -144,17 +146,17 @@ export default function AuditLogsPage() {
     const columns: DataTableColumn<AuditLogEntry>[] = [
         {
             key: "time",
-            header: "When",
-            render: (log) => formatDateTime(log.createdAt),
+            header: t("admin:admin.audit.table.when"),
+            render: (log) => formatDateTime(log.createdAt, i18n.language),
         },
         {
             key: "actor",
-            header: "Actor",
-            render: (log) => `User #${log.actorUserId}`,
+            header: t("admin:admin.audit.table.actor"),
+            render: (log) => t("admin:admin.audit.userRef", { id: log.actorUserId }),
         },
         {
             key: "action",
-            header: "Action",
+            header: t("admin:admin.audit.table.action"),
             render: (log) => (
                 <div>
                     <p className="font-bold text-slate-900">{formatCode(log.actionType)}</p>
@@ -166,12 +168,12 @@ export default function AuditLogsPage() {
         },
         {
             key: "summary",
-            header: "Summary",
+            header: t("admin:admin.audit.table.summary"),
             render: (log) => (
                 <div>
                     <p className="font-medium text-slate-900">{log.summary}</p>
                     <div className="mt-3">
-                        <DetailBlock log={log} />
+                        <DetailBlock log={log} t={t} />
                     </div>
                 </div>
             ),
@@ -182,46 +184,46 @@ export default function AuditLogsPage() {
         <main className="bg-slate-100">
             <div className="mx-auto max-w-screen-2xl px-6 py-10">
                 <PageHeader
-                    eyebrow="Admin Audit"
-                    title="Audit logs"
-                    description="Review privileged actions, lifecycle changes, onboarding decisions, and account operations."
-                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{totalElements} matching event{totalElements === 1 ? "" : "s"}</div>}
+                    eyebrow={t("admin:admin.audit.header.eyebrow")}
+                    title={t("admin:admin.audit.header.title")}
+                    description={t("admin:admin.audit.header.description")}
+                    actions={<div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">{t("admin:admin.audit.header.count", { count: totalElements })}</div>}
                 />
 
                 <div className="mt-6 space-y-6">
                     <DataToolbar
                         filters={(
                             <>
-                                <SearchInput value={query} onChange={setQuery} placeholder="Search audit details" />
-                                <SelectFilter label="Action" value={actionType} onChange={setActionType} options={ACTION_OPTIONS} />
-                                <SelectFilter label="Target" value={targetType} onChange={setTargetType} options={TARGET_OPTIONS} />
+                                <SearchInput value={query} onChange={setQuery} placeholder={t("admin:admin.audit.filters.search")} />
+                                <SelectFilter label={t("admin:admin.audit.table.action")} value={actionType} onChange={setActionType} options={ACTION_OPTIONS.map((option) => ({ label: t(option.labelKey), value: option.value }))} />
+                                <SelectFilter label={t("admin:admin.audit.filters.target")} value={targetType} onChange={setTargetType} options={TARGET_OPTIONS.map((option) => ({ label: t(option.labelKey), value: option.value }))} />
                                 <label className="flex min-w-[130px] items-center gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
-                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Actor</span>
-                                    <input value={actorUserId} onChange={(event) => setActorUserId(event.target.value)} inputMode="numeric" placeholder="ID" className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none" />
+                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{t("admin:admin.audit.table.actor")}</span>
+                                    <input value={actorUserId} onChange={(event) => setActorUserId(event.target.value)} inputMode="numeric" placeholder={t("admin:admin.audit.filters.idPlaceholder")} className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none" />
                                 </label>
                                 <label className="flex min-w-[130px] items-center gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
-                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Target</span>
-                                    <input value={targetId} onChange={(event) => setTargetId(event.target.value)} inputMode="numeric" placeholder="ID" className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none" />
+                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{t("admin:admin.audit.filters.target")}</span>
+                                    <input value={targetId} onChange={(event) => setTargetId(event.target.value)} inputMode="numeric" placeholder={t("admin:admin.audit.filters.idPlaceholder")} className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none" />
                                 </label>
                                 <label className="flex min-w-[165px] items-center gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
-                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">From</span>
+                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{t("admin:admin.audit.filters.from")}</span>
                                     <input type="date" value={createdFrom} onChange={(event) => setCreatedFrom(event.target.value)} className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none" />
                                 </label>
                                 <label className="flex min-w-[165px] items-center gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
-                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">To</span>
+                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{t("admin:admin.audit.filters.to")}</span>
                                     <input type="date" value={createdTo} onChange={(event) => setCreatedTo(event.target.value)} className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none" />
                                 </label>
                             </>
                         )}
-                        actions={<div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">{logs.length} displayed</div>}
+                        actions={<div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">{t("admin:admin.audit.displayed", { count: logs.length })}</div>}
                     />
 
                     {error ? (
                         <ErrorState description={error} onRetry={() => void loadAuditLogs()} />
                     ) : loading ? (
-                        <LoadingState label="Loading audit logs..." />
+                        <LoadingState label={t("admin:admin.audit.loading")} />
                     ) : logs.length === 0 ? (
-                        <EmptyState title="No audit logs found" description="Adjust filters to inspect privileged activity." icon="manage_search" />
+                        <EmptyState title={t("admin:admin.audit.empty.title")} description={t("admin:admin.audit.empty.description")} icon="manage_search" />
                     ) : (
                         <>
                             <div className="hidden lg:block">
@@ -233,12 +235,12 @@ export default function AuditLogsPage() {
                                 getKey={(log) => log.id}
                                 renderItem={(log) => (
                                     <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-                                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{formatDateTime(log.createdAt)}</p>
+                                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{formatDateTime(log.createdAt, i18n.language)}</p>
                                         <h2 className="mt-2 text-lg font-bold text-slate-950">{formatCode(log.actionType)}</h2>
-                                        <p className="mt-1 text-sm text-slate-500">User #{log.actorUserId} on {formatCode(log.targetType)} #{log.targetId}</p>
+                                        <p className="mt-1 text-sm text-slate-500">{t("admin:admin.audit.mobileMeta", { actorId: log.actorUserId, targetType: formatCode(log.targetType), targetId: log.targetId })}</p>
                                         <p className="mt-4 text-sm font-medium text-slate-900">{log.summary}</p>
                                         <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                            <DetailBlock log={log} />
+                                            <DetailBlock log={log} t={t} />
                                         </div>
                                     </article>
                                 )}

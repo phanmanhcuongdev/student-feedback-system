@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { changePassword } from "../../../api/authApi";
 import { getApiErrorMessage } from "../../../api/apiError";
 import ErrorState from "../../../components/ui/ErrorState";
@@ -7,6 +8,7 @@ import PageHeader from "../../../components/ui/PageHeader";
 import { darkActionButtonClass, darkActionButtonStyle } from "../../../components/ui/buttonStyles";
 
 export default function ChangePasswordPage() {
+    const { t } = useTranslation(["auth", "validation"]);
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -20,12 +22,12 @@ export default function ChangePasswordPage() {
         setSuccess("");
 
         if (newPassword.length < 6) {
-            setError("New password must be at least 6 characters.");
+            setError(t("validation:validation.auth.passwordMinLength", { count: 6 }));
             return;
         }
 
         if (newPassword !== confirmPassword) {
-            setError("New password and confirmation do not match.");
+            setError(t("validation:validation.auth.passwordConfirmationMismatch"));
             return;
         }
 
@@ -33,7 +35,7 @@ export default function ChangePasswordPage() {
         try {
             const response = await changePassword(currentPassword, newPassword);
             if (!response.success) {
-                setError(response.message || "Unable to change password.");
+                setError(response.message || t("auth:auth.changePassword.errors.failed"));
                 return;
             }
 
@@ -42,7 +44,7 @@ export default function ChangePasswordPage() {
             setNewPassword("");
             setConfirmPassword("");
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to change password right now."));
+            setError(getApiErrorMessage(requestError, t("auth:auth.changePassword.errors.unavailable")));
         } finally {
             setSubmitting(false);
         }
@@ -51,19 +53,19 @@ export default function ChangePasswordPage() {
     return (
         <div className="space-y-6">
             <PageHeader
-                eyebrow="Security"
-                title="Password security"
-                description="Change your password from this self-service security area. Use a unique password that you do not reuse for other systems."
+                eyebrow={t("auth:auth.changePassword.eyebrow")}
+                title={t("auth:auth.changePassword.title")}
+                description={t("auth:auth.changePassword.description")}
             />
 
             <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
                 <FormSection
-                    title="Change password"
-                    description="Enter your current password and choose a new password for this account."
+                    title={t("auth:auth.changePassword.form.title")}
+                    description={t("auth:auth.changePassword.form.description")}
                 >
                     {error ? (
                         <ErrorState
-                            title="Password update failed"
+                            title={t("auth:auth.changePassword.errors.title")}
                             description={error}
                         />
                     ) : null}
@@ -76,7 +78,7 @@ export default function ChangePasswordPage() {
 
                 <form className="space-y-5" onSubmit={handleSubmit}>
                     <label className="block space-y-2">
-                        <span className="text-sm font-semibold text-slate-700">Current password</span>
+                        <span className="text-sm font-semibold text-slate-700">{t("auth:auth.changePassword.fields.currentPassword")}</span>
                         <input
                             type="password"
                             value={currentPassword}
@@ -88,7 +90,7 @@ export default function ChangePasswordPage() {
                     </label>
 
                     <label className="block space-y-2">
-                        <span className="text-sm font-semibold text-slate-700">New password</span>
+                        <span className="text-sm font-semibold text-slate-700">{t("auth:auth.changePassword.fields.newPassword")}</span>
                         <input
                             type="password"
                             value={newPassword}
@@ -98,12 +100,12 @@ export default function ChangePasswordPage() {
                             required
                         />
                         <p className="text-xs font-medium text-slate-500">
-                            Use at least 6 characters. Prefer a unique password not used in other systems.
+                            {t("auth:auth.changePassword.help.password")}
                         </p>
                     </label>
 
                     <label className="block space-y-2">
-                        <span className="text-sm font-semibold text-slate-700">Confirm new password</span>
+                        <span className="text-sm font-semibold text-slate-700">{t("auth:auth.changePassword.fields.confirmPassword")}</span>
                         <input
                             type="password"
                             value={confirmPassword}
@@ -120,7 +122,7 @@ export default function ChangePasswordPage() {
                         className={`${darkActionButtonClass} w-full px-5 py-3.5 text-sm font-bold`}
                         style={darkActionButtonStyle}
                     >
-                        <span className="text-white" style={darkActionButtonStyle}>{submitting ? "Updating..." : "Change password"}</span>
+                        <span className="text-white" style={darkActionButtonStyle}>{submitting ? t("auth:auth.changePassword.buttons.submitting") : t("auth:auth.changePassword.buttons.submit")}</span>
                         <span className="material-symbols-outlined text-base text-white" style={darkActionButtonStyle}>password</span>
                     </button>
                 </form>
@@ -128,17 +130,17 @@ export default function ChangePasswordPage() {
 
                 <div className="space-y-6">
                     <FormSection
-                        title="Security guidance"
-                        description="Keep this account separate from administrative management of other users."
+                        title={t("auth:auth.changePassword.guidance.title")}
+                        description={t("auth:auth.changePassword.guidance.description")}
                     >
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm leading-6 text-slate-600">
                             <p>
-                                This area is for your own authenticated account only. Managing other people&apos;s accounts remains part of Admin Users and is intentionally separated from personal self-service.
+                                {t("auth:auth.changePassword.guidance.accountScope")}
                             </p>
                         </div>
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm leading-6 text-slate-600">
                             <p>
-                                After a successful password change, continue using this account area for self-service security tasks rather than operational navigation.
+                                {t("auth:auth.changePassword.guidance.afterSuccess")}
                             </p>
                         </div>
                     </FormSection>

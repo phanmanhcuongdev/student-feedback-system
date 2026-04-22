@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../features/auth/useAuth";
-import { getRoleLabel, renderStatusLabel } from "./appNavigation";
+import { getRoleLabelKey, getStatusLabelKey } from "./appNavigation";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 type AppHeaderProps = {
     onOpenNavigation: () => void;
 };
 
 export default function AppHeader({ onOpenNavigation }: AppHeaderProps) {
+    const { t } = useTranslation(["common", "layout"]);
     const navigate = useNavigate();
     const { session, logout } = useAuth();
     const [menuOpen, setMenuOpen] = useState(false);
@@ -53,22 +56,23 @@ export default function AppHeader({ onOpenNavigation }: AppHeaderProps) {
                         type="button"
                         onClick={onOpenNavigation}
                         className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 lg:hidden"
-                        aria-label="Open navigation"
+                        aria-label={t("layout:layout.nav.open")}
                     >
                         <span className="material-symbols-outlined text-[20px]">menu</span>
                     </button>
 
                     <div>
                         <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
-                            University Operations
+                            {t("layout:layout.brand.name")}
                         </p>
                         <h1 className="text-lg font-bold tracking-tight text-slate-950">
-                            Student Onboarding and Survey Feedback
+                            {t("layout:layout.header.title")}
                         </h1>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <LanguageSwitcher />
                     <div className="relative" ref={menuRef}>
                         <button
                             type="button"
@@ -85,9 +89,9 @@ export default function AppHeader({ onOpenNavigation }: AppHeaderProps) {
                                     {session.email}
                                 </p>
                                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                                    {getRoleLabel(session.role)}
+                                    {getRoleLabelKey(session.role) ? t(`common:${getRoleLabelKey(session.role)}`) : session.role}
                                     {session.role === "STUDENT" && session.studentStatus
-                                        ? ` | ${renderStatusLabel(session.studentStatus)}`
+                                        ? ` | ${getStatusLabelKey(session.studentStatus) ? t(`common:${getStatusLabelKey(session.studentStatus)}`) : session.studentStatus}`
                                         : ""}
                                 </p>
                             </div>
@@ -101,19 +105,19 @@ export default function AppHeader({ onOpenNavigation }: AppHeaderProps) {
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                                     <p className="truncate text-sm font-bold text-slate-950">{session.email}</p>
                                     <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                                        {getRoleLabel(session.role)}
+                                        {getRoleLabelKey(session.role) ? t(`common:${getRoleLabelKey(session.role)}`) : session.role}
                                     </p>
                                 </div>
                                 <div className="mt-2 grid gap-1">
-                                    <HeaderMenuLink to="/account" icon="account_circle" label="View account" onClick={() => setMenuOpen(false)} />
-                                    <HeaderMenuLink to="/account/security" icon="shield_lock" label="Security" onClick={() => setMenuOpen(false)} />
+                                    <HeaderMenuLink to="/account" icon="account_circle" label={t("layout:layout.header.accountMenu.viewAccount")} onClick={() => setMenuOpen(false)} />
+                                    <HeaderMenuLink to="/account/security" icon="shield_lock" label={t("layout:layout.nav.items.security")} onClick={() => setMenuOpen(false)} />
                                     <button
                                         type="button"
                                         onClick={handleLogout}
                                         className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
                                     >
                                         <span className="material-symbols-outlined text-[20px]">logout</span>
-                                        <span>Logout</span>
+                                        <span>{t("layout:layout.header.accountMenu.logout")}</span>
                                     </button>
                                 </div>
                             </div>

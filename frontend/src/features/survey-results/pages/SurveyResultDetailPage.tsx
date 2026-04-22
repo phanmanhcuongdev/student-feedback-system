@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "../../../api/apiError";
+import { generateSurveyAiSummary, getSurveyAiSummary } from "../../../api/surveyAiSummaryApi";
 import { exportSurveyResult, getSurveyResult } from "../../../api/surveyResultApi";
 import EmptyState from "../../../components/ui/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState";
@@ -11,34 +13,67 @@ import SectionCard from "../../../components/ui/SectionCard";
 import StatCard from "../../../components/ui/StatCard";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { useAuth } from "../../auth/useAuth";
+import type { SurveyAiSummary } from "../../../types/surveyAiSummary";
 import type { QuestionStatistics, SurveyResultDetail } from "../../../types/surveyResult";
 
-function formatDate(date: string) {
-    return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(date));
+function formatDate(date: string, language: string) {
+    return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(date));
 }
 
-function formatDateRange(startDate: string, endDate: string) {
-    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+function formatDateRange(startDate: string, endDate: string, language: string) {
+    return `${formatDate(startDate, language)} - ${formatDate(endDate, language)}`;
 }
 
 function formatRate(value: number) {
     return `${value.toFixed(1)}%`;
 }
 
-function getAudienceLabel(survey: SurveyResultDetail) {
-    if (survey.recipientScope === "DEPARTMENT") {
-        return survey.recipientDepartmentName || "Department";
+function formatDateTime(value: string | null, language: string) {
+    if (!value) {
+        return "-";
     }
-    return "All students";
+    return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    }).format(new Date(value));
 }
 
-function RatingQuestionBlock({ question }: { question: QuestionStatistics }) {
+function getSummaryStatusLabel(status: string, t: (key: string) => string) {
+    switch (status) {
+        case "QUEUED":
+            return t("surveyResults:surveyResults.detail.ai.status.queued");
+        case "PROCESSING":
+            return t("surveyResults:surveyResults.detail.ai.status.processing");
+        case "COMPLETED":
+            return t("surveyResults:surveyResults.detail.ai.status.completed");
+        case "FAILED":
+            return t("surveyResults:surveyResults.detail.ai.status.failed");
+        default:
+            return t("surveyResults:surveyResults.detail.ai.status.notGenerated");
+    }
+}
+
+function isProcessingStatus(status: string | null | undefined) {
+    return status === "QUEUED" || status === "PROCESSING";
+}
+
+function getAudienceLabel(survey: SurveyResultDetail, t: (key: string) => string) {
+    if (survey.recipientScope === "DEPARTMENT") {
+        return survey.recipientDepartmentName || t("surveyResults:surveyResults.common.department");
+    }
+    return t("surveyResults:surveyResults.common.allStudents");
+}
+
+function RatingQuestionBlock({ question, t }: { question: QuestionStatistics; t: (key: string, options?: Record<string, unknown>) => string }) {
     return (
         <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
             <div className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-700">Average rating</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-700">{t("surveyResults:surveyResults.detail.rating.average")}</p>
                 <p className="mt-3 text-4xl font-extrabold tracking-tight text-slate-950">{question.averageRating === null ? "-" : question.averageRating.toFixed(2)}</p>
-                <p className="mt-2 text-sm text-slate-500">Based on {question.responseCount} response{question.responseCount === 1 ? "" : "s"}</p>
+                <p className="mt-2 text-sm text-slate-500">{t("surveyResults:surveyResults.detail.rating.basedOn", { count: question.responseCount })}</p>
             </div>
 
             <div className="space-y-3">
@@ -49,7 +84,7 @@ function RatingQuestionBlock({ question }: { question: QuestionStatistics }) {
                         <div key={item.rating} className="space-y-2">
                             <div className="flex items-center justify-between gap-4 text-sm">
                                 <span className="font-semibold text-slate-700">{item.rating} / 5</span>
-                                <span className="text-slate-500">{item.count} response{item.count === 1 ? "" : "s"} | {percentage}%</span>
+                                <span className="text-slate-500">{t("surveyResults:surveyResults.detail.rating.responseCount", { count: item.count })} | {percentage}%</span>
                             </div>
                             <div className="h-3 overflow-hidden rounded-full bg-slate-100">
                                 <div className="h-full rounded-full bg-slate-900" style={{ width: `${percentage}%` }} />
@@ -63,6 +98,7 @@ function RatingQuestionBlock({ question }: { question: QuestionStatistics }) {
 }
 
 export default function SurveyResultDetailPage() {
+    const { i18n, t } = useTranslation(["surveyResults"]);
     const { id } = useParams();
     const { session } = useAuth();
     const surveyId = Number(id);
@@ -73,6 +109,23 @@ export default function SurveyResultDetailPage() {
     const [expandedQuestions, setExpandedQuestions] = useState<Record<number, boolean>>({});
     const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
     const [exporting, setExporting] = useState(false);
+    const [aiSummary, setAiSummary] = useState<SurveyAiSummary | null>(null);
+    const [aiLoading, setAiLoading] = useState(true);
+    const [aiError, setAiError] = useState("");
+    const [isGeneratingAiSummary, setIsGeneratingAiSummary] = useState(false);
+
+    const textQuestions = useMemo(() => survey?.questions.filter((question) => question.type === "TEXT") ?? [], [survey]);
+    const ratingQuestions = useMemo(() => survey?.questions.filter((question) => question.type === "RATING") ?? [], [survey]);
+    const hasTextQuestions = textQuestions.length > 0;
+
+    async function fetchAiSummaryStatus() {
+        try {
+            setAiSummary(await getSurveyAiSummary(surveyId));
+            setAiError("");
+        } catch (requestError) {
+            setAiError(getApiErrorMessage(requestError, t("surveyResults:surveyResults.errors.loadAiStatus")));
+        }
+    }
 
     useEffect(() => {
         async function fetchSurveyResult() {
@@ -81,7 +134,7 @@ export default function SurveyResultDetailPage() {
                 setError("");
                 setSurvey(await getSurveyResult(surveyId));
             } catch (requestError) {
-                setError(getApiErrorMessage(requestError, "Unable to load survey statistics."));
+                setError(getApiErrorMessage(requestError, t("surveyResults:surveyResults.errors.loadDetail")));
             } finally {
                 setLoading(false);
             }
@@ -93,11 +146,40 @@ export default function SurveyResultDetailPage() {
         }
 
         setLoading(false);
-        setError("Invalid survey id.");
-    }, [surveyId]);
+        setError(t("surveyResults:surveyResults.errors.invalidId"));
+    }, [surveyId, t]);
 
-    const textQuestions = useMemo(() => survey?.questions.filter((question) => question.type === "TEXT") ?? [], [survey]);
-    const ratingQuestions = useMemo(() => survey?.questions.filter((question) => question.type === "RATING") ?? [], [survey]);
+    useEffect(() => {
+        async function fetchAiSummary() {
+            try {
+                setAiLoading(true);
+                await fetchAiSummaryStatus();
+            } finally {
+                setAiLoading(false);
+            }
+        }
+
+        if (Number.isFinite(surveyId) && hasTextQuestions) {
+            void fetchAiSummary();
+            return;
+        }
+
+        setAiLoading(false);
+        setAiSummary(null);
+        setAiError(Number.isFinite(surveyId) ? "" : t("surveyResults:surveyResults.errors.invalidId"));
+    }, [hasTextQuestions, surveyId, t]);
+
+    useEffect(() => {
+        if (!Number.isFinite(surveyId) || !hasTextQuestions || !isProcessingStatus(aiSummary?.status)) {
+            return;
+        }
+
+        const intervalId = window.setInterval(() => {
+            void fetchAiSummaryStatus();
+        }, 4000);
+
+        return () => window.clearInterval(intervalId);
+    }, [aiSummary?.status, hasTextQuestions, surveyId]);
 
     const filteredTextQuestions = useMemo(() => {
         const normalizedQuery = commentQuery.trim().toLowerCase();
@@ -127,9 +209,21 @@ export default function SurveyResultDetailPage() {
             link.remove();
             window.URL.revokeObjectURL(url);
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to export survey report."));
+            setError(getApiErrorMessage(requestError, t("surveyResults:surveyResults.errors.export")));
         } finally {
             setExporting(false);
+        }
+    }
+
+    async function handleGenerateAiSummary() {
+        try {
+            setIsGeneratingAiSummary(true);
+            setAiError("");
+            setAiSummary(await generateSurveyAiSummary(surveyId));
+        } catch (requestError) {
+            setAiError(getApiErrorMessage(requestError, t("surveyResults:surveyResults.errors.generateAi")));
+        } finally {
+            setIsGeneratingAiSummary(false);
         }
     }
 
@@ -137,81 +231,153 @@ export default function SurveyResultDetailPage() {
         <main className="bg-slate-100">
             <div className="mx-auto max-w-screen-2xl px-6 py-10">
                 <PageHeader
-                    eyebrow="Result Review"
-                    title={survey?.title || "Survey result detail"}
-                    description={survey ? "Review overview metrics, participation, rating distributions, and anonymous text comments in grouped analytics sections." : "Review survey analytics."}
+                    eyebrow={t("surveyResults:surveyResults.list.header.eyebrow")}
+                    title={survey?.title || t("surveyResults:surveyResults.detail.header.title")}
+                    description={survey ? t("surveyResults:surveyResults.detail.header.description") : t("surveyResults:surveyResults.detail.header.emptyDescription")}
                     actions={<div className="flex flex-wrap gap-2">
                         {session?.role === "ADMIN" ? (
-                            <button type="button" onClick={() => void handleExport()} disabled={exporting || !survey} className="inline-flex items-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60">{exporting ? "Exporting..." : "Export CSV"}</button>
+                            <button type="button" onClick={() => void handleExport()} disabled={exporting || !survey} className="inline-flex items-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60">{exporting ? t("surveyResults:surveyResults.detail.buttons.exporting") : t("surveyResults:surveyResults.detail.buttons.exportCsv")}</button>
                         ) : null}
-                        <Link to="/survey-results" className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">Back to results</Link>
+                        <Link to="/survey-results" className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">{t("surveyResults:surveyResults.detail.buttons.backToResults")}</Link>
                     </div>}
                 />
 
                 <div className="mt-6 space-y-6">
                     {loading ? (
-                        <LoadingState label="Loading survey statistics..." />
+                        <LoadingState label={t("surveyResults:surveyResults.detail.loading")} />
                     ) : error ? (
                         <ErrorState description={error} />
                     ) : survey ? (
                         <>
-                            <SectionCard title="Overview metrics" description={survey.description || "No survey description provided."} actions={<div className="flex flex-wrap gap-2"><StatusBadge kind="surveyLifecycle" value={survey.lifecycleState} /><StatusBadge kind="surveyRuntime" value={survey.runtimeStatus} /></div>}>
+                            <SectionCard title={t("surveyResults:surveyResults.detail.overview.title")} description={survey.description || t("surveyResults:surveyResults.common.noDescription")} actions={<div className="flex flex-wrap gap-2"><StatusBadge kind="surveyLifecycle" value={survey.lifecycleState} /><StatusBadge kind="surveyRuntime" value={survey.runtimeStatus} /></div>}>
                                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-                                    <StatCard label="Targeted" value={survey.targetedCount} />
-                                    <StatCard label="Opened" value={survey.openedCount} tone="blue" />
-                                    <StatCard label="Submitted" value={survey.submittedCount} tone="emerald" />
-                                    <StatCard label="Response rate" value={formatRate(survey.responseRate)} tone="slate" />
-                                    <StatCard label="Rating questions" value={ratingQuestions.length} tone="sky" />
-                                    <StatCard label="Text questions" value={textQuestions.length} tone="amber" />
+                                    <StatCard label={t("surveyResults:surveyResults.list.table.targeted")} value={survey.targetedCount} />
+                                    <StatCard label={t("surveyResults:surveyResults.list.table.opened")} value={survey.openedCount} tone="blue" />
+                                    <StatCard label={t("surveyResults:surveyResults.list.table.submitted")} value={survey.submittedCount} tone="emerald" />
+                                    <StatCard label={t("surveyResults:surveyResults.list.table.responseRate")} value={formatRate(survey.responseRate)} tone="slate" />
+                                    <StatCard label={t("surveyResults:surveyResults.detail.overview.ratingQuestions")} value={ratingQuestions.length} tone="sky" />
+                                    <StatCard label={t("surveyResults:surveyResults.detail.overview.textQuestions")} value={textQuestions.length} tone="amber" />
                                 </div>
                             </SectionCard>
 
-                            <SectionCard title="Participation summary" description="Identity is intentionally excluded here. This section stays at the aggregate level for staff review.">
+                            <SectionCard title={t("surveyResults:surveyResults.detail.participation.title")} description={t("surveyResults:surveyResults.detail.participation.description")}>
                                 <div className="grid gap-4 lg:grid-cols-2">
                                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
                                         <div className="grid gap-3">
-                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Audience</span><span className="font-medium text-slate-900">{getAudienceLabel(survey)}</span></div>
-                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Window</span><span className="font-medium text-slate-900">{formatDateRange(survey.startDate, survey.endDate)}</span></div>
-                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Not opened</span><span className="font-medium text-slate-900">{Math.max(survey.targetedCount - survey.openedCount, 0)}</span></div>
-                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">Opened but not submitted</span><span className="font-medium text-slate-900">{Math.max(survey.openedCount - survey.submittedCount, 0)}</span></div>
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.list.table.audience")}</span><span className="font-medium text-slate-900">{getAudienceLabel(survey, t)}</span></div>
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.list.table.window")}</span><span className="font-medium text-slate-900">{formatDateRange(survey.startDate, survey.endDate, i18n.language)}</span></div>
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.detail.participation.notOpened")}</span><span className="font-medium text-slate-900">{Math.max(survey.targetedCount - survey.openedCount, 0)}</span></div>
+                                            <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.detail.participation.openedNotSubmitted")}</span><span className="font-medium text-slate-900">{Math.max(survey.openedCount - survey.submittedCount, 0)}</span></div>
                                         </div>
                                     </div>
                                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Participation progress</p>
+                                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{t("surveyResults:surveyResults.detail.participation.progress")}</p>
                                         <div className="mt-4 space-y-4">
-                                            <ProgressBar label="Opened" value={survey.openedCount} total={survey.targetedCount} colorClassName="bg-sky-500" />
-                                            <ProgressBar label="Submitted" value={survey.submittedCount} total={survey.targetedCount} colorClassName="bg-emerald-500" />
+                                            <ProgressBar label={t("surveyResults:surveyResults.list.table.opened")} value={survey.openedCount} total={survey.targetedCount} colorClassName="bg-sky-500" />
+                                            <ProgressBar label={t("surveyResults:surveyResults.list.table.submitted")} value={survey.submittedCount} total={survey.targetedCount} colorClassName="bg-emerald-500" />
                                         </div>
                                     </div>
                                 </div>
                             </SectionCard>
 
-                            <SectionCard title="Question analytics" description="Rating questions show distribution and averages. Text questions are separated below for easier qualitative review.">
+                            <SectionCard title={t("surveyResults:surveyResults.detail.questions.title")} description={t("surveyResults:surveyResults.detail.questions.description")}>
                                 <div className="space-y-5">
                                     {ratingQuestions.length === 0 ? (
-                                        <EmptyState title="No rating analytics" description="This survey does not contain rating questions with distribution data." icon="query_stats" />
+                                        <EmptyState title={t("surveyResults:surveyResults.detail.questions.empty.title")} description={t("surveyResults:surveyResults.detail.questions.empty.description")} icon="query_stats" />
                                     ) : (
                                         ratingQuestions.map((question, index) => (
                                             <article key={question.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                                                 <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                                     <div>
-                                                        <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Question {index + 1}</span>
+                                                        <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{t("surveyResults:surveyResults.detail.questions.questionNumber", { number: index + 1 })}</span>
                                                         <h3 className="mt-3 text-xl font-bold text-slate-950">{question.content}</h3>
                                                     </div>
-                                                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600">{question.responseCount} response{question.responseCount === 1 ? "" : "s"}</div>
+                                                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600">{t("surveyResults:surveyResults.detail.rating.responseCount", { count: question.responseCount })}</div>
                                                 </div>
-                                                <RatingQuestionBlock question={question} />
+                                                <RatingQuestionBlock question={question} t={t} />
                                             </article>
                                         ))
                                     )}
                                 </div>
                             </SectionCard>
 
-                            <SectionCard title="Text comments" description="Anonymous comments are grouped by question. Search applies only to comment text and question copy.">
+                            {hasTextQuestions ? (
+                                <SectionCard
+                                    title={t("surveyResults:surveyResults.detail.ai.title")}
+                                    description={t("surveyResults:surveyResults.detail.ai.description")}
+                                    actions={(
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleGenerateAiSummary()}
+                                            disabled={!survey || aiLoading || isGeneratingAiSummary || isProcessingStatus(aiSummary?.status)}
+                                            className="inline-flex items-center rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            {isGeneratingAiSummary ? t("surveyResults:surveyResults.detail.ai.buttons.submitting") : isProcessingStatus(aiSummary?.status) ? t("surveyResults:surveyResults.detail.ai.buttons.processing") : aiSummary?.summary ? t("surveyResults:surveyResults.detail.ai.buttons.regenerate") : t("surveyResults:surveyResults.detail.ai.buttons.generate")}
+                                        </button>
+                                    )}
+                                >
+                                    {aiLoading ? (
+                                        <LoadingState label={t("surveyResults:surveyResults.detail.ai.loading")} />
+                                    ) : aiError ? (
+                                        <ErrorState description={aiError} onRetry={() => void fetchAiSummaryStatus()} />
+                                    ) : aiSummary ? (
+                                        <div className="space-y-5">
+                                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                                                <StatCard label={t("surveyResults:surveyResults.detail.ai.stats.status")} value={getSummaryStatusLabel(aiSummary.status, t)} tone="amber" />
+                                                <StatCard label={t("surveyResults:surveyResults.detail.ai.stats.textComments")} value={aiSummary.commentCount} tone="sky" />
+                                                <StatCard label={t("surveyResults:surveyResults.detail.ai.stats.requested")} value={formatDateTime(aiSummary.requestedAt, i18n.language)} tone="slate" />
+                                                <StatCard label={t("surveyResults:surveyResults.detail.ai.stats.finished")} value={formatDateTime(aiSummary.finishedAt, i18n.language)} tone="emerald" />
+                                            </div>
+
+                                            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
+                                                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                                                            {getSummaryStatusLabel(aiSummary.status, t)}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="mt-4">
+                                                        {aiSummary.summary ? (
+                                                            <p className="text-sm leading-7 text-slate-700">{aiSummary.summary}</p>
+                                                        ) : aiSummary.status === "FAILED" ? (
+                                                            <p className="text-sm leading-7 text-rose-600">{aiSummary.errorMessage || t("surveyResults:surveyResults.errors.aiFailed")}</p>
+                                                        ) : aiSummary.status === "NOT_REQUESTED" ? (
+                                                            <p className="text-sm leading-7 text-slate-600">{t("surveyResults:surveyResults.detail.ai.notRequested")}</p>
+                                                        ) : (
+                                                            <p className="text-sm leading-7 text-slate-600">{t("surveyResults:surveyResults.detail.ai.processingNotice")}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
+                                                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{t("surveyResults:surveyResults.detail.ai.jobDetails.title")}</p>
+                                                    <div className="mt-4 grid gap-3">
+                                                        <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.detail.ai.jobDetails.jobId")}</span><span className="font-medium text-slate-900">{aiSummary.jobId ?? "-"}</span></div>
+                                                        <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.detail.ai.jobDetails.requestedAt")}</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.requestedAt, i18n.language)}</span></div>
+                                                        <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.detail.ai.jobDetails.startedAt")}</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.startedAt, i18n.language)}</span></div>
+                                                        <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.detail.ai.jobDetails.finishedAt")}</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.finishedAt, i18n.language)}</span></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {aiSummary.summary ? (
+                                                <div className="grid gap-4 xl:grid-cols-3">
+                                                    <SummaryListCard title={t("surveyResults:surveyResults.detail.ai.lists.highlights")} items={aiSummary.highlights} emptyMessage={t("surveyResults:surveyResults.detail.ai.lists.emptyHighlights")} tone="sky" />
+                                                    <SummaryListCard title={t("surveyResults:surveyResults.detail.ai.lists.concerns")} items={aiSummary.concerns} emptyMessage={t("surveyResults:surveyResults.detail.ai.lists.emptyConcerns")} tone="rose" />
+                                                    <SummaryListCard title={t("surveyResults:surveyResults.detail.ai.lists.actions")} items={aiSummary.actions} emptyMessage={t("surveyResults:surveyResults.detail.ai.lists.emptyActions")} tone="amber" />
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    ) : null}
+                                </SectionCard>
+                            ) : null}
+
+                            <SectionCard title={t("surveyResults:surveyResults.detail.comments.title")} description={t("surveyResults:surveyResults.detail.comments.description")}>
                                 <div className="space-y-5">
-                                    <SearchInput value={commentQuery} onChange={setCommentQuery} placeholder="Search comments or question text" />
+                                    <SearchInput value={commentQuery} onChange={setCommentQuery} placeholder={t("surveyResults:surveyResults.detail.comments.search")} />
                                     {filteredTextQuestions.length === 0 ? (
-                                        <EmptyState title="No matching comments" description="Adjust the comment search to find the qualitative feedback you need." icon="comment" />
+                                        <EmptyState title={t("surveyResults:surveyResults.detail.comments.empty.title")} description={t("surveyResults:surveyResults.detail.comments.empty.description")} icon="comment" />
                                     ) : (
                                         filteredTextQuestions.map((question, index) => {
                                             const isExpanded = expandedQuestions[question.id] ?? false;
@@ -220,13 +386,13 @@ export default function SurveyResultDetailPage() {
                                                 <article key={question.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                                                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                                         <div>
-                                                            <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Text question {index + 1}</span>
+                                                            <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{t("surveyResults:surveyResults.detail.comments.textQuestionNumber", { number: index + 1 })}</span>
                                                             <h3 className="mt-3 text-xl font-bold text-slate-950">{question.content}</h3>
-                                                            <p className="mt-2 text-sm text-slate-500">{question.comments.length} comment{question.comments.length === 1 ? "" : "s"}</p>
+                                                            <p className="mt-2 text-sm text-slate-500">{t("surveyResults:surveyResults.detail.comments.count", { count: question.comments.length })}</p>
                                                         </div>
                                                         {question.comments.length > 3 ? (
                                                             <button type="button" onClick={() => setExpandedQuestions((current) => ({ ...current, [question.id]: !isExpanded }))} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
-                                                                {isExpanded ? "Collapse" : "Show all"}
+                                                                {isExpanded ? t("surveyResults:surveyResults.detail.buttons.collapse") : t("surveyResults:surveyResults.detail.buttons.showAll")}
                                                             </button>
                                                         ) : null}
                                                     </div>
@@ -242,7 +408,7 @@ export default function SurveyResultDetailPage() {
                                                                     <p>{displayComment}</p>
                                                                     {isLong ? (
                                                                         <button type="button" onClick={() => setExpandedComments((current) => ({ ...current, [commentKey]: !isCommentExpanded }))} className="mt-3 text-sm font-semibold text-slate-700 underline underline-offset-2">
-                                                                            {isCommentExpanded ? "Show less" : "Show more"}
+                                                                            {isCommentExpanded ? t("surveyResults:surveyResults.detail.buttons.showLess") : t("surveyResults:surveyResults.detail.buttons.showMore")}
                                                                         </button>
                                                                     ) : null}
                                                                 </div>
@@ -260,6 +426,31 @@ export default function SurveyResultDetailPage() {
                 </div>
             </div>
         </main>
+    );
+}
+
+function SummaryListCard({ title, items, emptyMessage, tone }: { title: string; items: string[]; emptyMessage: string; tone: "sky" | "rose" | "amber" }) {
+    const toneClasses = {
+        sky: "border-sky-200 bg-sky-50 text-sky-800",
+        rose: "border-rose-200 bg-rose-50 text-rose-800",
+        amber: "border-amber-200 bg-amber-50 text-amber-800",
+    }[tone];
+
+    return (
+        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-base font-bold text-slate-950">{title}</h3>
+            {items.length === 0 ? (
+                <p className="mt-3 text-sm leading-6 text-slate-500">{emptyMessage}</p>
+            ) : (
+                <div className="mt-4 space-y-3">
+                    {items.map((item) => (
+                        <div key={item} className={`rounded-2xl border px-4 py-4 text-sm leading-6 ${toneClasses}`}>
+                            {item}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </article>
     );
 }
 

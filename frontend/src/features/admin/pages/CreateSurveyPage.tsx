@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
     archiveSurvey,
     applySurveyTemplate,
@@ -36,12 +37,12 @@ function toDateTimeLocal(value: string) {
     return local.toISOString().slice(0, 16);
 }
 
-function formatDateTime(value: string | null) {
+function formatDateTime(value: string | null, language: string, notYetLabel: string) {
     if (!value) {
-        return "Not yet";
+        return notYetLabel;
     }
 
-    return new Intl.DateTimeFormat("en-GB", {
+    return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", {
         day: "2-digit",
         month: "short",
         year: "numeric",
@@ -54,22 +55,23 @@ function formatRate(value: number) {
     return `${value.toFixed(1)}%`;
 }
 
-function buildActionCopy(action: LifecycleAction, title: string) {
+function buildActionCopy(action: LifecycleAction, title: string, t: (key: string, options?: Record<string, unknown>) => string) {
     switch (action) {
         case "publish":
-            return { title: "Publish survey", description: `Publish "${title}" and assign it to the configured recipients.`, confirmLabel: "Publish survey" };
+            return { title: t("admin:admin.surveys.form.lifecycleActions.publish"), description: t("admin:admin.surveys.form.confirm.publish", { title }), confirmLabel: t("admin:admin.surveys.form.lifecycleActions.publish") };
         case "close":
-            return { title: "Close survey", description: `Close "${title}" now and stop collecting responses immediately.`, confirmLabel: "Close survey", tone: "danger" as const };
+            return { title: t("admin:admin.surveys.form.lifecycleActions.close"), description: t("admin:admin.surveys.form.confirm.close", { title }), confirmLabel: t("admin:admin.surveys.form.lifecycleActions.close"), tone: "danger" as const };
         case "archive":
-            return { title: "Archive survey", description: `Archive "${title}" as a historical record. It will remain read-only.`, confirmLabel: "Archive survey" };
+            return { title: t("admin:admin.surveys.form.lifecycleActions.archive"), description: t("admin:admin.surveys.form.confirm.archive", { title }), confirmLabel: t("admin:admin.surveys.form.lifecycleActions.archive") };
         case "show":
-            return { title: "Make survey visible", description: `Make "${title}" visible again for eligible recipients.`, confirmLabel: "Show survey" };
+            return { title: t("admin:admin.surveys.form.lifecycleActions.makeVisible"), description: t("admin:admin.surveys.form.confirm.show", { title }), confirmLabel: t("admin:admin.surveys.form.lifecycleActions.show") };
         case "hide":
-            return { title: "Hide survey", description: `Hide "${title}" from recipients without changing its lifecycle state.`, confirmLabel: "Hide survey" };
+            return { title: t("admin:admin.surveys.form.lifecycleActions.hide"), description: t("admin:admin.surveys.form.confirm.hide", { title }), confirmLabel: t("admin:admin.surveys.form.lifecycleActions.hide") };
     }
 }
 
 export default function CreateSurveyPage() {
+    const { i18n, t } = useTranslation(["admin", "validation"]);
     const navigate = useNavigate();
     const location = useLocation();
     const { id } = useParams();
@@ -131,19 +133,19 @@ export default function CreateSurveyPage() {
 
     const lifecycleHelp = useMemo(() => {
         if (!isEditMode) {
-            return "New surveys start as drafts. Configure survey information, schedule, audience, and questions before publishing.";
+            return t("admin:admin.surveys.form.lifecycleHelp.new");
         }
         if (isDraft) {
-            return "Draft surveys remain editable. Publish only when the dates, audience, and question set are complete.";
+            return t("admin:admin.surveys.form.lifecycleHelp.draft");
         }
         if (isPublished) {
-            return "Published surveys follow their schedule. Only visibility changes and explicit closure are available.";
+            return t("admin:admin.surveys.form.lifecycleHelp.published");
         }
         if (isClosed) {
-            return "Closed surveys are read-only. Archive them when they should move into record-keeping mode.";
+            return t("admin:admin.surveys.form.lifecycleHelp.closed");
         }
-        return "Archived surveys remain read-only historical records.";
-    }, [isClosed, isDraft, isEditMode, isPublished]);
+        return t("admin:admin.surveys.form.lifecycleHelp.archived");
+    }, [isClosed, isDraft, isEditMode, isPublished, t]);
 
     const loadSurveyData = useCallback(async () => {
         if (!isEditMode || !surveyId) {
@@ -170,11 +172,11 @@ export default function CreateSurveyPage() {
             setResponseRate(survey.responseRate);
             setPendingRecipients(survey.pendingRecipients);
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to load survey."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.surveys.form.errors.load")));
         } finally {
             setLoadingSurvey(false);
         }
-    }, [isEditMode, surveyId]);
+    }, [isEditMode, surveyId, t]);
 
     useEffect(() => {
         const navigationState = location.state as { feedback?: string } | null;
@@ -251,9 +253,9 @@ export default function CreateSurveyPage() {
                 type: question.type,
                 questionBankEntryId: question.questionBankEntryId,
             })));
-            setFeedback(`Applied template "${template.name}" in replace mode. Template questions were copied into this draft.`);
+            setFeedback(t("admin:admin.surveys.form.feedback.templateApplied", { name: template.name }));
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to apply survey template."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.surveys.form.errors.applyTemplate")));
         } finally {
             setPendingTemplateId(null);
         }
@@ -262,7 +264,7 @@ export default function CreateSurveyPage() {
     async function handleApplyTemplate() {
         const templateId = Number(selectedTemplateId);
         if (!Number.isFinite(templateId) || templateId <= 0) {
-            setError("Select a template to apply.");
+            setError(t("validation:validation.admin.surveys.selectTemplate"));
             return;
         }
 
@@ -280,19 +282,19 @@ export default function CreateSurveyPage() {
         setFeedback("");
 
         if (!title.trim()) {
-            setError("Title is required.");
+            setError(t("validation:validation.admin.surveys.titleRequired"));
             return;
         }
         if (questions.length === 0) {
-            setError("At least one question is required.");
+            setError(t("validation:validation.admin.surveys.questionRequired"));
             return;
         }
         if (questions.some((question) => !question.content.trim())) {
-            setError("All questions must have content.");
+            setError(t("validation:validation.admin.surveys.questionContentRequired"));
             return;
         }
         if (recipientScope === "DEPARTMENT" && !recipientDepartmentId.trim()) {
-            setError("Select a department for department-scoped recipients.");
+            setError(t("validation:validation.admin.surveys.departmentRequired"));
             return;
         }
 
@@ -311,7 +313,7 @@ export default function CreateSurveyPage() {
             if (isEditMode && surveyId) {
                 const response = await updateSurvey(surveyId, payload);
                 if (!response.success) {
-                    setError(response.message || "Unable to save survey.");
+                    setError(response.message || t("admin:admin.surveys.form.errors.save"));
                     return;
                 }
                 setFeedback(response.message);
@@ -321,14 +323,14 @@ export default function CreateSurveyPage() {
 
             const response = await createSurvey(payload);
             if (!response.success) {
-                setError(response.message || "Unable to save survey.");
+                setError(response.message || t("admin:admin.surveys.form.errors.save"));
                 return;
             }
             navigate(`/admin/surveys/${response.surveyId}/edit`, {
-                state: { feedback: "Survey draft created. Review it and publish when ready." },
+                state: { feedback: t("admin:admin.surveys.form.feedback.draftCreated") },
             });
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to save survey."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.surveys.form.errors.save")));
         } finally {
             setLoading(false);
         }
@@ -363,7 +365,7 @@ export default function CreateSurveyPage() {
             }
 
             if (!response.success) {
-                setError(response.message || "Unable to update survey.");
+                setError(response.message || t("admin:admin.surveys.form.errors.update"));
                 return;
             }
 
@@ -371,7 +373,7 @@ export default function CreateSurveyPage() {
             setFeedback(response.message);
             await loadSurveyData();
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to update survey."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.surveys.form.errors.update")));
         } finally {
             setToggling(false);
         }
@@ -381,10 +383,10 @@ export default function CreateSurveyPage() {
         <main className="bg-slate-100">
             <div className="mx-auto max-w-screen-xl px-6 py-10">
                 <PageHeader
-                    eyebrow="Admin / Surveys"
-                    title={isEditMode ? "Manage survey" : "Create survey"}
-                    description={isEditMode ? "Review survey setup, monitor recipient activity, and control lifecycle transitions from one operational page." : "Create a survey draft with clear information, schedule, audience, and question structure before publishing."}
-                    actions={<Link to="/admin/surveys" className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">Back to surveys</Link>}
+                    eyebrow={t("admin:admin.surveys.form.header.eyebrow")}
+                    title={isEditMode ? t("admin:admin.surveys.form.header.manageTitle") : t("admin:admin.surveys.form.header.createTitle")}
+                    description={isEditMode ? t("admin:admin.surveys.form.header.manageDescription") : t("admin:admin.surveys.form.header.createDescription")}
+                    actions={<Link to="/admin/surveys" className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">{t("admin:admin.surveys.form.buttons.backToSurveys")}</Link>}
                 />
 
                 <div className="mt-6 space-y-6">
@@ -392,120 +394,120 @@ export default function CreateSurveyPage() {
                     {feedback ? <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700">{feedback}</div> : null}
 
                     {loadingSurvey ? (
-                        <LoadingState label="Loading survey..." />
+                        <LoadingState label={t("admin:admin.surveys.form.loading")} />
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {isEditMode ? (
                                 <>
-                                    <SectionCard title="Lifecycle overview" description={lifecycleHelp} actions={<div className="flex flex-wrap gap-2"><StatusBadge kind="surveyLifecycle" value={lifecycleState} /><StatusBadge kind="surveyRuntime" value={runtimeStatus} /><StatusBadge kind="surveyVisibility" value={hidden ? "HIDDEN" : "VISIBLE"} /></div>}>
+                                    <SectionCard title={t("admin:admin.surveys.form.lifecycle.title")} description={lifecycleHelp} actions={<div className="flex flex-wrap gap-2"><StatusBadge kind="surveyLifecycle" value={lifecycleState} /><StatusBadge kind="surveyRuntime" value={runtimeStatus} /><StatusBadge kind="surveyVisibility" value={hidden ? "HIDDEN" : "VISIBLE"} /></div>}>
                                         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                                            <StatCard label="Targeted" value={targetedCount} />
-                                            <StatCard label="Opened" value={openedCount} tone="blue" />
-                                            <StatCard label="Submitted" value={responseCount} tone="emerald" />
-                                            <StatCard label="Not opened" value={notOpenedCount} tone="amber" />
-                                            <StatCard label="Response rate" value={formatRate(responseRate)} tone="slate" />
+                                            <StatCard label={t("admin:admin.surveys.form.stats.targeted")} value={targetedCount} />
+                                            <StatCard label={t("admin:admin.surveys.form.stats.opened")} value={openedCount} tone="blue" />
+                                            <StatCard label={t("admin:admin.surveys.form.stats.submitted")} value={responseCount} tone="emerald" />
+                                            <StatCard label={t("admin:admin.surveys.form.stats.notOpened")} value={notOpenedCount} tone="amber" />
+                                            <StatCard label={t("admin:admin.surveys.form.stats.responseRate")} value={formatRate(responseRate)} tone="slate" />
                                         </div>
                                     </SectionCard>
 
-                                    <SectionCard title="Lifecycle actions" description="Only show publish, close, archive, and visibility actions when the current lifecycle allows them.">
+                                    <SectionCard title={t("admin:admin.surveys.form.lifecycleActions.title")} description={t("admin:admin.surveys.form.lifecycleActions.description")}>
                                         <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
-                                            <button type="button" onClick={() => setPendingAction("publish")} disabled={toggling || !isDraft} className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60">Publish survey</button>
-                                            <button type="button" onClick={() => setPendingAction("close")} disabled={toggling || !isPublished} className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60">Close survey</button>
-                                            <button type="button" onClick={() => setPendingAction("archive")} disabled={toggling || !isClosed} className="rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60">Archive survey</button>
-                                            <button type="button" onClick={() => setPendingAction(hidden ? "show" : "hide")} disabled={toggling || (!isPublished && !isClosed)} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60">{hidden ? "Show survey" : "Hide survey"}</button>
+                                            <button type="button" onClick={() => setPendingAction("publish")} disabled={toggling || !isDraft} className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60">{t("admin:admin.surveys.form.lifecycleActions.publish")}</button>
+                                            <button type="button" onClick={() => setPendingAction("close")} disabled={toggling || !isPublished} className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60">{t("admin:admin.surveys.form.lifecycleActions.close")}</button>
+                                            <button type="button" onClick={() => setPendingAction("archive")} disabled={toggling || !isClosed} className="rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60">{t("admin:admin.surveys.form.lifecycleActions.archive")}</button>
+                                            <button type="button" onClick={() => setPendingAction(hidden ? "show" : "hide")} disabled={toggling || (!isPublished && !isClosed)} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60">{hidden ? t("admin:admin.surveys.form.lifecycleActions.show") : t("admin:admin.surveys.form.lifecycleActions.hide")}</button>
                                         </div>
                                     </SectionCard>
                                 </>
                             ) : null}
 
-                            <FormSection title="Survey information" description="Keep the survey title and description readable for admins who manage many campaigns in parallel.">
+                            <FormSection title={t("admin:admin.surveys.form.information.title")} description={t("admin:admin.surveys.form.information.description")}>
                                 {!formLocked ? (
                                     <div className="mb-5 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[minmax(0,1fr)_auto]">
                                         <select value={selectedTemplateId} onChange={(event) => setSelectedTemplateId(event.target.value)} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5">
-                                            <option value="">Select survey template</option>
+                                            <option value="">{t("admin:admin.surveys.form.templates.select")}</option>
                                             {templates.map((template) => (
                                                 <option key={template.id} value={template.id}>{template.name}</option>
                                             ))}
                                         </select>
                                         <button type="button" onClick={() => void handleApplyTemplate()} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
-                                            Replace with template
+                                            {t("admin:admin.surveys.form.templates.replace")}
                                         </button>
-                                        <p className="md:col-span-2 text-xs leading-5 text-slate-500">Replace mode copies the selected template into this draft. It overwrites current title, description, audience, and questions, and later template changes will not sync into this survey.</p>
+                                        <p className="md:col-span-2 text-xs leading-5 text-slate-500">{t("admin:admin.surveys.form.templates.help")}</p>
                                     </div>
                                 ) : null}
                                 <div className="grid gap-5">
-                                    <Field label="Title">
+                                    <Field label={t("admin:admin.surveys.form.fields.title")}>
                                         <input type="text" value={title} onChange={(event) => setTitle(event.target.value)} disabled={formLocked} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100" />
                                     </Field>
-                                    <Field label="Description" description="This is used in admin search and should help distinguish surveys quickly.">
+                                    <Field label={t("admin:admin.surveys.form.fields.description")} description={t("admin:admin.surveys.form.fields.descriptionHelp")}>
                                         <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={4} disabled={formLocked} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100" />
                                     </Field>
                                 </div>
                             </FormSection>
 
-                            <FormSection title="Schedule" description="Runtime status is derived from lifecycle state and this date window.">
+                            <FormSection title={t("admin:admin.surveys.form.schedule.title")} description={t("admin:admin.surveys.form.schedule.description")}>
                                 <div className="grid gap-5 md:grid-cols-2">
-                                    <Field label="Start date">
+                                    <Field label={t("admin:admin.surveys.form.fields.startDate")}>
                                         <input type="datetime-local" value={startDate} onChange={(event) => setStartDate(event.target.value)} disabled={formLocked} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100" />
                                     </Field>
-                                    <Field label="End date">
+                                    <Field label={t("admin:admin.surveys.form.fields.endDate")}>
                                         <input type="datetime-local" value={endDate} onChange={(event) => setEndDate(event.target.value)} disabled={formLocked} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100" />
                                     </Field>
                                 </div>
                             </FormSection>
 
-                            <FormSection title="Audience / recipients" description="Recipient configuration should describe who receives the survey without exposing backend-shaped IDs.">
+                            <FormSection title={t("admin:admin.surveys.form.audience.title")} description={t("admin:admin.surveys.form.audience.description")}>
                                 <div className="grid gap-5 md:grid-cols-2">
-                                    <Field label="Recipient scope">
+                                    <Field label={t("admin:admin.surveys.form.fields.recipientScope")}>
                                         <select value={recipientScope} onChange={(event) => setRecipientScope(event.target.value as "ALL_STUDENTS" | "DEPARTMENT")} disabled={recipientsLocked} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100">
-                                            <option value="ALL_STUDENTS">All students</option>
-                                            <option value="DEPARTMENT">Department only</option>
+                                            <option value="ALL_STUDENTS">{t("admin:admin.surveys.form.audience.allStudents")}</option>
+                                            <option value="DEPARTMENT">{t("admin:admin.surveys.form.audience.departmentOnly")}</option>
                                         </select>
                                     </Field>
-                                    <Field label="Department" description={recipientScope === "DEPARTMENT" && departments.length === 0 ? "Department lookup is unavailable right now. This selection will remain empty until departments can be loaded." : undefined}>
+                                    <Field label={t("admin:admin.surveys.form.fields.department")} description={recipientScope === "DEPARTMENT" && departments.length === 0 ? t("admin:admin.surveys.form.audience.departmentUnavailable") : undefined}>
                                         <select value={recipientDepartmentId} onChange={(event) => setRecipientDepartmentId(event.target.value)} disabled={recipientScope !== "DEPARTMENT" || recipientsLocked || departments.length === 0} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100">
-                                            <option value="">Select department</option>
+                                            <option value="">{t("admin:admin.surveys.form.audience.selectDepartment")}</option>
                                             {departments.map((department) => (
                                                 <option key={department.id} value={department.id}>{department.name}</option>
                                             ))}
                                         </select>
                                     </Field>
                                 </div>
-                                {recipientsLocked ? <p className="text-sm font-medium text-amber-700">Recipient settings are locked after publication or once responses exist.</p> : null}
+                                {recipientsLocked ? <p className="text-sm font-medium text-amber-700">{t("admin:admin.surveys.form.audience.locked")}</p> : null}
                             </FormSection>
 
-                            <FormSection title="Questions" description="This phase keeps the current editor model but organizes it into a cleaner operational section.">
+                            <FormSection title={t("admin:admin.surveys.form.questions.title")} description={t("admin:admin.surveys.form.questions.description")}>
                                 <div className="flex flex-wrap justify-end gap-3">
                                     <select defaultValue="" onChange={(event) => { addQuestionFromBank(event.target.value); event.currentTarget.value = ""; }} disabled={questionLocked || questionBank.length === 0} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition focus:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60">
-                                        <option value="">Add from question bank</option>
+                                        <option value="">{t("admin:admin.surveys.form.questions.addFromBank")}</option>
                                         {questionBank.map((entry) => (
                                             <option key={entry.id} value={entry.id}>{entry.content}</option>
                                         ))}
                                     </select>
                                     <button type="button" onClick={addQuestion} disabled={questionLocked} className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60">
                                         <span className="material-symbols-outlined text-[18px]">add</span>
-                                        Add question
+                                        {t("admin:admin.surveys.form.questions.addQuestion")}
                                     </button>
                                 </div>
 
                                 {questions.length === 0 ? (
-                                    <EmptyState title="No questions yet" description="Add at least one question before saving or publishing this survey." icon="quiz" />
+                                    <EmptyState title={t("admin:admin.surveys.form.questions.emptyTitle")} description={t("admin:admin.surveys.form.questions.emptyDescription")} icon="quiz" />
                                 ) : (
                                     <div className="grid gap-4">
                                         {questions.map((question, index) => (
                                             <SectionCard key={index} className="p-5 sm:p-5">
                                                 <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_200px_auto]">
-                                                    <Field label={`Question ${index + 1}`}>
+                                                    <Field label={t("admin:admin.surveys.form.questions.questionNumber", { number: index + 1 })}>
                                                         <input type="text" value={question.content} onChange={(event) => updateQuestion(index, "content", event.target.value)} disabled={questionLocked} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100" />
                                                     </Field>
-                                                    <Field label="Type">
+                                                    <Field label={t("admin:admin.surveys.form.fields.type")}>
                                                         <select value={question.type} onChange={(event) => updateQuestion(index, "type", event.target.value as CreateQuestionData["type"])} disabled={questionLocked} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100">
-                                                            <option value="RATING">Rating (1-5)</option>
-                                                            <option value="TEXT">Free text</option>
+                                                            <option value="RATING">{t("admin:admin.surveys.form.questions.ratingType")}</option>
+                                                            <option value="TEXT">{t("admin:admin.surveys.form.questions.textType")}</option>
                                                         </select>
                                                     </Field>
                                                     <div className="flex items-end">
-                                                        <button type="button" onClick={() => removeQuestion(index)} disabled={questionLocked} className="inline-flex w-full items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
+                                                        <button type="button" onClick={() => removeQuestion(index)} disabled={questionLocked} className="inline-flex w-full items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60">{t("admin:admin.surveys.form.questions.remove")}</button>
                                                     </div>
                                                 </div>
                                             </SectionCard>
@@ -513,14 +515,14 @@ export default function CreateSurveyPage() {
                                     </div>
                                 )}
 
-                                {questionLocked ? <p className="text-sm font-medium text-amber-700">Questions are locked after publication or once responses exist.</p> : null}
-                                {!questionLocked ? <p className="text-sm text-slate-500">Question-bank items are copied into the draft. Later edits or archives in the question bank do not change this survey.</p> : null}
+                                {questionLocked ? <p className="text-sm font-medium text-amber-700">{t("admin:admin.surveys.form.questions.locked")}</p> : null}
+                                {!questionLocked ? <p className="text-sm text-slate-500">{t("admin:admin.surveys.form.questions.bankHelp")}</p> : null}
                             </FormSection>
 
                             {isEditMode ? (
-                                <SectionCard title="Recipient activity" description="These recipient counts and pending participants help explain real survey performance, not just configuration state.">
+                                <SectionCard title={t("admin:admin.surveys.form.recipientActivity.title")} description={t("admin:admin.surveys.form.recipientActivity.description")}>
                                     {pendingRecipients.length === 0 ? (
-                                        <EmptyState title="No pending recipients" description="Everyone assigned to this survey has already submitted, or the survey has not assigned recipients yet." icon="group" />
+                                        <EmptyState title={t("admin:admin.surveys.form.recipientActivity.emptyTitle")} description={t("admin:admin.surveys.form.recipientActivity.emptyDescription")} icon="group" />
                                     ) : (
                                         <div className="grid gap-3">
                                             {pendingRecipients.map((recipient) => (
@@ -533,8 +535,8 @@ export default function CreateSurveyPage() {
                                                         <StatusBadge kind="surveyParticipation" value={recipient.participationStatus} />
                                                     </div>
                                                     <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-2">
-                                                        <p>First opened: <span className="font-medium text-slate-900">{formatDateTime(recipient.openedAt)}</span></p>
-                                                        <p>Submitted: <span className="font-medium text-slate-900">{formatDateTime(recipient.submittedAt)}</span></p>
+                                                        <p>{t("admin:admin.surveys.form.recipientActivity.firstOpened")} <span className="font-medium text-slate-900">{formatDateTime(recipient.openedAt, i18n.language, t("admin:admin.surveys.form.common.notYet"))}</span></p>
+                                                        <p>{t("admin:admin.surveys.form.recipientActivity.submitted")} <span className="font-medium text-slate-900">{formatDateTime(recipient.submittedAt, i18n.language, t("admin:admin.surveys.form.common.notYet"))}</span></p>
                                                     </div>
                                                 </div>
                                             ))}
@@ -546,7 +548,7 @@ export default function CreateSurveyPage() {
                             <div className="flex justify-end">
                                 <button type="submit" disabled={loading || formLocked} className={`${darkActionButtonClass} px-6 py-4 text-sm font-semibold`} style={darkActionButtonStyle}>
                                     <span className="text-white" style={darkActionButtonStyle}>
-                                        {loading ? "Saving..." : isEditMode ? "Save draft changes" : "Create draft"}
+                                        {loading ? t("admin:admin.surveys.form.buttons.saving") : isEditMode ? t("admin:admin.surveys.form.buttons.saveDraftChanges") : t("admin:admin.surveys.form.buttons.createDraft")}
                                     </span>
                                 </button>
                             </div>
@@ -557,19 +559,19 @@ export default function CreateSurveyPage() {
 
             <ConfirmDialog
                 open={pendingAction != null}
-                title={buildActionCopy(pendingAction || "publish", title).title}
-                description={buildActionCopy(pendingAction || "publish", title).description}
-                confirmLabel={buildActionCopy(pendingAction || "publish", title).confirmLabel}
-                tone={buildActionCopy(pendingAction || "publish", title).tone}
+                title={buildActionCopy(pendingAction || "publish", title, t).title}
+                description={buildActionCopy(pendingAction || "publish", title, t).description}
+                confirmLabel={buildActionCopy(pendingAction || "publish", title, t).confirmLabel}
+                tone={buildActionCopy(pendingAction || "publish", title, t).tone}
                 busy={toggling}
                 onCancel={() => setPendingAction(null)}
                 onConfirm={() => void handleLifecycleAction()}
             />
             <ConfirmDialog
                 open={pendingTemplateId != null}
-                title="Replace draft with template"
-                description="This will overwrite the current draft title, description, audience, and question list. The template will be copied into this draft and will not stay linked for future changes."
-                confirmLabel="Replace draft"
+                title={t("admin:admin.surveys.form.templates.confirmTitle")}
+                description={t("admin:admin.surveys.form.templates.confirmDescription")}
+                confirmLabel={t("admin:admin.surveys.form.templates.confirmLabel")}
                 tone="danger"
                 busy={false}
                 onCancel={() => setPendingTemplateId(null)}

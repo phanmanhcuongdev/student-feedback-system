@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 type PaginationControlsProps = {
     page: number;
     pageCount: number;
@@ -9,6 +11,8 @@ export default function PaginationControls({
     pageCount,
     onPageChange,
 }: PaginationControlsProps) {
+    const { t } = useTranslation("common");
+
     if (pageCount <= 1) {
         return null;
     }
@@ -16,7 +20,7 @@ export default function PaginationControls({
     return (
         <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm font-medium text-slate-500">
-                Page {page} of {pageCount}
+                {t("common.pagination.pageOf", { page, pageCount })}
             </p>
             <div className="flex items-center gap-2">
                 <button
@@ -25,7 +29,7 @@ export default function PaginationControls({
                     disabled={page <= 1}
                     className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    Previous
+                    {t("common.pagination.previous")}
                 </button>
                 <button
                     type="button"
@@ -33,7 +37,7 @@ export default function PaginationControls({
                     disabled={page >= pageCount}
                     className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    Next
+                    {t("common.pagination.next")}
                 </button>
             </div>
         </div>

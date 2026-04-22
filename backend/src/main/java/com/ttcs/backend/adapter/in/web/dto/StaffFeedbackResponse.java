@@ -9,7 +9,10 @@ public record StaffFeedbackResponse(
         String studentName,
         String studentEmail,
         String title,
-        String content,
+        String displayContent,
+        String originalContent,
+        boolean isAutoTranslated,
+        String sourceLang,
         LocalDateTime createdAt,
         List<FeedbackResponseView> responses
 ) {

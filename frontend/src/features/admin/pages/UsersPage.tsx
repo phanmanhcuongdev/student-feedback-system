@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
     activateUser,
     deactivateUser,
@@ -23,13 +24,14 @@ import StatusBadge from "../../../components/ui/StatusBadge";
 import type { DepartmentOption, ManagedUserMetrics, ManagedUserSummary } from "../../../types/admin";
 
 const ROLE_TABS = [
-    { label: "All", value: "ALL" },
-    { label: "Students", value: "STUDENT" },
-    { label: "Lecturers", value: "LECTURER" },
-    { label: "Admins", value: "ADMIN" },
+    { labelKey: "admin:admin.users.roleTabs.all", value: "ALL" },
+    { labelKey: "admin:admin.users.roleTabs.students", value: "STUDENT" },
+    { labelKey: "admin:admin.users.roleTabs.lecturers", value: "LECTURER" },
+    { labelKey: "admin:admin.users.roleTabs.admins", value: "ADMIN" },
 ] as const;
 
 export default function UsersPage() {
+    const { t } = useTranslation(["admin"]);
     const [users, setUsers] = useState<ManagedUserSummary[]>([]);
     const [metrics, setMetrics] = useState<ManagedUserMetrics>({
         totalUsers: 0,
@@ -82,11 +84,11 @@ export default function UsersPage() {
             setTotalElements(usersResponse.totalElements);
             setTotalPages(usersResponse.totalPages);
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to load users."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.users.errors.load")));
         } finally {
             setLoading(false);
         }
-    }, [debouncedQuery, departmentFilter, page, roleTab, sortBy, sortDir, statusFilter, studentStatusFilter]);
+    }, [debouncedQuery, departmentFilter, page, roleTab, sortBy, sortDir, statusFilter, studentStatusFilter, t]);
 
     useEffect(() => {
         const timeout = window.setTimeout(() => {
@@ -122,26 +124,26 @@ export default function UsersPage() {
             setError("");
             const response = user.active ? await deactivateUser(user.id) : await activateUser(user.id);
             if (!response.success) {
-                setError(response.message || "Unable to update user state.");
+                setError(response.message || t("admin:admin.users.errors.updateState"));
                 return;
             }
             await loadUsers();
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, "Unable to update user state."));
+            setError(getApiErrorMessage(requestError, t("admin:admin.users.errors.updateState")));
         } finally {
             setActionUserId(null);
         }
     }
 
     const departmentOptions = useMemo(() => [
-        { label: "All departments", value: "ALL" },
+        { label: t("admin:admin.users.filters.allDepartments"), value: "ALL" },
         ...departments.map((department) => ({ label: department.name, value: String(department.id) })),
-    ], [departments]);
+    ], [departments, t]);
 
     const columns: DataTableColumn<ManagedUserSummary>[] = [
         {
             key: "user",
-            header: "User",
+            header: t("admin:admin.users.table.user"),
             render: (user) => (
                 <div>
                     <p className="font-bold text-slate-950">{user.name}</p>
@@ -151,32 +153,32 @@ export default function UsersPage() {
         },
         {
             key: "role",
-            header: "Role",
+            header: t("admin:admin.users.table.role"),
             render: (user) => <RoleBadge value={user.role} />,
         },
         {
             key: "code",
-            header: "Code",
-            render: (user) => user.studentCode ?? user.lecturerCode ?? "N/A",
+            header: t("admin:admin.users.table.code"),
+            render: (user) => user.studentCode ?? user.lecturerCode ?? t("admin:admin.users.common.notAvailable"),
         },
         {
             key: "account",
-            header: "Account",
+            header: t("admin:admin.users.table.account"),
             render: (user) => <StatusBadge kind="account" value={user.active ? "ACTIVE" : "INACTIVE"} />,
         },
         {
             key: "department",
-            header: "Department",
-            render: (user) => user.departmentName ?? "N/A",
+            header: t("admin:admin.users.table.department"),
+            render: (user) => user.departmentName ?? t("admin:admin.users.common.notAvailable"),
         },
         {
             key: "studentStatus",
-            header: "Student Status",
-            render: (user) => user.studentStatus ? <StatusBadge kind="onboarding" value={user.studentStatus} /> : "N/A",
+            header: t("admin:admin.users.table.studentStatus"),
+            render: (user) => user.studentStatus ? <StatusBadge kind="onboarding" value={user.studentStatus} /> : t("admin:admin.users.common.notAvailable"),
         },
         {
             key: "actions",
-            header: "Actions",
+            header: t("admin:admin.users.table.actions"),
             className: "text-right",
             render: (user) => (
                 <div className="flex justify-end">
@@ -187,13 +189,13 @@ export default function UsersPage() {
                             disabled={actionUserId === user.id}
                             className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            <span>{actionUserId === user.id ? "Updating..." : user.active ? "Deactivate" : "Activate"}</span>
+                            <span>{actionUserId === user.id ? t("admin:admin.users.buttons.updating") : user.active ? t("admin:admin.users.buttons.deactivate") : t("admin:admin.users.buttons.activate")}</span>
                         </button>
                         <Link
                             to={`/admin/users/${user.id}`}
                             className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
                         >
-                            <span>View details</span>
+                            <span>{t("admin:admin.users.buttons.viewDetails")}</span>
                             <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                         </Link>
                     </div>
@@ -206,24 +208,24 @@ export default function UsersPage() {
         <main className="bg-slate-100">
             <div className="mx-auto max-w-screen-xl px-6 py-10">
                 <PageHeader
-                    eyebrow="Admin / User Accounts"
-                    title="User account management"
-                    description="Search, review, update profile details, and activate or deactivate accounts without implying role reassignment."
+                    eyebrow={t("admin:admin.users.header.eyebrow")}
+                    title={t("admin:admin.users.header.title")}
+                    description={t("admin:admin.users.header.description")}
                     actions={(
                         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm">
-                            {totalElements} matching user{totalElements === 1 ? "" : "s"}
+                            {t("admin:admin.users.header.matchingCount", { count: totalElements })}
                         </div>
                     )}
                 />
 
                 <div className="mt-6 space-y-6">
                     <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-                        <StatCard label="Total users" value={metrics.totalUsers} />
-                        <StatCard label="Students" value={metrics.totalStudents} tone="blue" />
-                        <StatCard label="Lecturers" value={metrics.totalLecturers} tone="sky" />
-                        <StatCard label="Admins" value={metrics.totalAdmins} tone="slate" />
-                        <StatCard label="Inactive" value={metrics.totalInactive} tone="amber" />
-                        <StatCard label="Pending" value={metrics.totalPending} tone="amber" />
+                        <StatCard label={t("admin:admin.users.stats.totalUsers")} value={metrics.totalUsers} />
+                        <StatCard label={t("admin:admin.users.stats.students")} value={metrics.totalStudents} tone="blue" />
+                        <StatCard label={t("admin:admin.users.stats.lecturers")} value={metrics.totalLecturers} tone="sky" />
+                        <StatCard label={t("admin:admin.users.stats.admins")} value={metrics.totalAdmins} tone="slate" />
+                        <StatCard label={t("admin:admin.users.stats.inactive")} value={metrics.totalInactive} tone="amber" />
+                        <StatCard label={t("admin:admin.users.stats.pending")} value={metrics.totalPending} tone="amber" />
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 rounded-[24px] border border-slate-200 bg-white p-2 shadow-sm">
@@ -239,7 +241,7 @@ export default function UsersPage() {
                                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
                                 ].join(" ")}
                             >
-                                {tab.label}
+                                {t(tab.labelKey)}
                             </button>
                         ))}
                     </div>
@@ -250,41 +252,41 @@ export default function UsersPage() {
                                 <SearchInput
                                     value={query}
                                     onChange={setQuery}
-                                    placeholder="Search by name, email, student code, or lecturer code"
+                                    placeholder={t("admin:admin.users.filters.search")}
                                 />
                                 <SelectFilter
-                                    label="Account"
+                                    label={t("admin:admin.users.filters.account")}
                                     value={statusFilter}
                                     onChange={setStatusFilter}
                                     options={[
-                                        { label: "All states", value: "ALL" },
-                                        { label: "Active", value: "ACTIVE" },
-                                        { label: "Inactive", value: "INACTIVE" },
+                                        { label: t("admin:admin.users.filters.allStates"), value: "ALL" },
+                                        { label: t("admin:admin.users.filters.active"), value: "ACTIVE" },
+                                        { label: t("admin:admin.users.filters.inactive"), value: "INACTIVE" },
                                     ]}
                                 />
                                 <SelectFilter
-                                    label="Department"
+                                    label={t("admin:admin.users.filters.department")}
                                     value={departmentFilter}
                                     onChange={setDepartmentFilter}
                                     options={departmentOptions}
                                 />
                                 {(roleTab === "STUDENT" || roleTab === "ALL") ? (
                                     <SelectFilter
-                                        label="Student status"
+                                        label={t("admin:admin.users.filters.studentStatus")}
                                         value={studentStatusFilter}
                                         onChange={setStudentStatusFilter}
                                         options={[
-                                            { label: "All statuses", value: "ALL" },
-                                            { label: "Approved", value: "ACTIVE" },
-                                            { label: "Pending Review", value: "PENDING" },
-                                            { label: "Email Verified", value: "EMAIL_VERIFIED" },
-                                            { label: "Email Unverified", value: "EMAIL_UNVERIFIED" },
-                                            { label: "Rejected", value: "REJECTED" },
+                                            { label: t("admin:admin.users.filters.allStatuses"), value: "ALL" },
+                                            { label: t("admin:admin.users.filters.approved"), value: "ACTIVE" },
+                                            { label: t("admin:admin.users.filters.pendingReview"), value: "PENDING" },
+                                            { label: t("admin:admin.users.filters.emailVerified"), value: "EMAIL_VERIFIED" },
+                                            { label: t("admin:admin.users.filters.emailUnverified"), value: "EMAIL_UNVERIFIED" },
+                                            { label: t("admin:admin.users.filters.rejected"), value: "REJECTED" },
                                         ]}
                                     />
                                 ) : null}
                                 <SelectFilter
-                                    label="Sort"
+                                    label={t("admin:admin.users.filters.sort")}
                                     value={`${sortBy}:${sortDir}`}
                                     onChange={(value) => {
                                         const [nextSortBy, nextSortDir] = value.split(":");
@@ -292,20 +294,20 @@ export default function UsersPage() {
                                         setSortDir(nextSortDir);
                                     }}
                                     options={[
-                                        { label: "Name A-Z", value: "name:asc" },
-                                        { label: "Name Z-A", value: "name:desc" },
-                                        { label: "Email A-Z", value: "email:asc" },
-                                        { label: "Role A-Z", value: "role:asc" },
-                                        { label: "Department A-Z", value: "department:asc" },
-                                        { label: "Account status", value: "active:asc" },
-                                        { label: "Student status", value: "status:asc" },
+                                        { label: t("admin:admin.users.filters.nameAsc"), value: "name:asc" },
+                                        { label: t("admin:admin.users.filters.nameDesc"), value: "name:desc" },
+                                        { label: t("admin:admin.users.filters.emailAsc"), value: "email:asc" },
+                                        { label: t("admin:admin.users.filters.roleAsc"), value: "role:asc" },
+                                        { label: t("admin:admin.users.filters.departmentAsc"), value: "department:asc" },
+                                        { label: t("admin:admin.users.filters.accountStatus"), value: "active:asc" },
+                                        { label: t("admin:admin.users.filters.studentStatus"), value: "status:asc" },
                                     ]}
                                 />
                             </>
                         )}
                         actions={(
                             <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">
-                                {users.length} row{users.length === 1 ? "" : "s"} on page
+                                {t("admin:admin.users.rowsOnPage", { count: users.length })}
                             </div>
                         )}
                     />
@@ -315,11 +317,11 @@ export default function UsersPage() {
                     ) : null}
 
                     {loading ? (
-                        <LoadingState label="Loading users..." />
+                        <LoadingState label={t("admin:admin.users.loading")} />
                     ) : users.length === 0 ? (
                         <EmptyState
-                            title="No matching users"
-                            description="Adjust role tabs, search, or filters to find the account records you need."
+                            title={t("admin:admin.users.empty.title")}
+                            description={t("admin:admin.users.empty.description")}
                             icon="group"
                         />
                     ) : (
@@ -347,23 +349,23 @@ export default function UsersPage() {
                                                 <p className="mt-1 text-sm text-slate-500">{user.email}</p>
                                             </div>
                                             <div className="rounded-2xl bg-slate-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                                ID {user.id}
+                                                {t("admin:admin.users.card.id", { id: user.id })}
                                             </div>
                                         </div>
 
                                         <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                                             <div className="flex items-center justify-between gap-4">
-                                                <span className="font-semibold text-slate-500">Code</span>
-                                                <span className="text-right font-medium text-slate-900">{user.studentCode ?? user.lecturerCode ?? "N/A"}</span>
+                                                <span className="font-semibold text-slate-500">{t("admin:admin.users.table.code")}</span>
+                                                <span className="text-right font-medium text-slate-900">{user.studentCode ?? user.lecturerCode ?? t("admin:admin.users.common.notAvailable")}</span>
                                             </div>
                                             <div className="flex items-center justify-between gap-4">
-                                                <span className="font-semibold text-slate-500">Department</span>
-                                                <span className="text-right font-medium text-slate-900">{user.departmentName ?? "N/A"}</span>
+                                                <span className="font-semibold text-slate-500">{t("admin:admin.users.table.department")}</span>
+                                                <span className="text-right font-medium text-slate-900">{user.departmentName ?? t("admin:admin.users.common.notAvailable")}</span>
                                             </div>
                                             <div className="flex items-center justify-between gap-4">
-                                                <span className="font-semibold text-slate-500">Student status</span>
+                                                <span className="font-semibold text-slate-500">{t("admin:admin.users.table.studentStatus")}</span>
                                                 <span className="text-right font-medium text-slate-900">
-                                                    {user.studentStatus ? user.studentStatus.replace(/_/g, " ").toLowerCase().replace(/^\w/, (letter) => letter.toUpperCase()) : "N/A"}
+                                                    {user.studentStatus ? user.studentStatus.replace(/_/g, " ").toLowerCase().replace(/^\w/, (letter) => letter.toUpperCase()) : t("admin:admin.users.common.notAvailable")}
                                                 </span>
                                             </div>
                                         </div>
@@ -376,13 +378,13 @@ export default function UsersPage() {
                                                     disabled={actionUserId === user.id}
                                                     className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                                                 >
-                                                    <span>{actionUserId === user.id ? "Updating..." : user.active ? "Deactivate user" : "Activate user"}</span>
+                                                    <span>{actionUserId === user.id ? t("admin:admin.users.buttons.updating") : user.active ? t("admin:admin.users.buttons.deactivateUser") : t("admin:admin.users.buttons.activateUser")}</span>
                                                 </button>
                                                 <Link
                                                     to={`/admin/users/${user.id}`}
                                                     className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
                                                 >
-                                                    <span>View details</span>
+                                                    <span>{t("admin:admin.users.buttons.viewDetails")}</span>
                                                     <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                                                 </Link>
                                             </div>

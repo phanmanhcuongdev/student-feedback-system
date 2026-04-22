@@ -15,6 +15,19 @@ public record CreateSurveyCommand(
         Integer createdBy,
         List<CreateQuestionCommand> questions,
         SurveyRecipientScope recipientScope,
-        @Nullable Integer recipientDepartmentId
+        @Nullable Integer recipientDepartmentId,
+        @Nullable String targetLang
 ) {
+    public CreateSurveyCommand(
+            String title,
+            @Nullable String description,
+            @Nullable LocalDateTime startDate,
+            @Nullable LocalDateTime endDate,
+            Integer createdBy,
+            List<CreateQuestionCommand> questions,
+            SurveyRecipientScope recipientScope,
+            @Nullable Integer recipientDepartmentId
+    ) {
+        this(title, description, startDate, endDate, createdBy, questions, recipientScope, recipientDepartmentId, null);
+    }
 }

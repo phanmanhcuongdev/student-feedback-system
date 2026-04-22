@@ -25,6 +25,15 @@ spring:
     multipart:
       max-file-size: 20MB
       max-request-size: 25MB
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME:cuongdso}
+    password: ${RABBITMQ_PASSWORD}
+    listener:
+      simple:
+        prefetch: 1
+        default-requeue-rejected: false
 
 app:
   jwt:
@@ -48,3 +57,16 @@ app:
       access-key: ${APP_STORAGE_MINIO_ACCESS_KEY}
       secret-key: ${APP_STORAGE_MINIO_SECRET_KEY}
       bucket: ${APP_STORAGE_MINIO_BUCKET}
+  ai:
+    api-key: ${APP_AI_API_KEY}
+    model: ${APP_AI_MODEL}
+    base-url: ${APP_AI_BASE_URL}
+  rabbitmq:
+    exchange: ${RABBITMQ_EXCHANGE:feedback.exchange}
+    queue: ${RABBITMQ_QUEUE:feedback.translate.queue}
+    reply-queue: ${RABBITMQ_REPLY_QUEUE:translation.reply.queue}
+    reply-exchange: ${RABBITMQ_REPLY_EXCHANGE:translation.reply.exchange}
+    routing-key: ${RABBITMQ_ROUTING_KEY:feedback.translate.key}
+    reply-routing-key: ${RABBITMQ_REPLY_ROUTING_KEY:translation.reply.key}
+    reply-dlq: ${RABBITMQ_REPLY_DLQ:translation.reply.dlq}
+    reply-dlx: ${RABBITMQ_REPLY_DLX:translation.reply.dlx}

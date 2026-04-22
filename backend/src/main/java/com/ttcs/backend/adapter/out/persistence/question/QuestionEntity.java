@@ -36,6 +36,22 @@ public class QuestionEntity {
     @Nationalized
     private String content;
 
+    @Column(name = "content_translated", columnDefinition = "NVARCHAR(MAX)")
+    @Nationalized
+    private String contentTranslated;
+
+    @Column(name = "source_lang", length = 10)
+    private String sourceLang;
+
+    @Column(name = "is_auto_translated", nullable = false)
+    private boolean autoTranslated;
+
+    @Column(name = "model_info", length = 100)
+    private String modelInfo;
+
+    @Column(name = "target_lang", length = 10)
+    private String targetLang;
+
     @Column(length = 20)
     @Nationalized
     private String type;

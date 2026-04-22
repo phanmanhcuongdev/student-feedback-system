@@ -1,6 +1,6 @@
 services:
   backend:
-    image: ghcr.io/phanmanhcuongdev/student-feedback-system/backend:latest
+    image: ghcr.io/phanmanhcuongdev/student-feedback-system/backend:${BACKEND_TAG:-latest}
     env_file:
       - stack.env
     container_name: backend
@@ -11,7 +11,7 @@ services:
       - app-network
 
   frontend:
-    image: ghcr.io/phanmanhcuongdev/student-feedback-system/frontend:latest
+    image: ghcr.io/phanmanhcuongdev/student-feedback-system/frontend:${FRONTEND_TAG:-latest}
     container_name: frontend
     restart: unless-stopped
     ports:

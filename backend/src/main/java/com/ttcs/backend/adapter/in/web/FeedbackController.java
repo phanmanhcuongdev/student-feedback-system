@@ -29,6 +29,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -54,7 +55,8 @@ public class FeedbackController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
     ) {
         currentIdentityProvider.ensureActiveStudentAccount();
         Integer studentId = currentIdentityProvider.currentStudentProfileId();
@@ -63,7 +65,7 @@ public class FeedbackController {
                 studentId
         );
         return ResponseEntity.ok(new StudentFeedbackPageResponse(
-                result.items().stream().map(this::toResponse).toList(),
+                result.items().stream().map(item -> toResponse(item, acceptLanguage)).toList(),
                 result.page(),
                 result.size(),
                 result.totalElements(),
@@ -79,7 +81,8 @@ public class FeedbackController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
     ) {
         StaffFeedbackPageResult result = getAllFeedbackUseCase.getAllFeedback(new GetAllFeedbackQuery(
                 keyword,
@@ -91,7 +94,7 @@ public class FeedbackController {
                 sortDir
         ));
         return ResponseEntity.ok(new StaffFeedbackPageResponse(
-                result.items().stream().map(this::toStaffResponse).toList(),
+                result.items().stream().map(item -> toStaffResponse(item, acceptLanguage)).toList(),
                 result.page(),
                 result.size(),
                 result.totalElements(),
@@ -100,13 +103,17 @@ public class FeedbackController {
     }
 
     @PostMapping
-    public ResponseEntity<CreateFeedbackResponse> createFeedback(@Valid @RequestBody CreateFeedbackRequest request) {
+    public ResponseEntity<CreateFeedbackResponse> createFeedback(
+            @Valid @RequestBody CreateFeedbackRequest request,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
+    ) {
         currentIdentityProvider.ensureActiveStudentAccount();
         CreateFeedbackResult result = createFeedbackUseCase.createFeedback(
                 new CreateFeedbackCommand(
                         currentIdentityProvider.currentStudentProfileId(),
                         request.getTitle(),
-                        request.getContent()
+                        request.getContent(),
+                        acceptLanguage
                 )
         );
         return ResponseEntity.ok(new CreateFeedbackResponse(result.success(), result.code(), result.message()));
@@ -127,27 +134,62 @@ public class FeedbackController {
         return ResponseEntity.ok(new RespondToFeedbackResponse(result.success(), result.code(), result.message()));
     }
 
-    private StudentFeedbackResponse toResponse(StudentFeedbackResult result) {
+    private StudentFeedbackResponse toResponse(StudentFeedbackResult result, String acceptLanguage) {
+        String displayContent = resolveDisplayContent(result.isAutoTranslated(), result.contentOriginal(), result.contentTranslated(), result.sourceLang(), result.targetLang(), acceptLanguage);
+        String originalContent = resolveOriginalContent(result.isAutoTranslated(), result.contentOriginal());
         return new StudentFeedbackResponse(
                 result.id(),
                 result.title(),
-                result.content(),
+                displayContent,
+                originalContent,
+                result.isAutoTranslated(),
+                result.sourceLang(),
                 result.createdAt(),
                 result.responses().stream().map(this::toResponseView).toList()
         );
     }
 
-    private StaffFeedbackResponse toStaffResponse(StaffFeedbackResult result) {
+    private StaffFeedbackResponse toStaffResponse(StaffFeedbackResult result, String acceptLanguage) {
+        String displayContent = resolveDisplayContent(result.isAutoTranslated(), result.contentOriginal(), result.contentTranslated(), result.sourceLang(), result.targetLang(), acceptLanguage);
+        String originalContent = resolveOriginalContent(result.isAutoTranslated(), result.contentOriginal());
         return new StaffFeedbackResponse(
                 result.id(),
                 result.studentId(),
                 result.studentName(),
                 result.studentEmail(),
                 result.title(),
-                result.content(),
+                displayContent,
+                originalContent,
+                result.isAutoTranslated(),
+                result.sourceLang(),
                 result.createdAt(),
                 result.responses().stream().map(this::toResponseView).toList()
         );
+    }
+
+    private String resolveDisplayContent(
+            boolean isAutoTranslated,
+            String contentOriginal,
+            String contentTranslated,
+            String sourceLang,
+            String targetLang,
+            String acceptLanguage
+    ) {
+        String requestedLang = normalizeLanguage(acceptLanguage);
+        if (requestedLang.equals(normalizeLanguage(sourceLang))) {
+            return contentOriginal;
+        }
+        if (isAutoTranslated
+                && requestedLang.equals(normalizeLanguage(targetLang))
+                && contentTranslated != null
+                && !contentTranslated.trim().isEmpty()) {
+            return contentTranslated;
+        }
+        return contentOriginal;
+    }
+
+    private String resolveOriginalContent(boolean isAutoTranslated, String contentOriginal) {
+        return isAutoTranslated ? contentOriginal : null;
     }
 
     private FeedbackResponseView toResponseView(FeedbackResponseResult result) {
@@ -158,5 +200,12 @@ public class FeedbackController {
                 result.content(),
                 result.createdAt()
         );
+    }
+
+    private String normalizeLanguage(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return "en";
+        }
+        return value.split(",")[0].trim().split("-")[0].toLowerCase();
     }
 }

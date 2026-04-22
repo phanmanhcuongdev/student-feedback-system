@@ -1,0 +1,42 @@
+{
+  "surveys": {
+    "filters": {
+      "all": "Tất cả",
+      "open": "Đang mở",
+      "upcoming": "Sắp mở",
+      "closed": "Đã đóng"
+    },
+    "detail": {
+      "backToSurveys": "Quay lại danh sách khảo sát",
+      "loading": "Đang tải khảo sát...",
+      "daysLeft": {
+        "closed": "Đã đóng",
+        "closesIn_one": "Đóng sau {{count}} ngày",
+        "closesIn_other": "Đóng sau {{count}} ngày"
+      },
+      "progress": {
+        "answered": "Tiến độ: {{answered}}/{{total}} câu hỏi",
+        "complete": "Hoàn thành {{progress}}%"
+      },
+      "rating": {
+        "veryUnsatisfied": "Rất không hài lòng",
+        "unsatisfied": "Không hài lòng",
+        "neutral": "Trung lập",
+        "satisfied": "Hài lòng",
+        "verySatisfied": "Rất hài lòng",
+        "select": "Chọn mức đánh giá"
+      },
+      "textPlaceholder": "Chia sẻ ý kiến của bạn tại đây...",
+      "buttons": {
+        "submit": "Gửi khảo sát",
+        "submitting": "Đang gửi..."
+      }
+    },
+    "errors": {
+      "loadList": "Không thể tải danh sách khảo sát.",
+      "loadDetail": "Không thể tải chi tiết khảo sát",
+      "invalidId": "ID khảo sát không hợp lệ",
+      "submit": "Không thể gửi khảo sát"
+    }
+  }
+}

@@ -1,0 +1,686 @@
+{
+  "admin": {
+    "dashboard": {
+      "header": {
+        "eyebrow": "Admin Dashboard",
+        "title": "Survey health and operations",
+        "description": "Track onboarding workload, survey lifecycle volume, participation health, and privileged activity entry points."
+      },
+      "filters": {
+        "start": "Start",
+        "end": "End",
+        "department": "Dept",
+        "startDate": "Start date",
+        "endDate": "End date",
+        "datePlaceholder": "mm/dd/yyyy",
+        "allDepartments": "All departments"
+      },
+      "stats": {
+        "pendingStudents": "Pending students",
+        "totalSurveys": "Total surveys",
+        "openSurveys": "Open surveys",
+        "responseRate": "Response rate"
+      },
+      "pendingApprovals": {
+        "title": "Pending approvals",
+        "description": "Latest student accounts waiting for review.",
+        "reviewAll": "Review all",
+        "emptyTitle": "No pending students",
+        "emptyDescription": "All currently onboarded students have already been reviewed.",
+        "studentCode": "Student code",
+        "department": "Department"
+      },
+      "lifecycle": {
+        "title": "Lifecycle overview",
+        "description": "Counts from active survey lifecycle and visibility state.",
+        "draft": "Draft",
+        "published": "Published",
+        "closed": "Closed",
+        "archived": "Archived"
+      },
+      "topResponses": {
+        "title": "Top response volume",
+        "descriptionAll": "Surveys with the highest response count in the selected date window.",
+        "descriptionDepartment": "System-wide response volume for the selected date window; department-specific participation appears below.",
+        "emptyTitle": "No survey activity yet",
+        "emptyDescription": "Result activity will appear here after surveys start collecting responses."
+      },
+      "participation": {
+        "title": "Participation health",
+        "description": "Opened and submitted counts from recipient tracking.",
+        "targeted": "Targeted",
+        "opened": "Opened",
+        "submitted": "Submitted",
+        "submittedCount": "{{submitted}} of {{targeted}} submitted"
+      },
+      "attention": {
+        "title": "Surveys needing attention",
+        "description": "Open surveys with remaining recipients, sorted by lowest response rate.",
+        "openResults": "Open results",
+        "emptyTitle": "No open participation gaps",
+        "emptyDescription": "Open surveys with incomplete participation will appear here.",
+        "surveyProgress": "{{department}} - {{submitted}} of {{targeted}} submitted"
+      },
+      "common": {
+        "allStudents": "All students",
+        "noSurveyDescription": "No survey description provided.",
+        "unassigned": "Unassigned"
+      },
+      "student": {
+        "header": {
+          "eyebrow": "Student Dashboard",
+          "title": "Survey overview",
+          "description": "Check what is open now, what is coming next, and which surveys are close to their deadline."
+        },
+        "stats": {
+          "openSurveys": "Open surveys",
+          "upcomingSurveys": "Upcoming surveys",
+          "closedSurveys": "Closed surveys"
+        },
+        "available": {
+          "title": "Available now",
+          "description": "Open surveys you can access immediately.",
+          "viewAll": "View all surveys",
+          "empty": "No surveys are open right now.",
+          "closes": "Closes {{date}}",
+          "openSurvey": "Open survey"
+        },
+        "closingSoon": {
+          "title": "Closing soon",
+          "description": "Open surveys ordered by nearest deadline.",
+          "empty": "No urgent survey deadlines right now.",
+          "ends": "Ends {{date}}"
+        },
+        "upcoming": {
+          "title": "Upcoming surveys",
+          "description": "Surveys scheduled but not open yet.",
+          "empty": "No upcoming surveys scheduled.",
+          "starts": "Starts {{date}}"
+        }
+      },
+      "lecturer": {
+        "header": {
+          "eyebrow": "Lecturer Dashboard",
+          "title": "Results overview",
+          "description": "Review survey activity that is visible within your department scope and jump directly into the most active result sets."
+        },
+        "stats": {
+          "trackedSurveys": "Tracked surveys",
+          "totalResponses": "Total responses",
+          "closedSurveys": "Closed surveys"
+        },
+        "mostActive": {
+          "title": "Most active surveys",
+          "description": "Surveys ordered by current response volume.",
+          "openResultList": "Open result list",
+          "empty": "No survey results are available yet.",
+          "responseCount_one": "{{count}} response",
+          "responseCount_other": "{{count}} responses",
+          "openStatistics": "Open statistics"
+        },
+        "openSurveys": {
+          "title": "Open surveys",
+          "description": "Result entries that are still collecting responses.",
+          "label": "survey runs still open"
+        },
+        "coverage": {
+          "title": "Coverage",
+          "description": "Average response count across all visible surveys.",
+          "label": "responses per survey"
+        }
+      },
+      "loading": "Loading dashboard...",
+      "errors": {
+        "loadFailed": "Unable to load dashboard data."
+      }
+    },
+    "surveys": {
+      "form": {
+        "header": {
+          "eyebrow": "Admin / Surveys",
+          "manageTitle": "Manage survey",
+          "createTitle": "Create survey",
+          "manageDescription": "Review survey setup, monitor recipient activity, and control lifecycle transitions from one operational page.",
+          "createDescription": "Create a survey draft with clear information, schedule, audience, and question structure before publishing."
+        },
+        "loading": "Loading survey...",
+        "common": {
+          "notYet": "Not yet"
+        },
+        "buttons": {
+          "backToSurveys": "Back to surveys",
+          "saving": "Saving...",
+          "saveDraftChanges": "Save draft changes",
+          "createDraft": "Create draft"
+        },
+        "lifecycleHelp": {
+          "new": "New surveys start as drafts. Configure survey information, schedule, audience, and questions before publishing.",
+          "draft": "Draft surveys remain editable. Publish only when the dates, audience, and question set are complete.",
+          "published": "Published surveys follow their schedule. Only visibility changes and explicit closure are available.",
+          "closed": "Closed surveys are read-only. Archive them when they should move into record-keeping mode.",
+          "archived": "Archived surveys remain read-only historical records."
+        },
+        "lifecycle": {
+          "title": "Lifecycle overview"
+        },
+        "stats": {
+          "targeted": "Targeted",
+          "opened": "Opened",
+          "submitted": "Submitted",
+          "notOpened": "Not opened",
+          "responseRate": "Response rate"
+        },
+        "lifecycleActions": {
+          "title": "Lifecycle actions",
+          "description": "Only show publish, close, archive, and visibility actions when the current lifecycle allows them.",
+          "publish": "Publish survey",
+          "close": "Close survey",
+          "archive": "Archive survey",
+          "makeVisible": "Make survey visible",
+          "show": "Show survey",
+          "hide": "Hide survey"
+        },
+        "confirm": {
+          "publish": "Publish \"{{title}}\" and assign it to the configured recipients.",
+          "close": "Close \"{{title}}\" now and stop collecting responses immediately.",
+          "archive": "Archive \"{{title}}\" as a historical record. It will remain read-only.",
+          "show": "Make \"{{title}}\" visible again for eligible recipients.",
+          "hide": "Hide \"{{title}}\" from recipients without changing its lifecycle state."
+        },
+        "information": {
+          "title": "Survey information",
+          "description": "Keep the survey title and description readable for admins who manage many campaigns in parallel."
+        },
+        "templates": {
+          "select": "Select survey template",
+          "replace": "Replace with template",
+          "help": "Replace mode copies the selected template into this draft. It overwrites current title, description, audience, and questions, and later template changes will not sync into this survey.",
+          "confirmTitle": "Replace draft with template",
+          "confirmDescription": "This will overwrite the current draft title, description, audience, and question list. The template will be copied into this draft and will not stay linked for future changes.",
+          "confirmLabel": "Replace draft"
+        },
+        "fields": {
+          "title": "Title",
+          "description": "Description",
+          "descriptionHelp": "This is used in admin search and should help distinguish surveys quickly.",
+          "startDate": "Start date",
+          "endDate": "End date",
+          "recipientScope": "Recipient scope",
+          "department": "Department",
+          "type": "Type"
+        },
+        "schedule": {
+          "title": "Schedule",
+          "description": "Runtime status is derived from lifecycle state and this date window."
+        },
+        "audience": {
+          "title": "Audience / recipients",
+          "description": "Recipient configuration should describe who receives the survey without exposing backend-shaped IDs.",
+          "allStudents": "All students",
+          "departmentOnly": "Department only",
+          "selectDepartment": "Select department",
+          "departmentUnavailable": "Department lookup is unavailable right now. This selection will remain empty until departments can be loaded.",
+          "locked": "Recipient settings are locked after publication or once responses exist."
+        },
+        "questions": {
+          "title": "Questions",
+          "description": "This phase keeps the current editor model but organizes it into a cleaner operational section.",
+          "addFromBank": "Add from question bank",
+          "addQuestion": "Add question",
+          "emptyTitle": "No questions yet",
+          "emptyDescription": "Add at least one question before saving or publishing this survey.",
+          "questionNumber": "Question {{number}}",
+          "ratingType": "Rating (1-5)",
+          "textType": "Free text",
+          "remove": "Remove",
+          "locked": "Questions are locked after publication or once responses exist.",
+          "bankHelp": "Question-bank items are copied into the draft. Later edits or archives in the question bank do not change this survey."
+        },
+        "recipientActivity": {
+          "title": "Recipient activity",
+          "description": "These recipient counts and pending participants help explain real survey performance, not just configuration state.",
+          "emptyTitle": "No pending recipients",
+          "emptyDescription": "Everyone assigned to this survey has already submitted, or the survey has not assigned recipients yet.",
+          "firstOpened": "First opened:",
+          "submitted": "Submitted:"
+        },
+        "feedback": {
+          "templateApplied": "Applied template \"{{name}}\" in replace mode. Template questions were copied into this draft.",
+          "draftCreated": "Survey draft created. Review it and publish when ready."
+        },
+        "errors": {
+          "load": "Unable to load survey.",
+          "applyTemplate": "Unable to apply survey template.",
+          "save": "Unable to save survey.",
+          "update": "Unable to update survey."
+        }
+      },
+      "list": {
+        "header": {
+          "title": "Survey management",
+          "description": "Operate surveys as managed campaigns with clear lifecycle state, runtime availability, visibility, recipient scope, and response activity.",
+          "matchingCount_one": "{{count}} matching survey",
+          "matchingCount_other": "{{count}} matching surveys"
+        },
+        "stats": {
+          "totalSurveys": "Total surveys",
+          "drafts": "Drafts",
+          "published": "Published",
+          "openNow": "Open now",
+          "closed": "Closed",
+          "hidden": "Hidden"
+        },
+        "table": {
+          "survey": "Survey",
+          "lifecycle": "Lifecycle",
+          "runtime": "Runtime",
+          "visibility": "Visibility",
+          "audience": "Audience",
+          "recipients": "Recipients",
+          "window": "Window",
+          "start": "Start",
+          "end": "End"
+        },
+        "filters": {
+          "search": "Search by title or description",
+          "allLifecycle": "All lifecycle states",
+          "draft": "Draft",
+          "published": "Published",
+          "closed": "Closed",
+          "archived": "Archived",
+          "allRuntime": "All runtime states",
+          "notOpen": "Not open",
+          "open": "Open",
+          "allVisibility": "All visibility",
+          "visible": "Visible",
+          "hidden": "Hidden",
+          "allAudiences": "All audiences",
+          "startFrom": "Start from",
+          "endBy": "End by",
+          "startDateNewest": "Start date newest",
+          "startDateOldest": "Start date oldest",
+          "endDateLatest": "End date latest",
+          "endDateEarliest": "End date earliest",
+          "responseRateHighLow": "Response rate high-low",
+          "targetedHighLow": "Targeted high-low",
+          "openedHighLow": "Opened high-low",
+          "submittedHighLow": "Submitted high-low",
+          "titleAsc": "Title A-Z"
+        },
+        "buttons": {
+          "viewEdit": "View/Edit",
+          "publish": "Publish",
+          "close": "Close",
+          "archive": "Archive",
+          "show": "Show",
+          "hide": "Hide"
+        },
+        "rowsOnPage_one": "{{count}} row on page",
+        "rowsOnPage_other": "{{count}} rows on page",
+        "loading": "Loading surveys...",
+        "notSet": "Not set",
+        "departmentWithId": "Department {{id}}",
+        "departmentAudience": "Department audience",
+        "empty": {
+          "title": "No matching surveys",
+          "description": "Adjust the filters, date window, or search terms to find the survey campaign you need."
+        },
+        "confirm": {
+          "publish": "Publish \"{{title}}\" and assign it to recipients based on its audience settings.",
+          "close": "Close \"{{title}}\" now and stop any further responses regardless of its original end date.",
+          "archive": "Archive \"{{title}}\" as a historical record. Archived surveys stay read-only.",
+          "show": "Make \"{{title}}\" visible again for its eligible recipients.",
+          "hide": "Hide \"{{title}}\" from recipients without changing its lifecycle state."
+        },
+        "errors": {
+          "load": "Unable to load surveys."
+        }
+      }
+    },
+    "users": {
+      "common": {
+        "notAvailable": "N/A"
+      },
+      "header": {
+        "eyebrow": "Admin / User Accounts",
+        "title": "User account management",
+        "description": "Search, review, update profile details, and activate or deactivate accounts without implying role reassignment.",
+        "matchingCount_one": "{{count}} matching user",
+        "matchingCount_other": "{{count}} matching users"
+      },
+      "stats": {
+        "totalUsers": "Total users",
+        "students": "Students",
+        "lecturers": "Lecturers",
+        "admins": "Admins",
+        "inactive": "Inactive",
+        "pending": "Pending"
+      },
+      "roleTabs": {
+        "all": "All",
+        "students": "Students",
+        "lecturers": "Lecturers",
+        "admins": "Admins"
+      },
+      "filters": {
+        "search": "Search by name, email, student code, or lecturer code",
+        "account": "Account",
+        "allStates": "All states",
+        "active": "Active",
+        "inactive": "Inactive",
+        "department": "Department",
+        "allDepartments": "All departments",
+        "studentStatus": "Student status",
+        "allStatuses": "All statuses",
+        "approved": "Approved",
+        "pendingReview": "Pending Review",
+        "emailVerified": "Email Verified",
+        "emailUnverified": "Email Unverified",
+        "rejected": "Rejected",
+        "sort": "Sort",
+        "nameAsc": "Name A-Z",
+        "nameDesc": "Name Z-A",
+        "emailAsc": "Email A-Z",
+        "roleAsc": "Role A-Z",
+        "departmentAsc": "Department A-Z",
+        "accountStatus": "Account status"
+      },
+      "table": {
+        "user": "User",
+        "role": "Role",
+        "code": "Code",
+        "account": "Account",
+        "department": "Department",
+        "studentStatus": "Student Status",
+        "actions": "Actions"
+      },
+      "buttons": {
+        "updating": "Updating...",
+        "activate": "Activate",
+        "deactivate": "Deactivate",
+        "activateUser": "Activate user",
+        "deactivateUser": "Deactivate user",
+        "viewDetails": "View details"
+      },
+      "rowsOnPage_one": "{{count}} row on page",
+      "rowsOnPage_other": "{{count}} rows on page",
+      "loading": "Loading users...",
+      "empty": {
+        "title": "No matching users",
+        "description": "Adjust role tabs, search, or filters to find the account records you need."
+      },
+      "card": {
+        "id": "ID {{id}}"
+      },
+      "errors": {
+        "load": "Unable to load users.",
+        "updateState": "Unable to update user state."
+      },
+      "detail": {
+        "header": {
+          "eyebrow": "Admin / User Detail",
+          "title": "User details"
+        },
+        "loading": "Loading user details...",
+        "buttons": {
+          "backToUsers": "Back to users",
+          "saveChanges": "Save changes"
+        },
+        "fields": {
+          "userId": "User ID",
+          "email": "Email",
+          "name": "Name",
+          "departmentId": "Department ID",
+          "studentCode": "Student code",
+          "lecturerCode": "Lecturer code"
+        },
+        "edit": {
+          "title": "Edit basic info",
+          "description": "Update core user information without changing role or survey permissions."
+        },
+        "errors": {
+          "load": "Unable to load user details.",
+          "invalidId": "Invalid user id.",
+          "update": "Unable to update user."
+        }
+      }
+    },
+    "pendingStudents": {
+      "header": {
+        "eyebrow": "Admin Review",
+        "title": "Pending student approvals",
+        "description": "Review onboarding requests as a queue with searchable student context, reusable review notes, and explicit approve or reject decisions.",
+        "count_one": "{{count}} pending student",
+        "count_other": "{{count}} pending students"
+      },
+      "filters": {
+        "search": "Search by name, email, or student code",
+        "submission": "Submission",
+        "allSubmissions": "All submissions",
+        "resubmittedOnly": "Resubmitted only",
+        "firstSubmission": "First submission",
+        "resubmissionCount": "Resubmission count",
+        "studentNameAsc": "Student name A-Z"
+      },
+      "table": {
+        "student": "Student"
+      },
+      "resubmitted": "Resubmitted {{count}}x",
+      "buttons": {
+        "review": "Review",
+        "approve": "Approve",
+        "approving": "Approving...",
+        "reject": "Reject",
+        "rejecting": "Rejecting..."
+      },
+      "loading": "Loading pending students...",
+      "empty": {
+        "title": "No pending students in this queue view",
+        "description": "Adjust the search or filters to find the onboarding request you need."
+      },
+      "detail": {
+        "title": "Review detail",
+        "description": "Approve or reject without leaving the onboarding queue. Rejection reason remains required.",
+        "context": "Context"
+      },
+      "documents": {
+        "title": "Submitted documents",
+        "description": "Documents are fetched from the backend and rendered inline when previewable.",
+        "document": "document",
+        "loading": "Loading submitted documents...",
+        "studentCard": "Student card",
+        "nationalId": "National ID",
+        "missing": "Missing",
+        "openFullImage": "Open full image",
+        "openPdf": "Open PDF",
+        "openDocument": "Open document"
+      },
+      "previous": {
+        "title": "Previous review context",
+        "description": "This appears when the student has been previously rejected and resubmitted.",
+        "reason": "Reason:",
+        "notes": "Notes:"
+      },
+      "decision": {
+        "title": "Review decision",
+        "description": "Provide the rejection reason before rejecting. Notes are optional for both decisions.",
+        "rejectionReason": "Rejection reason",
+        "rejectionPlaceholder": "Required if you reject this onboarding request",
+        "reviewerNotes": "Reviewer notes",
+        "notesPlaceholder": "Optional notes recorded with the review decision"
+      },
+      "confirm": {
+        "approveTitle": "Approve student",
+        "rejectTitle": "Reject student",
+        "approveDescription": "Approve {{name}} and activate this onboarding request.",
+        "rejectDescription": "Reject {{name}}. A rejection reason will be sent back through the existing resubmission flow.",
+        "approveLabel": "Approve student",
+        "rejectLabel": "Reject student"
+      },
+      "errors": {
+        "load": "Unable to load pending students.",
+        "approve": "Unable to approve this student.",
+        "reject": "Unable to reject this student.",
+        "loadDocuments": "Unable to load student documents."
+      }
+    },
+    "audit": {
+      "header": {
+        "eyebrow": "Admin Audit",
+        "title": "Audit logs",
+        "description": "Review privileged actions, lifecycle changes, onboarding decisions, and account operations.",
+        "count_one": "{{count}} matching event",
+        "count_other": "{{count}} matching events"
+      },
+      "filters": {
+        "search": "Search audit details",
+        "allActions": "All actions",
+        "onboardingApproved": "Onboarding approved",
+        "onboardingRejected": "Onboarding rejected",
+        "surveyPublished": "Survey published",
+        "surveyClosed": "Survey closed",
+        "surveyArchived": "Survey archived",
+        "surveyVisibilityChanged": "Survey visibility changed",
+        "userProfileUpdated": "User profile updated",
+        "userActivated": "User activated",
+        "userDeactivated": "User deactivated",
+        "allTargets": "All targets",
+        "student": "Student",
+        "survey": "Survey",
+        "user": "User",
+        "target": "Target",
+        "idPlaceholder": "ID",
+        "from": "From",
+        "to": "To"
+      },
+      "table": {
+        "when": "When",
+        "actor": "Actor",
+        "action": "Action",
+        "summary": "Summary"
+      },
+      "detail": {
+        "details": "Details",
+        "oldState": "Old state",
+        "newState": "New state",
+        "noExtraDetails": "No extra details"
+      },
+      "userRef": "User #{{id}}",
+      "mobileMeta": "User #{{actorId}} on {{targetType}} #{{targetId}}",
+      "displayed": "{{count}} displayed",
+      "loading": "Loading audit logs...",
+      "empty": {
+        "title": "No audit logs found",
+        "description": "Adjust filters to inspect privileged activity."
+      },
+      "errors": {
+        "load": "Unable to load audit logs."
+      }
+    },
+    "assets": {
+      "eyebrow": "Admin / Survey Assets"
+    },
+    "questionBank": {
+      "header": {
+        "title": "Question bank",
+        "description": "Create reusable question assets that can be copied into draft surveys and survey templates."
+      },
+      "form": {
+        "editTitle": "Edit question asset",
+        "createTitle": "Create question asset",
+        "description": "Question-bank entries are reusable source questions. Archiving keeps old survey copies intact.",
+        "copyHelp": "Adding a bank question to a survey or template copies its current text and type. Later edits here affect future use only.",
+        "contentPlaceholder": "Question content",
+        "categoryPlaceholder": "Category"
+      },
+      "type": {
+        "rating": "Rating",
+        "text": "Text"
+      },
+      "buttons": {
+        "create": "Create",
+        "update": "Update",
+        "edit": "Edit",
+        "archive": "Archive",
+        "restore": "Restore"
+      },
+      "list": {
+        "title": "Reusable questions",
+        "description": "Search and manage active or archived question-bank entries.",
+        "showing": "Showing {{shown}} of {{total}} question-bank entries."
+      },
+      "filters": {
+        "search": "Search content or category",
+        "allTypes": "All types",
+        "state": "State",
+        "any": "Any"
+      },
+      "loading": "Loading question bank...",
+      "empty": {
+        "title": "No matching question-bank entries",
+        "description": "Adjust search, type, state, or category filters."
+      },
+      "feedback": {
+        "updated": "Question-bank entry updated.",
+        "created": "Question-bank entry created.",
+        "restored": "Question-bank entry restored.",
+        "archived": "Question-bank entry archived."
+      },
+      "errors": {
+        "load": "Unable to load question bank.",
+        "save": "Unable to save question-bank entry.",
+        "update": "Unable to update question-bank entry."
+      }
+    },
+    "templates": {
+      "header": {
+        "title": "Survey templates",
+        "description": "Create reusable survey structures that can initialize draft surveys with suggested copy, audience, and questions."
+      },
+      "form": {
+        "editTitle": "Edit template",
+        "createTitle": "Create template",
+        "description": "Template questions can be copied from the question bank or written specifically for the template.",
+        "archivedNotice": "This template is archived. Saving edits keeps it archived; use Restore when it should become available for survey drafts again.",
+        "namePlaceholder": "Template name",
+        "suggestedTitlePlaceholder": "Suggested survey title",
+        "descriptionPlaceholder": "Template description",
+        "suggestedDescriptionPlaceholder": "Suggested survey description",
+        "departmentDefault": "Department default",
+        "addCustomQuestion": "Add custom question",
+        "bankCopyHelp": "Questions added from the bank are copied into the template. Later question-bank edits or archives do not change existing templates.",
+        "bankLimitHelp": "Showing first {{shown}} active bank questions in this picker; use Question Bank search to manage the full {{total}}."
+      },
+      "buttons": {
+        "create": "Create template",
+        "update": "Update template"
+      },
+      "list": {
+        "title": "Templates",
+        "description": "Apply these templates from the survey draft editor.",
+        "showing": "Showing {{shown}} of {{total}} templates.",
+        "questionCount_one": "{{count}} question",
+        "questionCount_other": "{{count}} questions"
+      },
+      "filters": {
+        "search": "Search template name or description"
+      },
+      "loading": "Loading templates...",
+      "empty": {
+        "title": "No matching templates",
+        "description": "Adjust search or state filters to find reusable survey templates."
+      },
+      "feedback": {
+        "updated": "Survey template updated.",
+        "created": "Survey template created.",
+        "restored": "Survey template restored.",
+        "archived": "Survey template archived."
+      },
+      "errors": {
+        "load": "Unable to load survey templates.",
+        "save": "Unable to save survey template.",
+        "update": "Unable to update survey template."
+      }
+    }
+  }
+}
