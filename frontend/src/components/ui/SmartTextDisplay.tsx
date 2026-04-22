@@ -41,7 +41,7 @@ export default function SmartTextDisplay({
     const [showOriginal, setShowOriginal] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const contentRef = useRef<HTMLParagraphElement>(null);
-    const [contentMinHeight, setContentMinHeight] = useState<number | undefined>();
+    const contentMinHeightRef = useRef(0);
     const translatedContent = (isBlank(contentTranslated) ? displayContent : contentTranslated) ?? "";
     const hasValidTranslation = isAutoTranslated && !isBlank(translatedContent);
     const fallbackContent = (!isBlank(originalContent) ? originalContent : displayContent) ?? "";
@@ -65,9 +65,22 @@ export default function SmartTextDisplay({
     }
 
     useLayoutEffect(() => {
-        const height = contentRef.current?.offsetHeight;
-        if (height) {
-            setContentMinHeight((current) => Math.max(current ?? 0, height));
+        const contentElement = contentRef.current;
+        if (!contentElement) {
+            return;
+        }
+
+        const height = contentElement.offsetHeight;
+        if (height > contentMinHeightRef.current) {
+            contentMinHeightRef.current = height;
+        }
+
+        const minHeight = contentMinHeightRef.current;
+        if (minHeight) {
+            const nextMinHeight = `${minHeight}px`;
+            if (contentElement.style.minHeight !== nextMinHeight) {
+                contentElement.style.minHeight = nextMinHeight;
+            }
         }
     }, [content]);
 
@@ -76,7 +89,6 @@ export default function SmartTextDisplay({
             <p
                 ref={contentRef}
                 key={content}
-                style={{ minHeight: contentMinHeight }}
                 className="animate-[smartTextFade_180ms_ease-out] whitespace-pre-line text-sm leading-6 text-slate-700"
             >
                 {content}
