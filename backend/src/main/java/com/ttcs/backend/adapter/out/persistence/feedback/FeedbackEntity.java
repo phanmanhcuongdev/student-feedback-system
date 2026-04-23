@@ -39,9 +39,13 @@ public class FeedbackEntity {
     @Nationalized
     private String contentOriginal;
 
-    @Column(name = "content_translated")
+    @Column(name = "content_vi")
     @Nationalized
-    private String contentTranslated;
+    private String contentVi;
+
+    @Column(name = "content_en")
+    @Nationalized
+    private String contentEn;
 
     @Column(name = "source_lang", length = 10)
     private String sourceLang;
@@ -51,9 +55,6 @@ public class FeedbackEntity {
 
     @Column(name = "model_info", length = 100)
     private String modelInfo;
-
-    @Column(name = "target_lang", length = 10)
-    private String targetLang;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

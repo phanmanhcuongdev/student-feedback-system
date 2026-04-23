@@ -28,15 +28,13 @@ public class TranslationResultService implements ApplyTranslationResultUseCase {
         if (command == null
                 || command.entityId() == null
                 || isBlank(command.entityType())
-                || isBlank(command.translatedContent())
+                || (isBlank(command.translatedContentVi()) && isBlank(command.translatedContentEn()))
                 || isBlank(command.sourceLang())
-                || isBlank(command.targetLang())
                 || !command.autoTranslated()) {
-            log.warn("Reject invalid translation result: entityId={}, entityType={}, sourceLang={}, targetLang={}",
+            log.warn("Reject invalid translation result: entityId={}, entityType={}, sourceLang={}",
                     command == null ? null : command.entityId(),
                     command == null ? null : command.entityType(),
-                    command == null ? null : command.sourceLang(),
-                    command == null ? null : command.targetLang());
+                    command == null ? null : command.sourceLang());
             return false;
         }
 
@@ -49,14 +47,17 @@ public class TranslationResultService implements ApplyTranslationResultUseCase {
         boolean updated = updateTranslatedContentPort.updateTranslatedContent(new TranslatedContentUpdateCommand(
                 command.entityId(),
                 entityType,
-                command.translatedContent().trim(),
+                trimToNull(command.translatedContentVi()),
+                trimToNull(command.translatedContentEn()),
                 command.sourceLang().trim().toLowerCase(),
-                command.targetLang().trim().toLowerCase(),
                 normalizeModelInfo(command.modelInfo())
         ));
         if (updated) {
-            log.info("Applied translation result: entityId={}, entityType={}, sourceLang={}, targetLang={}, modelInfo={}",
-                    command.entityId(), entityType, command.sourceLang(), command.targetLang(), normalizeModelInfo(command.modelInfo()));
+            log.info("Applied translation result: entityId={}, entityType={}, sourceLang={}, hasVi={}, hasEn={}, modelInfo={}",
+                    command.entityId(), entityType, command.sourceLang(),
+                    !isBlank(command.translatedContentVi()),
+                    !isBlank(command.translatedContentEn()),
+                    normalizeModelInfo(command.modelInfo()));
         } else {
             log.warn("Translation target not found: entityId={}, entityType={}", command.entityId(), entityType);
         }
@@ -73,5 +74,9 @@ public class TranslationResultService implements ApplyTranslationResultUseCase {
 
     private String normalizeModelInfo(String value) {
         return isBlank(value) ? DEFAULT_MODEL_INFO : value.trim();
+    }
+
+    private String trimToNull(String value) {
+        return isBlank(value) ? null : value.trim();
     }
 }

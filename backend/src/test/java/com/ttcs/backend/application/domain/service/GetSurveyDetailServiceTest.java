@@ -103,9 +103,10 @@ class GetSurveyDetailServiceTest {
                     surveyId,
                     "Rate the lecturer",
                     "Danh gia giang vien",
+                    null,
                     "en",
                     true,
-                    "vi",
+                    "test-model",
                     QuestionType.RATING,
                     null
             ));
