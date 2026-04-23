@@ -135,7 +135,14 @@ public class FeedbackController {
     }
 
     private StudentFeedbackResponse toResponse(StudentFeedbackResult result, String acceptLanguage) {
-        String displayContent = resolveDisplayContent(result.isAutoTranslated(), result.contentOriginal(), result.contentTranslated(), result.sourceLang(), result.targetLang(), acceptLanguage);
+        String displayContent = resolveDisplayContent(
+                result.isAutoTranslated(),
+                result.contentOriginal(),
+                result.contentVi(),
+                result.contentEn(),
+                result.sourceLang(),
+                acceptLanguage
+        );
         String originalContent = resolveOriginalContent(result.isAutoTranslated(), result.contentOriginal());
         return new StudentFeedbackResponse(
                 result.id(),
@@ -150,7 +157,14 @@ public class FeedbackController {
     }
 
     private StaffFeedbackResponse toStaffResponse(StaffFeedbackResult result, String acceptLanguage) {
-        String displayContent = resolveDisplayContent(result.isAutoTranslated(), result.contentOriginal(), result.contentTranslated(), result.sourceLang(), result.targetLang(), acceptLanguage);
+        String displayContent = resolveDisplayContent(
+                result.isAutoTranslated(),
+                result.contentOriginal(),
+                result.contentVi(),
+                result.contentEn(),
+                result.sourceLang(),
+                acceptLanguage
+        );
         String originalContent = resolveOriginalContent(result.isAutoTranslated(), result.contentOriginal());
         return new StaffFeedbackResponse(
                 result.id(),
@@ -170,20 +184,22 @@ public class FeedbackController {
     private String resolveDisplayContent(
             boolean isAutoTranslated,
             String contentOriginal,
-            String contentTranslated,
+            String contentVi,
+            String contentEn,
             String sourceLang,
-            String targetLang,
             String acceptLanguage
     ) {
         String requestedLang = normalizeLanguage(acceptLanguage);
         if (requestedLang.equals(normalizeLanguage(sourceLang))) {
             return contentOriginal;
         }
-        if (isAutoTranslated
-                && requestedLang.equals(normalizeLanguage(targetLang))
-                && contentTranslated != null
-                && !contentTranslated.trim().isEmpty()) {
-            return contentTranslated;
+        String translatedContent = switch (requestedLang) {
+            case "vi" -> contentVi;
+            case "en" -> contentEn;
+            default -> null;
+        };
+        if (isAutoTranslated && translatedContent != null && !translatedContent.trim().isEmpty()) {
+            return translatedContent;
         }
         return contentOriginal;
     }

@@ -66,9 +66,9 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
                     f.title,
                     f.content,
                     COALESCE(f.content_original, f.content) AS content_original,
-                    f.content_translated,
+                    f.content_vi,
+                    f.content_en,
                     f.source_lang,
-                    f.target_lang,
                     f.is_auto_translated,
                     f.created_at
                 FROM [Feedback] f
@@ -107,9 +107,9 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
                     f.title,
                     f.content,
                     COALESCE(f.content_original, f.content) AS content_original,
-                    f.content_translated,
+                    f.content_vi,
+                    f.content_en,
                     f.source_lang,
-                    f.target_lang,
                     f.is_auto_translated,
                     f.created_at
                 """
@@ -147,8 +147,10 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
         entity.setTitle(feedback.getTitle());
         entity.setContent(feedback.getContent());
         entity.setContentOriginal(feedback.getContentOriginal());
-        entity.setContentTranslated(feedback.getContentTranslated());
+        entity.setContentVi(feedback.getContentVi());
+        entity.setContentEn(feedback.getContentEn());
         entity.setSourceLang(feedback.getSourceLang());
+        entity.setModelInfo(feedback.getModelInfo());
         entity.setAutoTranslated(feedback.isAutoTranslated());
         entity.setCreatedAt(feedback.getCreatedAt());
 
@@ -235,8 +237,8 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
     }
 
     private StudentFeedbackSearchItem toStudentSearchItem(Object[] row) {
-        boolean includesTargetLang = row.length > 8;
-        Object createdAt = row[includesTargetLang ? 8 : 7];
+        boolean legacyShape = row.length <= 8;
+        Object createdAt = row[legacyShape ? 7 : 8];
         LocalDateTime createdDateTime = createdAt instanceof java.sql.Timestamp timestamp
                 ? timestamp.toLocalDateTime()
                 : (LocalDateTime) createdAt;
@@ -246,16 +248,16 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
                 (String) row[2],
                 (String) row[3],
                 (String) row[4],
-                (String) row[5],
-                includesTargetLang ? (String) row[6] : null,
-                toBoolean(row[includesTargetLang ? 7 : 6]),
+                legacyShape ? null : (String) row[5],
+                (String) row[legacyShape ? 5 : 6],
+                toBoolean(row[legacyShape ? 6 : 7]),
                 createdDateTime
         );
     }
 
     private StaffFeedbackSearchItem toSearchItem(Object[] row) {
-        boolean includesTargetLang = row.length > 11;
-        Object createdAt = row[includesTargetLang ? 11 : 10];
+        boolean legacyShape = row.length <= 11;
+        Object createdAt = row[legacyShape ? 10 : 11];
         LocalDateTime createdDateTime = createdAt instanceof java.sql.Timestamp timestamp
                 ? timestamp.toLocalDateTime()
                 : (LocalDateTime) createdAt;
@@ -268,9 +270,9 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
                 (String) row[5],
                 (String) row[6],
                 (String) row[7],
-                (String) row[8],
-                includesTargetLang ? (String) row[9] : null,
-                toBoolean(row[includesTargetLang ? 10 : 9]),
+                legacyShape ? null : (String) row[8],
+                (String) row[legacyShape ? 8 : 9],
+                toBoolean(row[legacyShape ? 9 : 10]),
                 createdDateTime
         );
     }

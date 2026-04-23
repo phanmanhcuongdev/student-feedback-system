@@ -15,8 +15,10 @@ public final class FeedbackMapper {
                 entity.getTitle(),
                 entity.getContent(),
                 entity.getContentOriginal(),
-                entity.getContentTranslated(),
+                entity.getContentVi(),
+                entity.getContentEn(),
                 entity.getSourceLang(),
+                entity.getModelInfo(),
                 entity.isAutoTranslated(),
                 entity.getCreatedAt()
         );
