@@ -84,6 +84,8 @@ public class StudentFeedbackService implements
                 contentOriginal,
                 null,
                 null,
+                null,
+                null,
                 false,
                 LocalDateTime.now()
         );
@@ -118,9 +120,9 @@ public class StudentFeedbackService implements
                                 item.title(),
                                 item.content(),
                                 item.contentOriginal(),
-                                item.contentTranslated(),
+                                item.contentVi(),
+                                item.contentEn(),
                                 item.sourceLang(),
-                                item.targetLang(),
                                 item.isAutoTranslated(),
                                 item.createdAt(),
                                 responsesByFeedbackId.getOrDefault(item.id(), List.of())
@@ -159,9 +161,9 @@ public class StudentFeedbackService implements
                                 item.title(),
                                 item.content(),
                                 item.contentOriginal(),
-                                item.contentTranslated(),
+                                item.contentVi(),
+                                item.contentEn(),
                                 item.sourceLang(),
-                                item.targetLang(),
                                 item.isAutoTranslated(),
                                 item.createdAt(),
                                 responsesByFeedbackId.getOrDefault(item.id(), List.of())

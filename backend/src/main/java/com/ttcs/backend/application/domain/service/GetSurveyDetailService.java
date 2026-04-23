@@ -72,10 +72,9 @@ public class GetSurveyDetailService implements GetSurveyDetailUseCase {
         if (requestedLang.equals(normalizeLanguage(question.getSourceLang()))) {
             return question.getContent();
         }
-        if (question.isAutoTranslated()
-                && requestedLang.equals(normalizeLanguage(question.getTargetLang()))
-                && !isBlank(question.getContentTranslated())) {
-            return question.getContentTranslated();
+        String translatedContent = question.translatedContentFor(requestedLang);
+        if (question.isAutoTranslated() && !isBlank(translatedContent)) {
+            return translatedContent;
         }
         return question.getContent();
     }

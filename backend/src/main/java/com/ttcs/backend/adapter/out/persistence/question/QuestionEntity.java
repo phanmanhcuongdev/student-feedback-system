@@ -36,9 +36,13 @@ public class QuestionEntity {
     @Nationalized
     private String content;
 
-    @Column(name = "content_translated", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "content_vi", columnDefinition = "NVARCHAR(MAX)")
     @Nationalized
-    private String contentTranslated;
+    private String contentVi;
+
+    @Column(name = "content_en", columnDefinition = "NVARCHAR(MAX)")
+    @Nationalized
+    private String contentEn;
 
     @Column(name = "source_lang", length = 10)
     private String sourceLang;
@@ -48,9 +52,6 @@ public class QuestionEntity {
 
     @Column(name = "model_info", length = 100)
     private String modelInfo;
-
-    @Column(name = "target_lang", length = 10)
-    private String targetLang;
 
     @Column(length = 20)
     @Nationalized

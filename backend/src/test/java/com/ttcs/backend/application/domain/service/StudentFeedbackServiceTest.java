@@ -222,7 +222,8 @@ class StudentFeedbackServiceTest {
                             item.getTitle(),
                             item.getContent(),
                             item.getContentOriginal(),
-                            item.getContentTranslated(),
+                            item.getContentVi(),
+                            item.getContentEn(),
                             item.getSourceLang(),
                             item.isAutoTranslated(),
                             item.getCreatedAt()
@@ -249,8 +250,10 @@ class StudentFeedbackServiceTest {
                     feedback.getTitle(),
                     feedback.getContent(),
                     feedback.getContentOriginal(),
-                    feedback.getContentTranslated(),
+                    feedback.getContentVi(),
+                    feedback.getContentEn(),
                     feedback.getSourceLang(),
+                    feedback.getModelInfo(),
                     feedback.isAutoTranslated(),
                     feedback.getCreatedAt()
             );

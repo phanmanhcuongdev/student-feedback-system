@@ -29,21 +29,21 @@ public class TranslationReplyListener {
             boolean applied = applyTranslationResultUseCase.apply(new ApplyTranslationResultCommand(
                     message.entityId(),
                     message.entityType(),
-                    message.translatedContent(),
+                    message.translatedContentVi(),
+                    message.translatedContentEn(),
                     message.sourceLang(),
-                    message.targetLang(),
                     message.modelInfo(),
                     message.autoTranslated()
             ));
             if (!applied) {
                 String errorMessage = "Translation reply was rejected by application service";
-                log.error("{}: entityId={}, entityType={}, sourceLang={}, targetLang={}",
-                        errorMessage, message.entityId(), message.entityType(), message.sourceLang(), message.targetLang());
+                log.error("{}: entityId={}, entityType={}, sourceLang={}",
+                        errorMessage, message.entityId(), message.entityType(), message.sourceLang());
                 throw new AmqpRejectAndDontRequeueException(errorMessage);
             }
         } catch (RuntimeException exception) {
-            log.error("Failed to process translation reply: entityId={}, entityType={}, sourceLang={}, targetLang={}",
-                    message.entityId(), message.entityType(), message.sourceLang(), message.targetLang(), exception);
+            log.error("Failed to process translation reply: entityId={}, entityType={}, sourceLang={}",
+                    message.entityId(), message.entityType(), message.sourceLang(), exception);
             if (exception instanceof AmqpRejectAndDontRequeueException) {
                 throw exception;
             }
@@ -54,11 +54,33 @@ public class TranslationReplyListener {
     public record TranslationReplyMessage(
             @JsonProperty("entity_id") Integer entityId,
             @JsonProperty("entity_type") String entityType,
-            @JsonProperty("translated_content") String translatedContent,
+            @JsonProperty("translated_content_vi") String translatedContentVi,
+            @JsonProperty("translated_content_en") String translatedContentEn,
             @JsonProperty("source_lang") String sourceLang,
-            @JsonProperty("target_lang") String targetLang,
             @JsonProperty("model_info") String modelInfo,
-            @JsonProperty("is_auto_translated") boolean autoTranslated
+            @JsonProperty("is_auto_translated") boolean autoTranslated,
+            @JsonProperty("translated_content") String legacyTranslatedContent,
+            @JsonProperty("target_lang") String legacyTargetLang
     ) {
+        public String translatedContentVi() {
+            if (translatedContentVi != null && !translatedContentVi.isBlank()) {
+                return translatedContentVi;
+            }
+            return "vi".equals(normalizeLanguage(legacyTargetLang)) ? legacyTranslatedContent : null;
+        }
+
+        public String translatedContentEn() {
+            if (translatedContentEn != null && !translatedContentEn.isBlank()) {
+                return translatedContentEn;
+            }
+            return "en".equals(normalizeLanguage(legacyTargetLang)) ? legacyTranslatedContent : null;
+        }
+
+        private String normalizeLanguage(String value) {
+            if (value == null || value.trim().isEmpty()) {
+                return "";
+            }
+            return value.split(",")[0].trim().split("-")[0].toLowerCase();
+        }
     }
 }

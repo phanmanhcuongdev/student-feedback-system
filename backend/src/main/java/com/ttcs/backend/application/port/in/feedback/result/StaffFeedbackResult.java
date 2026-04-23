@@ -11,9 +11,9 @@ public record StaffFeedbackResult(
         String title,
         String content,
         String contentOriginal,
-        String contentTranslated,
+        String contentVi,
+        String contentEn,
         String sourceLang,
-        String targetLang,
         boolean isAutoTranslated,
         LocalDateTime createdAt,
         List<FeedbackResponseResult> responses

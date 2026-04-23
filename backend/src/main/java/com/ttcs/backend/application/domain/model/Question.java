@@ -9,10 +9,11 @@ public class Question {
     private final Integer id;
     private final Integer surveyId;
     private final String content;
-    private final String contentTranslated;
+    private final String contentVi;
+    private final String contentEn;
     private final String sourceLang;
     private final boolean autoTranslated;
-    private final String targetLang;
+    private final String modelInfo;
     private final QuestionType type;
     private final Integer questionBankEntryId;
 
@@ -21,27 +22,29 @@ public class Question {
     }
 
     public Question(Integer id, Integer surveyId, String content, QuestionType type, Integer questionBankEntryId) {
-        this(id, surveyId, content, null, null, false, null, type, questionBankEntryId);
+        this(id, surveyId, content, null, null, null, false, null, type, questionBankEntryId);
     }
 
     public Question(
             Integer id,
             Integer surveyId,
             String content,
-            String contentTranslated,
+            String contentVi,
+            String contentEn,
             String sourceLang,
             boolean autoTranslated,
-            String targetLang,
+            String modelInfo,
             QuestionType type,
             Integer questionBankEntryId
     ) {
         this.id = id;
         this.surveyId = surveyId;
         this.content = content;
-        this.contentTranslated = contentTranslated;
+        this.contentVi = contentVi;
+        this.contentEn = contentEn;
         this.sourceLang = sourceLang;
         this.autoTranslated = autoTranslated;
-        this.targetLang = targetLang;
+        this.modelInfo = modelInfo;
         this.type = type;
         this.questionBankEntryId = questionBankEntryId;
     }
@@ -52,5 +55,21 @@ public class Question {
 
     public boolean isText() {
         return this.type == QuestionType.TEXT;
+    }
+
+    public String translatedContentFor(String language) {
+        String normalized = normalizeLanguage(language);
+        return switch (normalized) {
+            case "vi" -> contentVi;
+            case "en" -> contentEn;
+            default -> null;
+        };
+    }
+
+    private String normalizeLanguage(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return "";
+        }
+        return value.split(",")[0].trim().split("-")[0].toLowerCase();
     }
 }

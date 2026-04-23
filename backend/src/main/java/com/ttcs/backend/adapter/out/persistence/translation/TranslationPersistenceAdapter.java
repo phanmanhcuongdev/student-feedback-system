@@ -27,13 +27,27 @@ public class TranslationPersistenceAdapter implements UpdateTranslatedContentPor
         Query update = entityManager.createNativeQuery("""
                 UPDATE [dbo].[Feedback]
                 SET
-                    [content_translated] = :contentTranslated,
+                    [content_vi] = COALESCE(:contentVi, [content_vi]),
+                    [content_en] = COALESCE(:contentEn, [content_en]),
+                    [content_translated] = COALESCE(
+                        CASE
+                            WHEN :sourceLang = 'vi' THEN :contentEn
+                            WHEN :sourceLang = 'en' THEN :contentVi
+                            ELSE COALESCE(:contentEn, :contentVi)
+                        END,
+                        [content_translated]
+                    ),
                     [source_lang] = :sourceLang,
-                    [target_lang] = :targetLang,
+                    [target_lang] = CASE
+                        WHEN :sourceLang = 'vi' AND :contentEn IS NOT NULL THEN 'en'
+                        WHEN :sourceLang = 'en' AND :contentVi IS NOT NULL THEN 'vi'
+                        WHEN :contentEn IS NOT NULL THEN 'en'
+                        WHEN :contentVi IS NOT NULL THEN 'vi'
+                        ELSE [target_lang]
+                    END,
                     [model_info] = :modelInfo,
                     [is_auto_translated] = 1
-                WHERE [entity_type] = 'FEEDBACK'
-                  AND [entity_id] = :entityId
+                WHERE [feedback_id] = :entityId
                 """);
         bindUpdateParameters(update, command);
         return update.executeUpdate() > 0;
@@ -43,13 +57,27 @@ public class TranslationPersistenceAdapter implements UpdateTranslatedContentPor
         Query update = entityManager.createNativeQuery("""
                 UPDATE [dbo].[Question]
                 SET
-                    [content_translated] = :contentTranslated,
+                    [content_vi] = COALESCE(:contentVi, [content_vi]),
+                    [content_en] = COALESCE(:contentEn, [content_en]),
+                    [content_translated] = COALESCE(
+                        CASE
+                            WHEN :sourceLang = 'vi' THEN :contentEn
+                            WHEN :sourceLang = 'en' THEN :contentVi
+                            ELSE COALESCE(:contentEn, :contentVi)
+                        END,
+                        [content_translated]
+                    ),
                     [source_lang] = :sourceLang,
-                    [target_lang] = :targetLang,
+                    [target_lang] = CASE
+                        WHEN :sourceLang = 'vi' AND :contentEn IS NOT NULL THEN 'en'
+                        WHEN :sourceLang = 'en' AND :contentVi IS NOT NULL THEN 'vi'
+                        WHEN :contentEn IS NOT NULL THEN 'en'
+                        WHEN :contentVi IS NOT NULL THEN 'vi'
+                        ELSE [target_lang]
+                    END,
                     [model_info] = :modelInfo,
                     [is_auto_translated] = 1
-                WHERE [entity_type] = 'QUESTION'
-                  AND [entity_id] = :entityId
+                WHERE [question_id] = :entityId
                 """);
         bindUpdateParameters(update, command);
         return update.executeUpdate() > 0;
@@ -63,22 +91,36 @@ public class TranslationPersistenceAdapter implements UpdateTranslatedContentPor
         Query update = entityManager.createNativeQuery("""
                 UPDATE [dbo].[Survey_Question]
                 SET
-                    [content_translated] = :contentTranslated,
+                    [content_vi] = COALESCE(:contentVi, [content_vi]),
+                    [content_en] = COALESCE(:contentEn, [content_en]),
+                    [content_translated] = COALESCE(
+                        CASE
+                            WHEN :sourceLang = 'vi' THEN :contentEn
+                            WHEN :sourceLang = 'en' THEN :contentVi
+                            ELSE COALESCE(:contentEn, :contentVi)
+                        END,
+                        [content_translated]
+                    ),
                     [source_lang] = :sourceLang,
-                    [target_lang] = :targetLang,
+                    [target_lang] = CASE
+                        WHEN :sourceLang = 'vi' AND :contentEn IS NOT NULL THEN 'en'
+                        WHEN :sourceLang = 'en' AND :contentVi IS NOT NULL THEN 'vi'
+                        WHEN :contentEn IS NOT NULL THEN 'en'
+                        WHEN :contentVi IS NOT NULL THEN 'vi'
+                        ELSE [target_lang]
+                    END,
                     [model_info] = :modelInfo,
                     [is_auto_translated] = 1
-                WHERE [entity_type] = 'SURVEY_QUESTION'
-                  AND [entity_id] = :entityId
+                WHERE [question_id] = :entityId
                 """);
         bindUpdateParameters(update, command);
         return update.executeUpdate() > 0;
     }
 
     private void bindUpdateParameters(Query update, TranslatedContentUpdateCommand command) {
-        update.setParameter("contentTranslated", command.translatedContent());
+        update.setParameter("contentVi", command.translatedContentVi());
+        update.setParameter("contentEn", command.translatedContentEn());
         update.setParameter("sourceLang", command.sourceLang());
-        update.setParameter("targetLang", command.targetLang());
         update.setParameter("modelInfo", command.modelInfo());
         update.setParameter("entityId", command.entityId());
     }
