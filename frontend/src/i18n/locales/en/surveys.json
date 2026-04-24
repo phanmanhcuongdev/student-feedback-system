@@ -1,5 +1,10 @@
 {
   "surveys": {
+    "hero": {
+      "workspace": "Student Workspace",
+      "title": "Available surveys",
+      "description": "Review assigned surveys, check their current status, and complete open forms through one authenticated workflow."
+    },
     "filters": {
       "pending": "To do",
       "open": "Open",

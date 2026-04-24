@@ -1,5 +1,10 @@
 {
   "surveys": {
+    "hero": {
+      "workspace": "Không gian sinh viên",
+      "title": "Khảo sát hiện có",
+      "description": "Xem các khảo sát được giao, kiểm tra trạng thái hiện tại và hoàn thành các biểu mẫu đang mở trong cùng một quy trình xác thực."
+    },
     "filters": {
       "pending": "Chưa làm",
       "open": "Đang mở",
