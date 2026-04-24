@@ -38,6 +38,7 @@ import com.ttcs.backend.application.port.out.admin.ManagedSurveyMetrics;
 import com.ttcs.backend.application.port.out.admin.ManagedSurveySearchItem;
 import com.ttcs.backend.application.port.out.admin.ManagedSurveySearchPage;
 import com.ttcs.backend.application.port.out.admin.ManageSurveysQuery;
+import com.ttcs.backend.application.port.out.ai.TranslationTaskCommand;
 import com.ttcs.backend.application.port.out.StudentSurveySearchItem;
 import com.ttcs.backend.application.port.out.StudentSurveySearchPage;
 import org.junit.jupiter.api.Test;
@@ -113,6 +114,8 @@ class AdminSurveyManagementServiceTest {
         assertEquals(List.of(103, 104), state.notifications.getFirst().recipientUserIds());
         assertEquals(1, state.studentBulkLoadCount);
         assertEquals(0, state.studentSingleLoadCount);
+        assertEquals("SURVEY_TITLE", state.translationTasks.get(0).entityType());
+        assertEquals("SURVEY_DESCRIPTION", state.translationTasks.get(1).entityType());
     }
 
     @Test
@@ -329,7 +332,8 @@ class AdminSurveyManagementServiceTest {
                 new StudentPort(state),
                 new AuditPort(state),
                 command -> state.notifications.add(command),
-                new ManageSurveyQueryPort(state)
+                new ManageSurveyQueryPort(state),
+                command -> state.translationTasks.add(command)
         );
     }
 
@@ -342,6 +346,7 @@ class AdminSurveyManagementServiceTest {
         private List<SurveyRecipient> recipients = new ArrayList<>();
         private List<AuditLog> auditLogs = new ArrayList<>();
         private List<NotificationCreateCommand> notifications = new ArrayList<>();
+        private List<TranslationTaskCommand> translationTasks = new ArrayList<>();
         private List<Student> candidateStudents = new ArrayList<>(List.of(
                 student(3, 1),
                 student(4, 2)
@@ -431,7 +436,8 @@ class AdminSurveyManagementServiceTest {
                             state.survey.getStartDate(),
                             state.survey.getEndDate(),
                             state.survey.getCreatedBy(),
-                            state.survey.status()
+                            state.survey.status(),
+                            false
                     )),
                     0,
                     1,

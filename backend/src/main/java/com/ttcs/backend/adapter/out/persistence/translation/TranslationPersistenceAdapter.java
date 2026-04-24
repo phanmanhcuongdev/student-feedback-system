@@ -19,6 +19,8 @@ public class TranslationPersistenceAdapter implements UpdateTranslatedContentPor
             case "FEEDBACK" -> updateFeedback(command);
             case "QUESTION" -> updateQuestion(command);
             case "SURVEY_QUESTION" -> updateSurveyQuestion(command);
+            case "SURVEY_TITLE" -> updateSurveyTitle(command);
+            case "SURVEY_DESCRIPTION" -> updateSurveyDescription(command);
             default -> false;
         };
     }
@@ -112,6 +114,36 @@ public class TranslationPersistenceAdapter implements UpdateTranslatedContentPor
                     [model_info] = :modelInfo,
                     [is_auto_translated] = 1
                 WHERE [question_id] = :entityId
+                """);
+        bindUpdateParameters(update, command);
+        return update.executeUpdate() > 0;
+    }
+
+    private boolean updateSurveyTitle(TranslatedContentUpdateCommand command) {
+        Query update = entityManager.createNativeQuery("""
+                UPDATE [dbo].[Survey]
+                SET
+                    [title_vi] = COALESCE(:contentVi, [title_vi]),
+                    [title_en] = COALESCE(:contentEn, [title_en]),
+                    [source_lang] = :sourceLang,
+                    [model_info] = :modelInfo,
+                    [is_auto_translated] = 1
+                WHERE [survey_id] = :entityId
+                """);
+        bindUpdateParameters(update, command);
+        return update.executeUpdate() > 0;
+    }
+
+    private boolean updateSurveyDescription(TranslatedContentUpdateCommand command) {
+        Query update = entityManager.createNativeQuery("""
+                UPDATE [dbo].[Survey]
+                SET
+                    [description_vi] = COALESCE(:contentVi, [description_vi]),
+                    [description_en] = COALESCE(:contentEn, [description_en]),
+                    [source_lang] = :sourceLang,
+                    [model_info] = :modelInfo,
+                    [is_auto_translated] = 1
+                WHERE [survey_id] = :entityId
                 """);
         bindUpdateParameters(update, command);
         return update.executeUpdate() > 0;

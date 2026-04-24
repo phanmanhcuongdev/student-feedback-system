@@ -3,7 +3,7 @@
     "header": {
       "eyebrow": "Hộp thư sinh viên - {{count}} chưa đọc",
       "title": "Thông báo",
-      "description": "Xem bài khảo sát được giao, hạn sắp đến và cập nhật xét duyệt hồ sơ."
+      "description": "Xem khảo sát được giao, các hạn sắp đến và cập nhật xét duyệt hồ sơ."
     },
     "buttons": {
       "showUnread": "Hiện chưa đọc",
@@ -14,6 +14,34 @@
     },
     "badges": {
       "unread": "Chưa đọc"
+    },
+    "types": {
+      "surveyPublished": "Khảo sát mới",
+      "surveyDeadlineReminder": "Nhắc hạn khảo sát",
+      "onboardingApproved": "Hồ sơ đã duyệt",
+      "onboardingRejected": "Hồ sơ cần bổ sung"
+    },
+    "items": {
+      "surveyPublished": {
+        "title": "Có khảo sát mới",
+        "message": "Bạn vừa được giao một khảo sát mới. Hãy xem và gửi phản hồi trước hạn chót.",
+        "action": "Mở khảo sát"
+      },
+      "surveyDeadlineReminder": {
+        "title": "Nhắc hạn khảo sát",
+        "message": "Một khảo sát được giao cho bạn sắp đến hạn. Hãy hoàn thành sớm nhất có thể.",
+        "action": "Hoàn thành khảo sát"
+      },
+      "onboardingApproved": {
+        "title": "Hồ sơ đã được duyệt",
+        "message": "Tài liệu onboarding của bạn đã được duyệt. Bạn có thể tiếp tục sử dụng không gian sinh viên bình thường.",
+        "action": "Đi đến dashboard"
+      },
+      "onboardingRejected": {
+        "title": "Hồ sơ cần cập nhật",
+        "message": "Tài liệu onboarding của bạn cần được chỉnh sửa. Hãy xem phản hồi và tải lại các tệp cần thiết.",
+        "action": "Tải lại hồ sơ"
+      }
     },
     "loading": "Đang tải thông báo...",
     "empty": {

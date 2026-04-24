@@ -15,6 +15,34 @@
     "badges": {
       "unread": "Unread"
     },
+    "types": {
+      "surveyPublished": "Survey published",
+      "surveyDeadlineReminder": "Survey deadline reminder",
+      "onboardingApproved": "Onboarding approved",
+      "onboardingRejected": "Onboarding rejected"
+    },
+    "items": {
+      "surveyPublished": {
+        "title": "New survey available",
+        "message": "A new survey has been assigned to you. Please review it and submit your response before the deadline.",
+        "action": "Open survey"
+      },
+      "surveyDeadlineReminder": {
+        "title": "Survey deadline reminder",
+        "message": "A survey assigned to you is approaching its deadline. Complete it as soon as possible.",
+        "action": "Complete survey"
+      },
+      "onboardingApproved": {
+        "title": "Profile approved",
+        "message": "Your onboarding documents have been approved. You can continue using the student workspace normally.",
+        "action": "Go to dashboard"
+      },
+      "onboardingRejected": {
+        "title": "Profile needs updates",
+        "message": "Your onboarding documents need to be revised. Please review the feedback and upload the required files again.",
+        "action": "Upload documents"
+      }
+    },
     "loading": "Loading notifications...",
     "empty": {
       "title": "No notifications",

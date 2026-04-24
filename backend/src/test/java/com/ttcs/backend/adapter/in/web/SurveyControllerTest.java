@@ -68,13 +68,13 @@ class SurveyControllerTest {
         private int getSurveyByIdCalls;
 
         @Override
-        public SurveySummaryResult getSurveyById(Integer surveyId, Integer studentUserId) {
+        public SurveySummaryResult getSurveyById(Integer surveyId, Integer studentUserId, String targetLang) {
             getSurveyByIdCalls++;
             throw new AssertionError("submit flow must not call read survey use case");
         }
 
         @Override
-        public StudentSurveyPageResult getAllSurveys(GetStudentSurveysQuery query, Integer studentUserId) {
+        public StudentSurveyPageResult getAllSurveys(GetStudentSurveysQuery query, Integer studentUserId, String targetLang) {
             throw new AssertionError("not used");
         }
     }

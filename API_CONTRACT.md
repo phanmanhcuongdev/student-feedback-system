@@ -114,8 +114,15 @@ Supports query parameters:
 Rules:
 
 - Only surveys with an existing recipient row for the current active student are returned
-- `DRAFT`, hidden, and archived surveys do not appear
-- Response is a paged envelope with `items`, `page`, `size`, `totalElements`, and `totalPages`
+- `DRAFT`, hidden, archived, manually closed, and expired surveys do not appear
+- Student-facing filtering is driven by backend data, not frontend-only heuristics:
+  - recipient ownership comes from `Survey_Recipient`
+  - completion comes from `Survey_Recipient.submitted_at`
+  - visibility excludes surveys whose `endDate` is already past the current application time window
+- Survey summary copy prefers bilingual survey fields when available:
+  - `title_vi` / `title_en`
+  - `description_vi` / `description_en`
+  - Response is a paged envelope with `items`, `page`, `size`, `totalElements`, and `totalPages`
 
 ### `GET /api/v1/surveys/{surveyId}`
 
@@ -127,8 +134,8 @@ Returns survey detail and ordered questions.
 
 Rules:
 
-- Draft, archived, hidden, or out-of-scope surveys are treated as not found
-- Detail access is enforced in the use case layer, not only at the controller layer
+- Draft, archived, hidden, expired, closed, or out-of-scope surveys are treated as not found
+  - Detail access is enforced in the use case layer, not only at the controller layer
 - Opening survey access records `opened_at` for the recipient the first time they access survey detail or direct survey view
 
 ### `POST /api/v1/surveys/{surveyId}/submit`

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { Survey } from "../../../types/survey";
 
 type SurveyCardProps = {
@@ -6,8 +7,9 @@ type SurveyCardProps = {
 };
 
 export default function SurveyCard({ survey }: SurveyCardProps) {
+    const { t } = useTranslation(["surveys"]);
     const navigate = useNavigate();
-    const isDisabled = survey.status !== "OPEN";
+    const isDisabled = survey.status !== "OPEN" || survey.submitted;
 
     function getRemainingTime(endDate: string) {
         const now = new Date();
@@ -28,27 +30,35 @@ export default function SurveyCard({ survey }: SurveyCardProps) {
     }
 
     function getButtonText(status: Survey["status"]) {
+        if (survey.submitted) {
+            return t("surveys:surveys.card.completed");
+        }
+
         switch (status) {
             case "OPEN":
-                return "Start Survey";
+                return t("surveys:surveys.card.start");
             case "CLOSED":
-                return "Closed";
+                return t("surveys:surveys.card.closed");
             case "NOT_OPEN":
-                return "Not Open Yet";
+                return t("surveys:surveys.card.notOpenYet");
             default:
-                return "Unavailable";
+                return t("surveys:surveys.card.unavailable");
         }
     }
 
     const badgeClass =
-        survey.status === "OPEN"
+        survey.submitted
+            ? "bg-emerald-100 text-emerald-700"
+            : survey.status === "OPEN"
             ? "bg-green-100 text-green-700"
             : survey.status === "CLOSED"
                 ? "bg-red-100 text-red-700"
                 : "bg-slate-100 text-slate-600";
 
     const dotClass =
-        survey.status === "OPEN"
+        survey.submitted
+            ? "bg-emerald-500"
+            : survey.status === "OPEN"
             ? "bg-green-500"
             : survey.status === "CLOSED"
                 ? "bg-red-500"
@@ -74,7 +84,7 @@ export default function SurveyCard({ survey }: SurveyCardProps) {
                     className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${badgeClass}`}
                 >
                     <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`}></span>
-                    {survey.status}
+                    {survey.submitted ? t("surveys:surveys.card.completed") : survey.status}
                 </div>
 
                 <span className="text-slate-500 text-xs font-medium">

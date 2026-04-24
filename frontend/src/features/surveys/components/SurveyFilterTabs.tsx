@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-export type SurveyFilter = "ALL" | "OPEN" | "CLOSED" | "NOT_OPEN";
+export type SurveyFilter = "PENDING" | "OPEN" | "NOT_OPEN" | "COMPLETED";
 
 type SurveyFilterTabsProps = {
     value: SurveyFilter;
@@ -8,10 +8,10 @@ type SurveyFilterTabsProps = {
 };
 
 const tabs: { labelKey: string; value: SurveyFilter }[] = [
-    { labelKey: "surveys:surveys.filters.all", value: "ALL" },
+    { labelKey: "surveys:surveys.filters.pending", value: "PENDING" },
     { labelKey: "surveys:surveys.filters.open", value: "OPEN" },
     { labelKey: "surveys:surveys.filters.upcoming", value: "NOT_OPEN" },
-    { labelKey: "surveys:surveys.filters.closed", value: "CLOSED" },
+    { labelKey: "surveys:surveys.filters.completed", value: "COMPLETED" },
 ];
 
 export default function SurveyFilterTabs({

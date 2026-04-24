@@ -17,7 +17,13 @@ import java.util.Set;
 public class TranslationResultService implements ApplyTranslationResultUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(TranslationResultService.class);
-    private static final Set<String> SUPPORTED_ENTITY_TYPES = Set.of("FEEDBACK", "QUESTION", "SURVEY_QUESTION");
+    private static final Set<String> SUPPORTED_ENTITY_TYPES = Set.of(
+            "FEEDBACK",
+            "QUESTION",
+            "SURVEY_QUESTION",
+            "SURVEY_TITLE",
+            "SURVEY_DESCRIPTION"
+    );
     private static final String DEFAULT_MODEL_INFO = "default_model";
 
     private final UpdateTranslatedContentPort updateTranslatedContentPort;

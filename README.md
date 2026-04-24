@@ -15,6 +15,7 @@ The current implementation supports:
 - Survey recipient tracking with denominator-based response metrics
 - Scoped lecturer survey-result access for department-targeted surveys
 - Authenticated survey listing, detail view, and submission
+- Student survey visibility enforced in the backend using recipient rows, publish state, hidden flag, and end-date expiry
 - Survey result viewing for admin and lecturer roles
 - CSV survey result export for admins
 - Admin analytics dashboard with lifecycle, participation, and attention metrics
@@ -301,7 +302,7 @@ Compatibility note:
 1. Sign in with an active student account
 2. Open `/surveys`
 3. View survey detail
-4. Submit answers for all required questions on surveys that have been published and are currently open
+4. Submit answers for all required questions on surveys that have been published, are assigned to the current student, are not hidden, and have not expired
 
 ### Survey administration
 
@@ -356,6 +357,8 @@ Compatibility note:
 - Survey management search, filter, pagination, and sort are backend-backed.
 - Question Bank, Survey Templates, pending-student review, staff feedback review, student surveys, student feedback history, notifications, audit logs, and survey results now use backend-backed pagination.
 - Survey results also use backend-backed filtering, sorting, and metrics while exposing lifecycle, runtime status, and audience scope.
+- Student survey completion state is derived from `Survey_Recipient.submitted_at`, not a frontend-only flag.
+- Student survey list/detail responses prefer bilingual survey title and description columns when translated content exists.
 - Notification deadline reminders are generated lazily when the student opens the notification center; no scheduler platform is used in the current implementation.
 - Seed accounts in `database/seed_data.sql` are BCrypt-compatible and can be used directly after import:
   - `admin@university.edu` / `admin123`
