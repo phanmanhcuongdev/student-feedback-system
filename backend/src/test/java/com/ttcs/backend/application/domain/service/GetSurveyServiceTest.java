@@ -8,6 +8,7 @@ import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.domain.model.Survey;
 import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
 import com.ttcs.backend.application.domain.model.SurveyRecipient;
+import com.ttcs.backend.application.domain.model.SurveyStatus;
 import com.ttcs.backend.application.domain.model.User;
 import com.ttcs.backend.application.port.out.LoadStudentSurveysQuery;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
@@ -37,7 +38,7 @@ class GetSurveyServiceTest {
                 new RecordingRecipientPort()
         );
 
-        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyById(1, 3));
+        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyById(1, 3, "en"));
     }
 
     @Test
@@ -50,7 +51,7 @@ class GetSurveyServiceTest {
                 recipientPort
         );
 
-        var result = service.getSurveyById(1, 3);
+        var result = service.getSurveyById(1, 3, "en");
 
         assertEquals(1, result.id());
         assertEquals(1, recipientPort.saveCalls);
@@ -67,7 +68,7 @@ class GetSurveyServiceTest {
                 recipientPort
         );
 
-        service.getSurveyById(1, 3);
+        service.getSurveyById(1, 3, "en");
 
         assertEquals(0, recipientPort.saveCalls);
     }
@@ -82,9 +83,36 @@ class GetSurveyServiceTest {
                 recipientPort
         );
 
-        var result = service.getSurveyById(1, 3);
+        var result = service.getSurveyById(1, 3, "en");
 
         assertTrue(result.submitted());
+    }
+
+    @Test
+    void shouldReturnTranslatedSurveyMetadataWhenAvailable() {
+        GetSurveyService service = new GetSurveyService(
+                surveyPort(translatedSurvey()),
+                studentPort(),
+                new RecordingRecipientPort(),
+                new RecordingRecipientPort()
+        );
+
+        var result = service.getSurveyById(1, 3, "en");
+
+        assertEquals("Published Survey EN", result.title());
+        assertEquals("Description EN", result.description());
+    }
+
+    @Test
+    void shouldRejectClosedSurveyEvenWhenRecipientExists() {
+        GetSurveyService service = new GetSurveyService(
+                surveyPort(new Survey(1, "Closed Survey", "Desc", LocalDateTime.now().minusDays(3), LocalDateTime.now().minusMinutes(1), 1, false, SurveyLifecycleState.PUBLISHED)),
+                studentPort(),
+                new RecordingRecipientPort(),
+                new RecordingRecipientPort()
+        );
+
+        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyById(1, 3, "en"));
     }
 
     private LoadSurveyPort surveyPort(Survey survey) {
@@ -101,6 +129,7 @@ class GetSurveyServiceTest {
 
             @Override
             public StudentSurveySearchPage loadStudentSurveyPage(LoadStudentSurveysQuery query) {
+                assertEquals("en", query.targetLang());
                 return new StudentSurveySearchPage(List.of(), 0, 0, 0, 0);
             }
         };
@@ -140,6 +169,26 @@ class GetSurveyServiceTest {
 
     private Survey survey() {
         return new Survey(1, "Published Survey", "Desc", LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(1), 1, false, SurveyLifecycleState.PUBLISHED);
+    }
+
+    private Survey translatedSurvey() {
+        return new Survey(
+                1,
+                "Published Survey",
+                "Khao sat da phat hanh",
+                "Published Survey EN",
+                "Desc",
+                "Mo ta",
+                "Description EN",
+                "vi",
+                true,
+                "test-model",
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().plusDays(1),
+                1,
+                false,
+                SurveyLifecycleState.PUBLISHED
+        );
     }
 
     private static final class EmptyRecipientPort implements LoadSurveyRecipientPort {

@@ -32,9 +32,34 @@ public class SurveyEntity {
     @Nationalized
     private String title;
 
+    @Column(name = "title_vi", columnDefinition = "NVARCHAR(MAX)")
+    @Nationalized
+    private String titleVi;
+
+    @Column(name = "title_en", columnDefinition = "NVARCHAR(MAX)")
+    @Nationalized
+    private String titleEn;
+
     @Nationalized
     @Column(name = "description", columnDefinition = "NVARCHAR(MAX)")
     private String description;
+
+    @Nationalized
+    @Column(name = "description_vi", columnDefinition = "NVARCHAR(MAX)")
+    private String descriptionVi;
+
+    @Nationalized
+    @Column(name = "description_en", columnDefinition = "NVARCHAR(MAX)")
+    private String descriptionEn;
+
+    @Column(name = "source_lang", length = 10)
+    private String sourceLang;
+
+    @Column(name = "is_auto_translated", nullable = false)
+    private boolean autoTranslated;
+
+    @Column(name = "model_info", length = 100)
+    private String modelInfo;
 
     @Column(name = "start_date")
     private LocalDateTime startDate;
@@ -51,5 +76,25 @@ public class SurveyEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private AdminEntity createdBy;
+
+    public SurveyEntity(
+            Integer id,
+            String title,
+            String description,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            boolean hidden,
+            String lifecycleState,
+            AdminEntity createdBy
+    ) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.hidden = hidden;
+        this.lifecycleState = lifecycleState;
+        this.createdBy = createdBy;
+    }
 
 }

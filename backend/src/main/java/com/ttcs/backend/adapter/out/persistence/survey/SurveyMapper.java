@@ -16,7 +16,14 @@ public final class SurveyMapper {
         return new Survey(
                 entity.getId(),
                 entity.getTitle(),
+                entity.getTitleVi(),
+                entity.getTitleEn(),
                 entity.getDescription(),
+                entity.getDescriptionVi(),
+                entity.getDescriptionEn(),
+                entity.getSourceLang(),
+                entity.isAutoTranslated(),
+                entity.getModelInfo(),
                 entity.getStartDate(),
                 entity.getEndDate(),
                 entity.getCreatedBy() != null ? entity.getCreatedBy().getId() : null,
@@ -31,7 +38,14 @@ public final class SurveyMapper {
         SurveyEntity entity = new SurveyEntity();
         entity.setId(domain.getId());
         entity.setTitle(domain.getTitle());
+        entity.setTitleVi(domain.getTitleVi());
+        entity.setTitleEn(domain.getTitleEn());
         entity.setDescription(domain.getDescription());
+        entity.setDescriptionVi(domain.getDescriptionVi());
+        entity.setDescriptionEn(domain.getDescriptionEn());
+        entity.setSourceLang(domain.getSourceLang());
+        entity.setAutoTranslated(domain.isAutoTranslated());
+        entity.setModelInfo(domain.getModelInfo());
         entity.setStartDate(domain.getStartDate());
         entity.setEndDate(domain.getEndDate());
         entity.setHidden(domain.isHidden());

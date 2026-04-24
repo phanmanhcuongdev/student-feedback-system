@@ -41,23 +41,30 @@ public class SurveyPersistenceAdapter implements LoadSurveyPort, com.ttcs.backen
     public StudentSurveySearchPage loadStudentSurveyPage(LoadStudentSurveysQuery query) {
         int page = Math.max(query.page(), 0);
         int size = Math.min(Math.max(query.size(), 1), 100);
+        String currentTimeSql = "DATEADD(HOUR, 7, GETUTCDATE())";
 
         String runtimeSql = """
                 CASE
-                    WHEN s.start_date IS NOT NULL AND s.start_date > GETDATE() THEN 'NOT_OPEN'
-                    WHEN s.end_date IS NOT NULL AND s.end_date < GETDATE() THEN 'CLOSED'
+                    WHEN s.lifecycle_state IN ('CLOSED', 'ARCHIVED') THEN 'CLOSED'
+                    WHEN s.start_date IS NOT NULL AND s.start_date > %s THEN 'NOT_OPEN'
+                    WHEN s.end_date IS NOT NULL AND s.end_date <= %s THEN 'CLOSED'
                     ELSE 'OPEN'
                 END
-                """;
+                """.formatted(currentTimeSql, currentTimeSql);
+        String normalizedTargetLang = normalizeLanguage(query.targetLang());
+        String localizedTitleSql = localizedSurveyFieldSql("s.title", "s.title_vi", "s.title_en", normalizedTargetLang);
+        String localizedDescriptionSql = localizedSurveyFieldSql("s.description", "s.description_vi", "s.description_en", normalizedTargetLang);
 
-        String whereClause = buildStudentSurveyWhereClause(query, runtimeSql);
+        String whereClause = buildStudentSurveyWhereClause(query, currentTimeSql);
         String orderClause = buildStudentSurveyOrderClause(query.sortBy(), query.sortDir());
 
         Query itemsQuery = entityManager.createNativeQuery("""
                 SELECT
                     s.survey_id,
-                    s.title,
-                    s.description,
+                    """ + localizedTitleSql + """
+                    AS localized_title,
+                    """ + localizedDescriptionSql + """
+                    AS localized_description,
                     s.start_date,
                     s.end_date,
                     a.user_id,
@@ -113,17 +120,25 @@ public class SurveyPersistenceAdapter implements LoadSurveyPort, com.ttcs.backen
         }
     }
 
-    private String buildStudentSurveyWhereClause(LoadStudentSurveysQuery query, String runtimeSql) {
+    private String buildStudentSurveyWhereClause(LoadStudentSurveysQuery query, String currentTimeSql) {
         StringBuilder where = new StringBuilder(
                 """
                  WHERE sr.student_id = :studentId
                    AND s.lifecycle_state = 'PUBLISHED'
                    AND s.hidden = 0
+                   AND (s.end_date IS NULL OR s.end_date > %s)
                 """
+                        .formatted(currentTimeSql)
         );
-        where.append(" AND ").append(runtimeSql).append(" <> 'CLOSED'");
         if (query.status() != null && !query.status().isBlank() && !"ALL".equalsIgnoreCase(query.status())) {
-            where.append(" AND ").append(runtimeSql).append(" = :status");
+            String normalizedStatus = query.status().trim().toUpperCase();
+            switch (normalizedStatus) {
+                case "OPEN" -> where.append(" AND (s.start_date IS NULL OR s.start_date <= ").append(currentTimeSql).append(")");
+                case "NOT_OPEN" -> where.append(" AND s.start_date IS NOT NULL AND s.start_date > ").append(currentTimeSql);
+                case "CLOSED" -> where.append(" AND 1 = 0");
+                default -> {
+                }
+            }
         }
         if (query.submitted() != null) {
             where.append(" AND CASE WHEN sr.submitted_at IS NOT NULL THEN 1 ELSE 0 END = :submitted");
@@ -156,6 +171,31 @@ public class SurveyPersistenceAdapter implements LoadSurveyPort, com.ttcs.backen
                 SurveyStatus.valueOf(row[6].toString()),
                 ((Number) row[7]).intValue() == 1
         );
+    }
+
+    private String localizedSurveyFieldSql(String originalColumn, String viColumn, String enColumn, String targetLang) {
+        return switch (targetLang) {
+            case "vi" -> """
+                    CASE
+                        WHEN %s IS NOT NULL AND LTRIM(RTRIM(%s)) <> '' THEN %s
+                        ELSE %s
+                    END
+                    """.formatted(viColumn, viColumn, viColumn, originalColumn);
+            case "en" -> """
+                    CASE
+                        WHEN %s IS NOT NULL AND LTRIM(RTRIM(%s)) <> '' THEN %s
+                        ELSE %s
+                    END
+                    """.formatted(enColumn, enColumn, enColumn, originalColumn);
+            default -> originalColumn;
+        };
+    }
+
+    private String normalizeLanguage(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return "en";
+        }
+        return value.split(",")[0].trim().split("-")[0].toLowerCase();
     }
 
     private LocalDateTime toLocalDateTime(Object value) {

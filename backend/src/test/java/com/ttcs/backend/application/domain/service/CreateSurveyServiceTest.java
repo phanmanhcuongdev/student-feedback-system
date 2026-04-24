@@ -11,14 +11,16 @@ import com.ttcs.backend.application.port.in.command.CreateSurveyCommand;
 import com.ttcs.backend.application.port.out.SaveQuestionPort;
 import com.ttcs.backend.application.port.out.SaveSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.SaveSurveyPort;
+import com.ttcs.backend.application.port.out.ai.TranslationTaskCommand;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CreateSurveyServiceTest {
 
@@ -112,6 +114,35 @@ class CreateSurveyServiceTest {
         assertEquals(42, saveQuestionPort.lastSavedQuestions.getFirst().getQuestionBankEntryId());
     }
 
+    @Test
+    void shouldSendSurveyTitleAndDescriptionTranslationTasks() {
+        RecordingTranslationTaskPort translationTaskPort = new RecordingTranslationTaskPort();
+        CreateSurveyService service = new CreateSurveyService(
+                new RecordingSaveSurveyPort(),
+                new RecordingSaveQuestionPort(),
+                new NoOpSaveSurveyAssignmentPort(),
+                translationTaskPort
+        );
+
+        service.createSurvey(new CreateSurveyCommand(
+                "Teaching Feedback",
+                "Draft survey",
+                LocalDateTime.now().plusDays(1),
+                LocalDateTime.now().plusDays(3),
+                1,
+                List.of(new CreateQuestionCommand("Rate the class", QuestionType.RATING)),
+                SurveyRecipientScope.ALL_STUDENTS,
+                null,
+                "vi"
+        ));
+
+        assertEquals(3, translationTaskPort.commands.size());
+        assertEquals("SURVEY_TITLE", translationTaskPort.commands.get(0).entityType());
+        assertEquals("Teaching Feedback", translationTaskPort.commands.get(0).content());
+        assertEquals("SURVEY_DESCRIPTION", translationTaskPort.commands.get(1).entityType());
+        assertEquals("Draft survey", translationTaskPort.commands.get(1).content());
+    }
+
     private static final class RecordingSaveSurveyPort implements SaveSurveyPort {
         private Survey lastSavedSurvey;
 
@@ -149,6 +180,15 @@ class CreateSurveyServiceTest {
     private static final class NoOpSaveSurveyAssignmentPort implements SaveSurveyAssignmentPort {
         @Override
         public void replaceAssignments(Integer surveyId, List<SurveyAssignment> assignments) {
+        }
+    }
+
+    private static final class RecordingTranslationTaskPort implements com.ttcs.backend.application.port.out.ai.SendTranslationTaskPort {
+        private final List<TranslationTaskCommand> commands = new ArrayList<>();
+
+        @Override
+        public void send(TranslationTaskCommand command) {
+            commands.add(command);
         }
     }
 }

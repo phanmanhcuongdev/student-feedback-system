@@ -140,6 +140,7 @@ Backend runs on:
   Uploads student documents for the authenticated student.
 - `GET /api/v1/surveys`
   Returns survey summaries for the authenticated user.
+  Student-facing survey visibility is enforced in the backend from `Survey_Recipient`, publish state, hidden flag, and end-date expiry.
 - `POST /api/v1/surveys/{surveyId}/submit`
   Submits survey answers for the current student.
 - `GET /api/admin/users`
@@ -167,4 +168,5 @@ Backend runs on:
 - If you update environment variables, restart the application so Spring picks them up.
 - Department lookup endpoints currently support operational filters for user and survey management screens.
 - Add future schema changes as new versioned files under `src/main/resources/db/migration`, not by editing an already-applied migration.
+- Student survey completion is tracked by `Survey_Recipient.submitted_at`; do not introduce a duplicate boolean unless there is a strong denormalization need.
 - Lecturer is the canonical staff role name. Do not introduce product-facing Teacher terminology.

@@ -37,7 +37,7 @@ export default function StudentDashboardPage() {
         }
 
         void load();
-    }, []);
+    }, [i18n.resolvedLanguage, t]);
 
     const openSurveys = surveys.filter((survey) => survey.status === "OPEN");
     const upcomingSurveys = surveys.filter((survey) => survey.status === "NOT_OPEN");

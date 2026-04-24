@@ -4,6 +4,7 @@ import com.ttcs.backend.application.domain.exception.SurveyNotFoundException;
 import com.ttcs.backend.application.domain.model.Question;
 import com.ttcs.backend.application.domain.model.Survey;
 import com.ttcs.backend.application.domain.model.SurveyRecipient;
+import com.ttcs.backend.application.domain.model.SurveyStatus;
 import com.ttcs.backend.application.port.in.GetSurveyDetailUseCase;
 import com.ttcs.backend.application.port.in.result.QuestionItemResult;
 import com.ttcs.backend.application.port.in.result.SurveyDetailResult;
@@ -15,11 +16,13 @@ import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @UseCase
 @RequiredArgsConstructor
 public class GetSurveyDetailService implements GetSurveyDetailUseCase {
+    private static final ZoneId APP_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final LoadSurveyPort loadSurveyPort;
     private final LoadQuestionPort loadQuestionPort;
@@ -33,7 +36,7 @@ public class GetSurveyDetailService implements GetSurveyDetailUseCase {
         SurveyRecipient recipient = loadSurveyRecipientPort.loadBySurveyIdAndStudentId(surveyId, studentId)
                 .orElseThrow(() -> new SurveyNotFoundException(surveyId));
 
-        if (!survey.isPublished() || survey.isHidden()) {
+        if (!survey.isPublished() || survey.isHidden() || isExpired(survey) || survey.status() == SurveyStatus.CLOSED) {
             throw new SurveyNotFoundException(surveyId);
         }
         if (!recipient.hasOpened()) {
@@ -59,8 +62,8 @@ public class GetSurveyDetailService implements GetSurveyDetailUseCase {
 
         return new SurveyDetailResult(
                 survey.getId(),
-                survey.getTitle(),
-                survey.getDescription(),
+                survey.displayTitle(requestedLang),
+                survey.displayDescription(requestedLang),
                 survey.getStartDate(),
                 survey.getEndDate(),
                 survey.status(),
@@ -88,5 +91,9 @@ public class GetSurveyDetailService implements GetSurveyDetailUseCase {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private boolean isExpired(Survey survey) {
+        return survey.getEndDate() != null && !LocalDateTime.now(APP_ZONE).isBefore(survey.getEndDate());
     }
 }
