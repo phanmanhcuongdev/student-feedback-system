@@ -431,7 +431,8 @@ class AdminSurveyManagementServiceTest {
                             state.survey.getStartDate(),
                             state.survey.getEndDate(),
                             state.survey.getCreatedBy(),
-                            state.survey.status()
+                            state.survey.status(),
+                            false
                     )),
                     0,
                     1,

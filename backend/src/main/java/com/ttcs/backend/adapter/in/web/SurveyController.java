@@ -44,6 +44,7 @@ public class SurveyController {
     @GetMapping
     public ResponseEntity<StudentSurveyPageResponse> getAllSurveys(
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) Boolean submitted,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size,
             @RequestParam(defaultValue = "endDate") String sortBy,
@@ -51,7 +52,7 @@ public class SurveyController {
     ) {
         currentIdentityProvider.ensureActiveStudentAccount();
         StudentSurveyPageResult result = getSurveyUseCase.getAllSurveys(
-                new GetStudentSurveysQuery(status, page, size, sortBy, sortDir),
+                new GetStudentSurveysQuery(status, submitted, page, size, sortBy, sortDir),
                 currentIdentityProvider.currentUserId()
         );
         return ResponseEntity.ok(new StudentSurveyPageResponse(
@@ -106,7 +107,8 @@ public class SurveyController {
                 result.startDate(),
                 result.endDate(),
                 result.createdBy(),
-                result.status().name()
+                result.status().name(),
+                result.submitted()
         );
     }
 

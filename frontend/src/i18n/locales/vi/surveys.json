@@ -1,10 +1,18 @@
 {
   "surveys": {
     "filters": {
-      "all": "Tất cả",
+      "pending": "Chưa làm",
       "open": "Đang mở",
       "upcoming": "Sắp mở",
-      "closed": "Đã đóng"
+      "closed": "Đã đóng",
+      "completed": "Đã làm"
+    },
+    "card": {
+      "start": "Bắt đầu khảo sát",
+      "closed": "Đã đóng",
+      "notOpenYet": "Chưa mở",
+      "unavailable": "Không khả dụng",
+      "completed": "Đã làm"
     },
     "detail": {
       "backToSurveys": "Quay lại danh sách khảo sát",

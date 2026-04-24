@@ -45,7 +45,8 @@ public class GetSurveyService implements GetSurveyUseCase {
                 survey.getStartDate(),
                 survey.getEndDate(),
                 survey.getCreatedBy(),
-                survey.status()
+                survey.status(),
+                recipient.hasSubmitted()
         );
     }
 
@@ -56,6 +57,7 @@ public class GetSurveyService implements GetSurveyUseCase {
         var page = loadSurveyPort.loadStudentSurveyPage(new LoadStudentSurveysQuery(
                 student.getId(),
                 query == null ? null : query.status(),
+                query == null ? null : query.submitted(),
                 query == null ? 0 : query.page(),
                 query == null ? 12 : query.size(),
                 query == null ? "endDate" : query.sortBy(),
@@ -69,7 +71,8 @@ public class GetSurveyService implements GetSurveyUseCase {
                         item.startDate(),
                         item.endDate(),
                         item.createdBy(),
-                        item.status()
+                        item.status(),
+                        item.submitted()
                 )).toList(),
                 page.page(),
                 page.size(),

@@ -62,7 +62,11 @@ public class SurveyPersistenceAdapter implements LoadSurveyPort, com.ttcs.backen
                     s.end_date,
                     a.user_id,
                     """ + runtimeSql + """
-                    AS runtime_status
+                    AS runtime_status,
+                    CASE
+                        WHEN sr.submitted_at IS NOT NULL THEN 1
+                        ELSE 0
+                    END AS submitted
                 FROM Survey_Recipient sr
                 INNER JOIN Survey s ON s.survey_id = sr.survey_id
                 INNER JOIN Admin a ON a.user_id = s.created_by
@@ -104,6 +108,9 @@ public class SurveyPersistenceAdapter implements LoadSurveyPort, com.ttcs.backen
         if (request.status() != null && !request.status().isBlank()) {
             query.setParameter("status", request.status().trim().toUpperCase());
         }
+        if (request.submitted() != null) {
+            query.setParameter("submitted", request.submitted() ? 1 : 0);
+        }
     }
 
     private String buildStudentSurveyWhereClause(LoadStudentSurveysQuery query, String runtimeSql) {
@@ -114,6 +121,9 @@ public class SurveyPersistenceAdapter implements LoadSurveyPort, com.ttcs.backen
                 """);
         if (query.status() != null && !query.status().isBlank() && !"ALL".equalsIgnoreCase(query.status())) {
             where.append(" AND ").append(runtimeSql).append(" = :status");
+        }
+        if (query.submitted() != null) {
+            where.append(" AND CASE WHEN sr.submitted_at IS NOT NULL THEN 1 ELSE 0 END = :submitted");
         }
         return where.toString();
     }
@@ -140,7 +150,8 @@ public class SurveyPersistenceAdapter implements LoadSurveyPort, com.ttcs.backen
                 toLocalDateTime(row[3]),
                 toLocalDateTime(row[4]),
                 ((Number) row[5]).intValue(),
-                SurveyStatus.valueOf(row[6].toString())
+                SurveyStatus.valueOf(row[6].toString()),
+                ((Number) row[7]).intValue() == 1
         );
     }
 

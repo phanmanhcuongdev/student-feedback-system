@@ -9,6 +9,7 @@ export interface Survey {
     endDate: string;
     createdBy: number;
     status: SurveyRuntimeStatus;
+    submitted: boolean;
 }
 
 export interface StudentSurveyPage {

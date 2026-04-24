@@ -22,7 +22,9 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GetSurveyServiceTest {
 
@@ -52,6 +54,7 @@ class GetSurveyServiceTest {
 
         assertEquals(1, result.id());
         assertEquals(1, recipientPort.saveCalls);
+        assertFalse(result.submitted());
     }
 
     @Test
@@ -67,6 +70,21 @@ class GetSurveyServiceTest {
         service.getSurveyById(1, 3);
 
         assertEquals(0, recipientPort.saveCalls);
+    }
+
+    @Test
+    void shouldExposeSubmittedFlagInSurveySummary() {
+        RecordingRecipientPort recipientPort = new RecordingRecipientPort(true, true);
+        GetSurveyService service = new GetSurveyService(
+                surveyPort(survey()),
+                studentPort(),
+                recipientPort,
+                recipientPort
+        );
+
+        var result = service.getSurveyById(1, 3);
+
+        assertTrue(result.submitted());
     }
 
     private LoadSurveyPort surveyPort(Survey survey) {
@@ -144,13 +162,19 @@ class GetSurveyServiceTest {
     private static final class RecordingRecipientPort implements LoadSurveyRecipientPort, SaveSurveyRecipientPort {
         private int saveCalls;
         private final boolean alreadyOpened;
+        private final boolean alreadySubmitted;
 
         private RecordingRecipientPort() {
-            this(false);
+            this(false, false);
         }
 
         private RecordingRecipientPort(boolean alreadyOpened) {
+            this(alreadyOpened, false);
+        }
+
+        private RecordingRecipientPort(boolean alreadyOpened, boolean alreadySubmitted) {
             this.alreadyOpened = alreadyOpened;
+            this.alreadySubmitted = alreadySubmitted;
         }
 
         @Override
@@ -161,7 +185,7 @@ class GetSurveyServiceTest {
                     studentId,
                     LocalDateTime.now().minusDays(1),
                     alreadyOpened ? LocalDateTime.now().minusHours(2) : null,
-                    null
+                    alreadySubmitted ? LocalDateTime.now().minusHours(1) : null
             ));
         }
 
@@ -178,7 +202,7 @@ class GetSurveyServiceTest {
                     studentId,
                     LocalDateTime.now().minusDays(1),
                     alreadyOpened ? LocalDateTime.now().minusHours(2) : null,
-                    null
+                    alreadySubmitted ? LocalDateTime.now().minusHours(1) : null
             ));
         }
 
