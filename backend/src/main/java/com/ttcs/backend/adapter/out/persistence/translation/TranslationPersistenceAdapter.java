@@ -21,6 +21,7 @@ public class TranslationPersistenceAdapter implements UpdateTranslatedContentPor
             case "SURVEY_QUESTION" -> updateSurveyQuestion(command);
             case "SURVEY_TITLE" -> updateSurveyTitle(command);
             case "SURVEY_DESCRIPTION" -> updateSurveyDescription(command);
+            case "SURVEY_RESPONSE" -> updateSurveyResponse(command);
             default -> false;
         };
     }
@@ -144,6 +145,21 @@ public class TranslationPersistenceAdapter implements UpdateTranslatedContentPor
                     [model_info] = :modelInfo,
                     [is_auto_translated] = 1
                 WHERE [survey_id] = :entityId
+                """);
+        bindUpdateParameters(update, command);
+        return update.executeUpdate() > 0;
+    }
+
+    private boolean updateSurveyResponse(TranslatedContentUpdateCommand command) {
+        Query update = entityManager.createNativeQuery("""
+                UPDATE [dbo].[Response_Detail]
+                SET
+                    [comment_vi] = COALESCE(:contentVi, [comment_vi]),
+                    [comment_en] = COALESCE(:contentEn, [comment_en]),
+                    [source_lang] = :sourceLang,
+                    [model_info] = :modelInfo,
+                    [is_auto_translated] = 1
+                WHERE [id] = :entityId
                 """);
         bindUpdateParameters(update, command);
         return update.executeUpdate() > 0;

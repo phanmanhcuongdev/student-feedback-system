@@ -25,6 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -42,6 +43,7 @@ public class SurveyResultController {
 
     @GetMapping
     public ResponseEntity<SurveyResultPageResponse> getSurveyResults(
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String lifecycleState,
             @RequestParam(required = false) String runtimeStatus,
@@ -67,7 +69,8 @@ public class SurveyResultController {
                         sortDir
                 ),
                 currentIdentityProvider.currentUserId(),
-                currentIdentityProvider.currentRole()
+                currentIdentityProvider.currentRole(),
+                acceptLanguage
         );
         return ResponseEntity.ok(new SurveyResultPageResponse(
                 result.items().stream().map(this::toSummaryResponse).toList(),
@@ -87,12 +90,16 @@ public class SurveyResultController {
     }
 
     @GetMapping("/{surveyId}")
-    public ResponseEntity<SurveyResultDetailResponse> getSurveyResult(@PathVariable Integer surveyId) {
+    public ResponseEntity<SurveyResultDetailResponse> getSurveyResult(
+            @PathVariable Integer surveyId,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
+    ) {
         return ResponseEntity.ok(toDetailResponse(
                 getSurveyResultDetailUseCase.getSurveyResult(
                         surveyId,
                         currentIdentityProvider.currentUserId(),
-                        currentIdentityProvider.currentRole()
+                        currentIdentityProvider.currentRole(),
+                        acceptLanguage
                 )
         ));
     }

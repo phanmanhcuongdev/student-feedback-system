@@ -35,8 +35,8 @@ class SurveyResultControllerTest {
         ));
         TrackingExportUseCase exportUseCase = new TrackingExportUseCase();
         SurveyResultController controller = new SurveyResultController(
-                (query, viewerUserId, viewerRole) -> null,
-                (surveyId, viewerUserId, viewerRole) -> null,
+                (query, viewerUserId, viewerRole, targetLang) -> null,
+                (surveyId, viewerUserId, viewerRole, targetLang) -> null,
                 exportUseCase,
                 new CurrentIdentityProvider(new EmptyStudentPort())
         );

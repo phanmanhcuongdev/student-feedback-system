@@ -359,6 +359,7 @@ Compatibility note:
 - Survey results also use backend-backed filtering, sorting, and metrics while exposing lifecycle, runtime status, and audience scope.
 - Student survey completion state is derived from `Survey_Recipient.submitted_at`, not a frontend-only flag.
 - Student survey list/detail responses prefer bilingual survey title and description columns when translated content exists.
+- Student survey text responses publish `SURVEY_RESPONSE` translation tasks after submit and persist bilingual comment columns on `Response_Detail`.
 - Notification deadline reminders are generated lazily when the student opens the notification center; no scheduler platform is used in the current implementation.
 - Seed accounts in `database/seed_data.sql` are BCrypt-compatible and can be used directly after import:
   - `admin@university.edu` / `admin123`

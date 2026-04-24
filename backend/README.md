@@ -143,6 +143,7 @@ Backend runs on:
   Student-facing survey visibility is enforced in the backend from `Survey_Recipient`, publish state, hidden flag, and end-date expiry.
 - `POST /api/v1/surveys/{surveyId}/submit`
   Submits survey answers for the current student.
+  Text-question comments also publish `SURVEY_RESPONSE` translation tasks after commit and store translated `vi/en` variants on `Response_Detail`.
 - `GET /api/admin/users`
   Returns backend-backed paginated user management results with filter and sort support.
 - `GET /api/admin/surveys`
@@ -169,4 +170,5 @@ Backend runs on:
 - Department lookup endpoints currently support operational filters for user and survey management screens.
 - Add future schema changes as new versioned files under `src/main/resources/db/migration`, not by editing an already-applied migration.
 - Student survey completion is tracked by `Survey_Recipient.submitted_at`; do not introduce a duplicate boolean unless there is a strong denormalization need.
+- Survey-response translation storage now lives on `Response_Detail`; keep future translation schema updates in Flyway migrations only.
 - Lecturer is the canonical staff role name. Do not introduce product-facing Teacher terminology.

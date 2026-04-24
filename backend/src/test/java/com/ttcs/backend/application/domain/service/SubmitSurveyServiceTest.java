@@ -26,6 +26,8 @@ import com.ttcs.backend.application.port.out.SaveResponseDetailPort;
 import com.ttcs.backend.application.port.out.SaveSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.SaveSurveyResponsePort;
 import com.ttcs.backend.application.port.out.StudentSurveySearchPage;
+import com.ttcs.backend.application.port.out.ai.SendTranslationTaskPort;
+import com.ttcs.backend.application.port.out.ai.TranslationTaskCommand;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -51,7 +53,8 @@ class SubmitSurveyServiceTest {
                 saveSurveyResponsePort,
                 saveResponseDetailPort,
                 recipientPort(recipient()),
-                new RecordingSaveSurveyRecipientPort()
+                new RecordingSaveSurveyRecipientPort(),
+                new RecordingTranslationTaskPort()
         );
 
         SubmitSurveyResult result = service.submitSurvey(new SubmitSurveyCommand(
@@ -78,7 +81,8 @@ class SubmitSurveyServiceTest {
                 saveSurveyResponsePort,
                 saveResponseDetailPort,
                 recipientPort(recipient()),
-                new RecordingSaveSurveyRecipientPort()
+                new RecordingSaveSurveyRecipientPort(),
+                new RecordingTranslationTaskPort()
         );
 
         SubmitSurveyResult result = service.submitSurvey(new SubmitSurveyCommand(
@@ -98,6 +102,7 @@ class SubmitSurveyServiceTest {
         RecordingSaveSurveyResponsePort saveSurveyResponsePort = new RecordingSaveSurveyResponsePort();
         RecordingSaveResponseDetailPort saveResponseDetailPort = new RecordingSaveResponseDetailPort();
         RecordingSaveSurveyRecipientPort saveSurveyRecipientPort = new RecordingSaveSurveyRecipientPort();
+        RecordingTranslationTaskPort translationTaskPort = new RecordingTranslationTaskPort();
         SubmitSurveyService service = new SubmitSurveyService(
                 surveyPort(openSurvey()),
                 studentPort(student()),
@@ -106,7 +111,8 @@ class SubmitSurveyServiceTest {
                 saveSurveyResponsePort,
                 saveResponseDetailPort,
                 recipientPort(recipient()),
-                saveSurveyRecipientPort
+                saveSurveyRecipientPort,
+                translationTaskPort
         );
 
         SubmitSurveyResult result = service.submitSurvey(new SubmitSurveyCommand(
@@ -128,6 +134,11 @@ class SubmitSurveyServiceTest {
         assertTrue(saveSurveyRecipientPort.lastSavedRecipient.hasOpened());
         assertTrue(saveSurveyRecipientPort.lastSavedRecipient.hasSubmitted());
         assertEquals(2, saveResponseDetailPort.lastSavedDetails.size());
+        assertEquals(1, translationTaskPort.sent.size());
+        TranslationTaskCommand translationTask = translationTaskPort.sent.getFirst();
+        assertEquals("SURVEY_RESPONSE", translationTask.entityType());
+        assertEquals("Useful survey", translationTask.content());
+        assertEquals(2, translationTask.entityId());
     }
 
     @Test
@@ -135,6 +146,7 @@ class SubmitSurveyServiceTest {
         RecordingSaveSurveyResponsePort saveSurveyResponsePort = new RecordingSaveSurveyResponsePort();
         RecordingSaveResponseDetailPort saveResponseDetailPort = new RecordingSaveResponseDetailPort();
         RecordingSaveSurveyRecipientPort saveSurveyRecipientPort = new RecordingSaveSurveyRecipientPort();
+        RecordingTranslationTaskPort translationTaskPort = new RecordingTranslationTaskPort();
         SubmitSurveyService service = new SubmitSurveyService(
                 surveyPort(openSurvey()),
                 studentPort(student()),
@@ -143,7 +155,8 @@ class SubmitSurveyServiceTest {
                 saveSurveyResponsePort,
                 saveResponseDetailPort,
                 recipientPort(recipient()),
-                saveSurveyRecipientPort
+                saveSurveyRecipientPort,
+                translationTaskPort
         );
 
         SubmitSurveyResult result = service.submitSurvey(new SubmitSurveyCommand(
@@ -156,6 +169,7 @@ class SubmitSurveyServiceTest {
         assertEquals(SubmitSurveyResultCode.ALREADY_SUBMITTED, result.code());
         assertEquals(0, saveSurveyResponsePort.saveCalls);
         assertEquals(0, saveSurveyRecipientPort.saveCalls);
+        assertEquals(0, translationTaskPort.sent.size());
     }
 
     private LoadSurveyPort surveyPort(Survey survey) {
@@ -303,7 +317,24 @@ class SubmitSurveyServiceTest {
         public List<ResponseDetail> saveAll(List<ResponseDetail> responseDetails) {
             saveAllCalls++;
             lastSavedDetails = responseDetails;
-            return responseDetails;
+            List<ResponseDetail> saved = new ArrayList<>();
+            int nextId = 1;
+            for (ResponseDetail detail : responseDetails) {
+                saved.add(new ResponseDetail(
+                        nextId++,
+                        detail.getResponse(),
+                        detail.getQuestion(),
+                        detail.getRating(),
+                        detail.getComment(),
+                        detail.getCommentVi(),
+                        detail.getCommentEn(),
+                        detail.getSourceLang(),
+                        detail.isAutoTranslated(),
+                        detail.getModelInfo()
+                ));
+            }
+            lastSavedDetails = saved;
+            return saved;
         }
     }
 
@@ -321,6 +352,15 @@ class SubmitSurveyServiceTest {
         @Override
         public List<SurveyRecipient> saveAll(List<SurveyRecipient> recipients) {
             return recipients;
+        }
+    }
+
+    private static final class RecordingTranslationTaskPort implements SendTranslationTaskPort {
+        private final List<TranslationTaskCommand> sent = new ArrayList<>();
+
+        @Override
+        public void send(TranslationTaskCommand command) {
+            sent.add(command);
         }
     }
 }

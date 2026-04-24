@@ -7,7 +7,7 @@ import StatusBadge from "../../../components/ui/StatusBadge";
 import type { SurveyResultMetrics, SurveyResultSummary } from "../../../types/surveyResult";
 
 export default function LecturerDashboardPage() {
-    const { t } = useTranslation("admin");
+    const { i18n, t } = useTranslation("admin");
     const [results, setResults] = useState<SurveyResultSummary[]>([]);
     const [metrics, setMetrics] = useState<SurveyResultMetrics>({
         total: 0,
@@ -36,7 +36,7 @@ export default function LecturerDashboardPage() {
         }
 
         load();
-    }, []);
+    }, [i18n.resolvedLanguage, t]);
 
     const topResponseSurveys = results.slice(0, 4);
 

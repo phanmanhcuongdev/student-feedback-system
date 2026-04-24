@@ -39,4 +39,21 @@ public class ResponseDetailEntity {
     @Nationalized
     @Column(name = "comment", columnDefinition = "NVARCHAR(MAX)")
     private String comment;
+
+    @Nationalized
+    @Column(name = "comment_vi", columnDefinition = "NVARCHAR(MAX)")
+    private String commentVi;
+
+    @Nationalized
+    @Column(name = "comment_en", columnDefinition = "NVARCHAR(MAX)")
+    private String commentEn;
+
+    @Column(name = "source_lang", length = 10)
+    private String sourceLang;
+
+    @Column(name = "is_auto_translated", nullable = false)
+    private boolean autoTranslated;
+
+    @Column(name = "model_info", length = 100)
+    private String modelInfo;
 }
