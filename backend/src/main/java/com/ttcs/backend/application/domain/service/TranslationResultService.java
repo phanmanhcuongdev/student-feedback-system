@@ -22,7 +22,8 @@ public class TranslationResultService implements ApplyTranslationResultUseCase {
             "QUESTION",
             "SURVEY_QUESTION",
             "SURVEY_TITLE",
-            "SURVEY_DESCRIPTION"
+            "SURVEY_DESCRIPTION",
+            "SURVEY_RESPONSE"
     );
     private static final String DEFAULT_MODEL_INFO = "default_model";
 

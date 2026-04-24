@@ -40,7 +40,7 @@ class GetSurveyResultServiceTest {
     void shouldAllowAdminToViewAllSurveyResults() {
         GetSurveyResultService service = service();
 
-        List<SurveyResultSummaryResult> results = service.getSurveyResults(defaultQuery(), 99, Role.ADMIN).items();
+        List<SurveyResultSummaryResult> results = service.getSurveyResults(defaultQuery(), 99, Role.ADMIN, "vi").items();
 
         assertEquals(3, results.size());
     }
@@ -49,7 +49,7 @@ class GetSurveyResultServiceTest {
     void shouldRestrictLecturerListToOwnDepartmentSurveys() {
         GetSurveyResultService service = service();
 
-        List<SurveyResultSummaryResult> results = service.getSurveyResults(defaultQuery(), 10, Role.LECTURER).items();
+        List<SurveyResultSummaryResult> results = service.getSurveyResults(defaultQuery(), 10, Role.LECTURER, "vi").items();
 
         assertEquals(1, results.size());
         assertEquals(1, results.getFirst().id());
@@ -61,7 +61,7 @@ class GetSurveyResultServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> service.getSurveyResult(2, 10, Role.LECTURER)
+                () -> service.getSurveyResult(2, 10, Role.LECTURER, "vi")
         );
 
         assertEquals(403, exception.getStatusCode().value());
@@ -73,7 +73,7 @@ class GetSurveyResultServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> service.getSurveyResult(3, 10, Role.LECTURER)
+                () -> service.getSurveyResult(3, 10, Role.LECTURER, "vi")
         );
 
         assertEquals(403, exception.getStatusCode().value());
@@ -83,7 +83,7 @@ class GetSurveyResultServiceTest {
     void shouldAllowLecturerDetailWithinDepartmentScope() {
         GetSurveyResultService service = service();
 
-        SurveyResultDetailResult result = service.getSurveyResult(1, 10, Role.LECTURER);
+        SurveyResultDetailResult result = service.getSurveyResult(1, 10, Role.LECTURER, "vi");
 
         assertEquals(1, result.id());
     }
@@ -92,7 +92,7 @@ class GetSurveyResultServiceTest {
     void shouldMapOutputDetailModelToInputResultModel() {
         GetSurveyResultService service = service();
 
-        SurveyResultDetailResult result = service.getSurveyResult(1, 99, Role.ADMIN);
+        SurveyResultDetailResult result = service.getSurveyResult(1, 99, Role.ADMIN, "vi");
 
         assertEquals(1, result.questions().size());
         assertEquals(100, result.questions().getFirst().id());
@@ -110,7 +110,7 @@ class GetSurveyResultServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> service.getSurveyResults(defaultQuery(), 10, Role.LECTURER)
+                () -> service.getSurveyResults(defaultQuery(), 10, Role.LECTURER, "vi")
         );
 
         assertEquals(403, exception.getStatusCode().value());
@@ -132,7 +132,7 @@ class GetSurveyResultServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> service.getSurveyResults(defaultQuery(), 10, Role.LECTURER)
+                () -> service.getSurveyResults(defaultQuery(), 10, Role.LECTURER, "vi")
         );
 
         assertEquals(403, exception.getStatusCode().value());
@@ -152,7 +152,7 @@ class GetSurveyResultServiceTest {
                 ))
         );
 
-        SurveyResultDetailResult result = service.getSurveyResult(2, 10, Role.LECTURER);
+        SurveyResultDetailResult result = service.getSurveyResult(2, 10, Role.LECTURER, "vi");
 
         assertEquals(2, result.id());
     }
@@ -161,14 +161,14 @@ class GetSurveyResultServiceTest {
     void shouldReturnNotFoundForMissingSurveyEvenForLecturer() {
         GetSurveyResultService service = service();
 
-        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyResult(999, 10, Role.LECTURER));
+        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyResult(999, 10, Role.LECTURER, "vi"));
     }
 
     @Test
     void shouldStillReturnNotFoundForMissingSurvey() {
         GetSurveyResultService service = service();
 
-        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyResult(999, 99, Role.ADMIN));
+        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyResult(999, 99, Role.ADMIN, "vi"));
     }
 
     private GetSurveyResultService service() {
@@ -197,7 +197,7 @@ class GetSurveyResultServiceTest {
         );
 
         @Override
-        public SurveyResultSearchPage loadPage(LoadSurveyResultsQuery query) {
+        public SurveyResultSearchPage loadPage(LoadSurveyResultsQuery query, String targetLang) {
             List<SurveyResultSearchItem> filtered = summaries.stream()
                     .filter(item -> {
                         if (query.lecturerDepartmentId() == null) {
@@ -218,7 +218,7 @@ class GetSurveyResultServiceTest {
         }
 
         @Override
-        public Optional<SurveyResultDetail> loadSurveyResult(Integer surveyId) {
+        public Optional<SurveyResultDetail> loadSurveyResult(Integer surveyId, String targetLang) {
             return summaries.stream()
                     .filter(item -> item.id().equals(surveyId))
                     .findFirst()

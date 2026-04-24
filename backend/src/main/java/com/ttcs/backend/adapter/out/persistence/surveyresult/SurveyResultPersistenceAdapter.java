@@ -79,9 +79,10 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
             """;
 
     @Override
-    public SurveyResultSearchPage loadPage(LoadSurveyResultsQuery query) {
+    public SurveyResultSearchPage loadPage(LoadSurveyResultsQuery query, String targetLang) {
         int page = Math.max(query.page(), 0);
         int size = Math.min(Math.max(query.size(), 1), 100);
+        String normalizedTargetLang = normalizeLanguage(targetLang);
 
         String whereClause = buildWhereClause(query);
         String orderClause = buildOrderClause(query.sortBy(), query.sortDir());
@@ -108,7 +109,11 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
                     COALESCE(recipient_stats.opened_count, 0) AS opened_count,
                     COALESCE(recipient_stats.submitted_count, 0) AS submitted_count,
                     """ + RESPONSE_RATE_SQL + """
-                    AS response_rate
+                    AS response_rate,
+                    s.title_vi,
+                    s.title_en,
+                    s.description_vi,
+                    s.description_en
                 """ + BASE_FROM + whereClause + orderClause + " OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY");
         applyQueryParameters(itemsQuery, query);
         itemsQuery.setParameter("offset", page * size);
@@ -117,7 +122,7 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
         @SuppressWarnings("unchecked")
         List<Object[]> rows = itemsQuery.getResultList();
         List<SurveyResultSearchItem> items = rows.stream()
-                .map(this::toSearchItem)
+                .map(row -> toSearchItem(row, normalizedTargetLang))
                 .toList();
 
         Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + BASE_FROM + whereClause);
@@ -156,11 +161,12 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
     }
 
     @Override
-    public Optional<SurveyResultDetail> loadSurveyResult(Integer surveyId) {
+    public Optional<SurveyResultDetail> loadSurveyResult(Integer surveyId, String targetLang) {
         SurveyEntity survey = surveyRepository.findById(surveyId).orElse(null);
         if (survey == null) {
             return Optional.empty();
         }
+        String normalizedTargetLang = normalizeLanguage(targetLang);
 
         List<QuestionEntity> questions = responseDetailRepository.findQuestionsBySurveyId(surveyId);
         List<ResponseDetailEntity> details = responseDetailRepository.findAllBySurveyIdForResults(surveyId);
@@ -179,13 +185,13 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
         }
 
         List<QuestionStatistics> questionResults = questions.stream()
-                .map(question -> toQuestionStatistics(question, detailsByQuestionId.getOrDefault(question.getId(), List.of())))
+                .map(question -> toQuestionStatistics(question, detailsByQuestionId.getOrDefault(question.getId(), List.of()), normalizedTargetLang))
                 .toList();
 
         return Optional.of(new SurveyResultDetail(
                 survey.getId(),
-                survey.getTitle(),
-                survey.getDescription(),
+                displaySurveyTitle(survey, normalizedTargetLang),
+                displaySurveyDescription(survey, normalizedTargetLang),
                 survey.getStartDate(),
                 survey.getEndDate(),
                 SurveyMapper.toDomain(survey).status().name(),
@@ -208,6 +214,7 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
         if (survey == null) {
             return Optional.empty();
         }
+        String normalizedTargetLang = "vi";
 
         List<QuestionEntity> questions = responseDetailRepository.findQuestionsBySurveyId(surveyId);
         List<ResponseDetailEntity> details = responseDetailRepository.findAllBySurveyIdForResults(surveyId);
@@ -239,7 +246,7 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
                 recipientSummary.submittedCount(),
                 recipientSummary.responseRate(),
                 questions.stream()
-                        .map(question -> toSurveyReportQuestion(question, detailsByQuestionId.getOrDefault(question.getId(), List.of())))
+                        .map(question -> toSurveyReportQuestion(question, detailsByQuestionId.getOrDefault(question.getId(), List.of()), normalizedTargetLang))
                         .toList()
         ));
     }
@@ -254,9 +261,10 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
         return new RecipientSummary(targetedCount, openedCount, submittedCount, responseRate);
     }
 
-    private QuestionStatistics toQuestionStatistics(QuestionEntity question, List<ResponseDetailEntity> details) {
+    private QuestionStatistics toQuestionStatistics(QuestionEntity question, List<ResponseDetailEntity> details, String targetLang) {
         String type = question.getType();
         long responseCount = details.size();
+        String localizedQuestionContent = displayQuestionContent(question, targetLang);
 
         if ("RATING".equalsIgnoreCase(type)) {
             Map<Integer, Long> counts = new LinkedHashMap<>();
@@ -279,7 +287,7 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
 
             return new QuestionStatistics(
                     question.getId(),
-                    question.getContent(),
+                    localizedQuestionContent,
                     type,
                     responseCount,
                     average,
@@ -291,13 +299,13 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
         }
 
         List<String> comments = details.stream()
-                .map(ResponseDetailEntity::getComment)
+                .map(detail -> displayComment(detail, targetLang))
                 .filter(comment -> comment != null && !comment.isBlank())
                 .toList();
 
         return new QuestionStatistics(
                 question.getId(),
-                question.getContent(),
+                localizedQuestionContent,
                 type,
                 responseCount,
                 null,
@@ -306,9 +314,10 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
         );
     }
 
-    private SurveyReportQuestion toSurveyReportQuestion(QuestionEntity question, List<ResponseDetailEntity> details) {
+    private SurveyReportQuestion toSurveyReportQuestion(QuestionEntity question, List<ResponseDetailEntity> details, String targetLang) {
         String type = question.getType();
         long responseCount = details.size();
+        String localizedQuestionContent = displayQuestionContent(question, targetLang);
 
         if ("RATING".equalsIgnoreCase(type)) {
             Map<Integer, Long> counts = new LinkedHashMap<>();
@@ -331,7 +340,7 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
 
             return new SurveyReportQuestion(
                     question.getId(),
-                    question.getContent(),
+                    localizedQuestionContent,
                     type,
                     responseCount,
                     average,
@@ -343,13 +352,13 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
         }
 
         List<String> comments = details.stream()
-                .map(ResponseDetailEntity::getComment)
+                .map(detail -> displayComment(detail, targetLang))
                 .filter(comment -> comment != null && !comment.isBlank())
                 .toList();
 
         return new SurveyReportQuestion(
                 question.getId(),
-                question.getContent(),
+                localizedQuestionContent,
                 type,
                 responseCount,
                 null,
@@ -386,11 +395,17 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
         return surveyAssignmentRepository.findBySurveyIdOrderByIdAsc(surveyId).stream().findFirst().orElse(null);
     }
 
-    private SurveyResultSearchItem toSearchItem(Object[] row) {
+    private SurveyResultSearchItem toSearchItem(Object[] row, String targetLang) {
+        String title = (String) row[1];
+        String titleVi = (String) row[15];
+        String titleEn = (String) row[16];
+        String description = (String) row[2];
+        String descriptionVi = (String) row[17];
+        String descriptionEn = (String) row[18];
         return new SurveyResultSearchItem(
                 ((Number) row[0]).intValue(),
-                (String) row[1],
-                (String) row[2],
+                displayLocalizedValue(title, titleVi, titleEn, targetLang),
+                displayLocalizedValue(description, descriptionVi, descriptionEn, targetLang),
                 toLocalDateTime(row[3]),
                 toLocalDateTime(row[4]),
                 row[5] != null ? row[5].toString() : null,
@@ -404,6 +419,39 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
                 getLong(row[13]),
                 getDouble(row[14])
         );
+    }
+
+    private String displaySurveyTitle(SurveyEntity survey, String targetLang) {
+        return displayLocalizedValue(survey.getTitle(), survey.getTitleVi(), survey.getTitleEn(), targetLang);
+    }
+
+    private String displaySurveyDescription(SurveyEntity survey, String targetLang) {
+        return displayLocalizedValue(survey.getDescription(), survey.getDescriptionVi(), survey.getDescriptionEn(), targetLang);
+    }
+
+    private String displayQuestionContent(QuestionEntity question, String targetLang) {
+        return displayLocalizedValue(question.getContent(), question.getContentVi(), question.getContentEn(), targetLang);
+    }
+
+    private String displayComment(ResponseDetailEntity detail, String targetLang) {
+        return displayLocalizedValue(detail.getComment(), detail.getCommentVi(), detail.getCommentEn(), targetLang);
+    }
+
+    private String displayLocalizedValue(String original, String valueVi, String valueEn, String targetLang) {
+        String translated = switch (normalizeLanguage(targetLang)) {
+            case "en" -> valueEn;
+            case "vi" -> valueVi;
+            default -> null;
+        };
+        return translated != null && !translated.isBlank() ? translated : original;
+    }
+
+    private String normalizeLanguage(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return "vi";
+        }
+        String language = value.split(",")[0].trim().split("-")[0].toLowerCase();
+        return "en".equals(language) ? "en" : "vi";
     }
 
     private void applyQueryParameters(Query nativeQuery, LoadSurveyResultsQuery query) {

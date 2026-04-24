@@ -147,7 +147,7 @@ export default function SurveyResultDetailPage() {
 
         setLoading(false);
         setError(t("surveyResults:surveyResults.errors.invalidId"));
-    }, [surveyId, t]);
+    }, [i18n.resolvedLanguage, surveyId, t]);
 
     useEffect(() => {
         async function fetchAiSummary() {

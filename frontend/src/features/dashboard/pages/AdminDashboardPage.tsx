@@ -39,7 +39,7 @@ function formatRate(value: number) {
 }
 
 export default function AdminDashboardPage() {
-    const { t } = useTranslation("admin");
+    const { i18n, t } = useTranslation("admin");
     const [pendingStudents, setPendingStudents] = useState<PendingStudent[]>([]);
     const [surveyResults, setSurveyResults] = useState<SurveyResultSummary[]>([]);
     const [analytics, setAnalytics] = useState<AdminAnalyticsOverview>(emptyAnalytics);
@@ -87,7 +87,7 @@ export default function AdminDashboardPage() {
 
     useEffect(() => {
         void load();
-    }, [departmentId, endDateTo, startDateFrom]);
+    }, [departmentId, endDateTo, i18n.resolvedLanguage, startDateFrom]);
 
     const recentlyActive = surveyResults.slice(0, 3);
     const metrics = analytics.metrics;
