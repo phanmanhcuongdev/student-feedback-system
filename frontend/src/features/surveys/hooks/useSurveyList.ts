@@ -5,7 +5,7 @@ import { getAllSurveys } from "../../../api/surveyApi";
 import type { Survey } from "../../../types/survey";
 
 export function useSurveyList() {
-    const { t } = useTranslation(["surveys"]);
+    const { i18n, t } = useTranslation(["surveys"]);
     const [surveys, setSurveys] = useState<Survey[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -25,7 +25,7 @@ export function useSurveyList() {
         }
 
         void fetchSurveys();
-    }, [t]);
+    }, [i18n.resolvedLanguage, t]);
 
     return {
         surveys,

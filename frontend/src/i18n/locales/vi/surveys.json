@@ -1,10 +1,22 @@
 {
   "surveys": {
+    "hero": {
+      "workspace": "Không gian sinh viên",
+      "title": "Khảo sát hiện có",
+      "description": "Xem các khảo sát được giao, kiểm tra trạng thái hiện tại và hoàn thành các biểu mẫu đang mở trong cùng một quy trình xác thực."
+    },
     "filters": {
-      "all": "Tất cả",
+      "pending": "Chưa làm",
       "open": "Đang mở",
       "upcoming": "Sắp mở",
-      "closed": "Đã đóng"
+      "completed": "Đã làm"
+    },
+    "card": {
+      "start": "Bắt đầu khảo sát",
+      "closed": "Đã đóng",
+      "notOpenYet": "Chưa mở",
+      "unavailable": "Không khả dụng",
+      "completed": "Đã làm"
     },
     "detail": {
       "backToSurveys": "Quay lại danh sách khảo sát",

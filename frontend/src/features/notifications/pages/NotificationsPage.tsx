@@ -45,6 +45,68 @@ function getTarget(notification: StudentNotification) {
     return "/notifications";
 }
 
+function getTypeLabel(notification: StudentNotification, t: (key: string, options?: Record<string, unknown>) => string) {
+    switch (notification.type) {
+        case "SURVEY_PUBLISHED":
+            return t("notifications:notifications.types.surveyPublished");
+        case "SURVEY_DEADLINE_REMINDER":
+            return t("notifications:notifications.types.surveyDeadlineReminder");
+        case "ONBOARDING_APPROVED":
+            return t("notifications:notifications.types.onboardingApproved");
+        case "ONBOARDING_REJECTED":
+            return t("notifications:notifications.types.onboardingRejected");
+        default:
+            return notification.type.replace(/_/g, " ");
+    }
+}
+
+function getLocalizedTitle(notification: StudentNotification, t: (key: string, options?: Record<string, unknown>) => string) {
+    switch (notification.type) {
+        case "SURVEY_PUBLISHED":
+            return t("notifications:notifications.items.surveyPublished.title");
+        case "SURVEY_DEADLINE_REMINDER":
+            return t("notifications:notifications.items.surveyDeadlineReminder.title");
+        case "ONBOARDING_APPROVED":
+            return t("notifications:notifications.items.onboardingApproved.title");
+        case "ONBOARDING_REJECTED":
+            return t("notifications:notifications.items.onboardingRejected.title");
+        default:
+            return notification.title;
+    }
+}
+
+function getLocalizedMessage(notification: StudentNotification, t: (key: string, options?: Record<string, unknown>) => string) {
+    const surveyTitle = notification.surveyTitle ?? "";
+
+    switch (notification.type) {
+        case "SURVEY_PUBLISHED":
+            return t("notifications:notifications.items.surveyPublished.message", { surveyTitle });
+        case "SURVEY_DEADLINE_REMINDER":
+            return t("notifications:notifications.items.surveyDeadlineReminder.message", { surveyTitle });
+        case "ONBOARDING_APPROVED":
+            return t("notifications:notifications.items.onboardingApproved.message");
+        case "ONBOARDING_REJECTED":
+            return t("notifications:notifications.items.onboardingRejected.message");
+        default:
+            return notification.message;
+    }
+}
+
+function getLocalizedActionLabel(notification: StudentNotification, t: (key: string, options?: Record<string, unknown>) => string) {
+    switch (notification.type) {
+        case "SURVEY_PUBLISHED":
+            return t("notifications:notifications.items.surveyPublished.action");
+        case "SURVEY_DEADLINE_REMINDER":
+            return t("notifications:notifications.items.surveyDeadlineReminder.action");
+        case "ONBOARDING_APPROVED":
+            return t("notifications:notifications.items.onboardingApproved.action");
+        case "ONBOARDING_REJECTED":
+            return t("notifications:notifications.items.onboardingRejected.action");
+        default:
+            return notification.actionLabel ?? t("notifications:notifications.buttons.open");
+    }
+}
+
 export default function NotificationsPage() {
     const { i18n, t } = useTranslation(["notifications"]);
     const [notifications, setNotifications] = useState<StudentNotification[]>([]);
@@ -163,7 +225,7 @@ export default function NotificationsPage() {
                                     <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                         <div>
                                             <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] ${getAccent(notification.type)}`}>
-                                                {notification.type.replace(/_/g, " ")}
+                                                {getTypeLabel(notification, t)}
                                             </span>
                                             {!notification.read ? (
                                                 <span className="ml-2 inline-flex rounded-full border border-blue-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">
@@ -171,10 +233,10 @@ export default function NotificationsPage() {
                                                 </span>
                                             ) : null}
                                             <h2 className="mt-3 text-2xl font-bold text-slate-950">
-                                                {notification.title}
+                                                {getLocalizedTitle(notification, t)}
                                             </h2>
                                             <p className="mt-3 text-sm leading-6 text-slate-500">
-                                                {notification.message}
+                                                {getLocalizedMessage(notification, t)}
                                             </p>
                                             {notification.surveyTitle ? (
                                                 <p className="mt-3 text-sm font-semibold text-slate-700">
@@ -193,7 +255,7 @@ export default function NotificationsPage() {
                                                 to={getTarget(notification)}
                                                 className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
                                             >
-                                                <span>{notification.actionLabel ?? t("notifications:notifications.buttons.open")}</span>
+                                                <span>{getLocalizedActionLabel(notification, t)}</span>
                                                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                                             </Link>
                                             {!notification.read ? (

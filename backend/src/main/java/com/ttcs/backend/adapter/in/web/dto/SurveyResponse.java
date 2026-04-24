@@ -15,4 +15,5 @@ public class SurveyResponse {
     private LocalDateTime endDate;
     private Integer createdBy;
     private String status;
+    private boolean submitted;
 }

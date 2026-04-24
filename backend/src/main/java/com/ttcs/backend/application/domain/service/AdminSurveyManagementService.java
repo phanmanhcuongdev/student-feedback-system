@@ -292,7 +292,14 @@ public class AdminSurveyManagementService implements
         Survey updatedSurvey = new Survey(
                 existing.getId(),
                 command.title().trim(),
+                existing.getTitleVi(),
+                existing.getTitleEn(),
                 command.description(),
+                existing.getDescriptionVi(),
+                existing.getDescriptionEn(),
+                existing.getSourceLang(),
+                existing.isAutoTranslated(),
+                existing.getModelInfo(),
                 command.startDate(),
                 command.endDate(),
                 existing.getCreatedBy(),
@@ -300,6 +307,7 @@ public class AdminSurveyManagementService implements
                 existing.getLifecycleState()
         );
         saveSurveyPort.save(updatedSurvey);
+        sendSurveyTranslationTasksAfterCommit(updatedSurvey, normalizeLanguage(command.targetLang()));
 
         List<Question> savedQuestions = saveQuestionPort.replaceSurveyQuestionsReturning(
                 command.surveyId(),
@@ -326,6 +334,12 @@ public class AdminSurveyManagementService implements
     @Override
     @Transactional
     public SurveyManagementActionResult publishSurvey(Integer surveyId, Integer actorUserId) {
+        return publishSurvey(surveyId, actorUserId, null);
+    }
+
+    @Override
+    @Transactional
+    public SurveyManagementActionResult publishSurvey(Integer surveyId, Integer actorUserId, String targetLang) {
         if (surveyId == null || actorUserId == null) {
             return SurveyManagementActionResult.fail("INVALID_INPUT", "Survey id and actor id are required.");
         }
@@ -353,7 +367,14 @@ public class AdminSurveyManagementService implements
         Survey publishedSurvey = new Survey(
                 survey.getId(),
                 survey.getTitle(),
+                survey.getTitleVi(),
+                survey.getTitleEn(),
                 survey.getDescription(),
+                survey.getDescriptionVi(),
+                survey.getDescriptionEn(),
+                survey.getSourceLang(),
+                survey.isAutoTranslated(),
+                survey.getModelInfo(),
                 survey.getStartDate(),
                 survey.getEndDate(),
                 survey.getCreatedBy(),
@@ -361,6 +382,7 @@ public class AdminSurveyManagementService implements
                 SurveyLifecycleState.PUBLISHED
         );
         saveSurveyPort.save(publishedSurvey);
+        sendSurveyTranslationTasksAfterCommit(publishedSurvey, normalizeLanguage(targetLang));
         createRecipientsForPublishedSurvey(surveyId, assignments);
         List<SurveyRecipient> recipients = loadSurveyRecipientPort.loadBySurveyId(surveyId);
         saveAuditLogPort.save(new AuditLog(
@@ -410,7 +432,14 @@ public class AdminSurveyManagementService implements
         saveSurveyPort.save(new Survey(
                 survey.getId(),
                 survey.getTitle(),
+                survey.getTitleVi(),
+                survey.getTitleEn(),
                 survey.getDescription(),
+                survey.getDescriptionVi(),
+                survey.getDescriptionEn(),
+                survey.getSourceLang(),
+                survey.isAutoTranslated(),
+                survey.getModelInfo(),
                 survey.getStartDate(),
                 survey.getEndDate(),
                 survey.getCreatedBy(),
@@ -453,7 +482,14 @@ public class AdminSurveyManagementService implements
         saveSurveyPort.save(new Survey(
                 survey.getId(),
                 survey.getTitle(),
+                survey.getTitleVi(),
+                survey.getTitleEn(),
                 survey.getDescription(),
+                survey.getDescriptionVi(),
+                survey.getDescriptionEn(),
+                survey.getSourceLang(),
+                survey.isAutoTranslated(),
+                survey.getModelInfo(),
                 survey.getStartDate(),
                 nextEndDate,
                 survey.getCreatedBy(),
@@ -492,7 +528,14 @@ public class AdminSurveyManagementService implements
         saveSurveyPort.save(new Survey(
                 survey.getId(),
                 survey.getTitle(),
+                survey.getTitleVi(),
+                survey.getTitleEn(),
                 survey.getDescription(),
+                survey.getDescriptionVi(),
+                survey.getDescriptionEn(),
+                survey.getSourceLang(),
+                survey.isAutoTranslated(),
+                survey.getModelInfo(),
                 survey.getStartDate(),
                 survey.getEndDate(),
                 survey.getCreatedBy(),
@@ -699,6 +742,38 @@ public class AdminSurveyManagementService implements
                 question.getContent(),
                 targetLang
         )));
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            dispatch.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                dispatch.run();
+            }
+        });
+    }
+
+    private void sendSurveyTranslationTasksAfterCommit(Survey survey, String targetLang) {
+        if (survey == null || isBlank(survey.getTitle())) {
+            return;
+        }
+        Runnable dispatch = () -> {
+            sendTranslationTaskPort.send(new TranslationTaskCommand(
+                    survey.getId(),
+                    "SURVEY_TITLE",
+                    survey.getTitle(),
+                    targetLang
+            ));
+            if (!isBlank(survey.getDescription())) {
+                sendTranslationTaskPort.send(new TranslationTaskCommand(
+                        survey.getId(),
+                        "SURVEY_DESCRIPTION",
+                        survey.getDescription(),
+                        targetLang
+                ));
+            }
+        };
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             dispatch.run();
             return;

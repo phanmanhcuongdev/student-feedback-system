@@ -4,6 +4,7 @@ import type { SurveyDetail, SubmitSurveyRequest, SubmitSurveyResponse } from "..
 
 export const getAllSurveys = async (params: {
     status?: string;
+    submitted?: boolean;
     page?: number;
     size?: number;
     sortBy?: string;

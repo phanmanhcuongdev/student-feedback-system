@@ -36,23 +36,33 @@ public class SurveyController {
     private final CurrentIdentityProvider currentIdentityProvider;
 
     @GetMapping("/{id}")
-    public ResponseEntity<SurveyResponse> getSurveyById(@PathVariable("id") Integer surveyId) {
+    public ResponseEntity<SurveyResponse> getSurveyById(
+            @PathVariable("id") Integer surveyId,
+            @RequestHeader(name = "Accept-Language", required = false) String acceptLanguage
+    ) {
         currentIdentityProvider.ensureActiveStudentAccount();
-        return ResponseEntity.ok(toSurveyResponse(getSurveyUseCase.getSurveyById(surveyId, currentIdentityProvider.currentUserId())));
+        return ResponseEntity.ok(toSurveyResponse(getSurveyUseCase.getSurveyById(
+                surveyId,
+                currentIdentityProvider.currentUserId(),
+                acceptLanguage
+        )));
     }
 
     @GetMapping
     public ResponseEntity<StudentSurveyPageResponse> getAllSurveys(
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) Boolean submitted,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size,
             @RequestParam(defaultValue = "endDate") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestHeader(name = "Accept-Language", required = false) String acceptLanguage
     ) {
         currentIdentityProvider.ensureActiveStudentAccount();
         StudentSurveyPageResult result = getSurveyUseCase.getAllSurveys(
-                new GetStudentSurveysQuery(status, page, size, sortBy, sortDir),
-                currentIdentityProvider.currentUserId()
+                new GetStudentSurveysQuery(status, submitted, page, size, sortBy, sortDir),
+                currentIdentityProvider.currentUserId(),
+                acceptLanguage
         );
         return ResponseEntity.ok(new StudentSurveyPageResponse(
                 result.items().stream().map(this::toSurveyResponse).toList(),
@@ -106,7 +116,8 @@ public class SurveyController {
                 result.startDate(),
                 result.endDate(),
                 result.createdBy(),
-                result.status().name()
+                result.status().name(),
+                result.submitted()
         );
     }
 

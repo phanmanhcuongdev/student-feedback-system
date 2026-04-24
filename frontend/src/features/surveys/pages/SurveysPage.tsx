@@ -12,8 +12,8 @@ import SurveyHero from "../components/SurveyHero";
 import type { Survey } from "../../../types/survey";
 
 export default function SurveysPage() {
-    const { t } = useTranslation(["surveys"]);
-    const [filter, setFilter] = useState<SurveyFilter>("ALL");
+    const { i18n, t } = useTranslation(["surveys"]);
+    const [filter, setFilter] = useState<SurveyFilter>("PENDING");
     const [surveys, setSurveys] = useState<Survey[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -26,7 +26,8 @@ export default function SurveysPage() {
                 setLoading(true);
                 setError("");
                 const response = await getAllSurveys({
-                    status: filter === "ALL" ? undefined : filter,
+                    status: filter === "PENDING" || filter === "COMPLETED" ? undefined : filter,
+                    submitted: filter === "COMPLETED",
                     page,
                     size: 12,
                     sortBy: "endDate",
@@ -46,7 +47,7 @@ export default function SurveysPage() {
         }
 
         void loadSurveys();
-    }, [filter, page, t]);
+    }, [filter, i18n.resolvedLanguage, page, t]);
 
     useEffect(() => {
         setPage(0);

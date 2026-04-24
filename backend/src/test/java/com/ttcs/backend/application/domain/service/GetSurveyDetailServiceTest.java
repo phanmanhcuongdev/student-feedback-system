@@ -42,22 +42,63 @@ class GetSurveyDetailServiceTest {
 
     @Test
     void shouldReturnPublishedSurveyDetailForAssignedStudent() {
-        Survey survey = new Survey(1, "Published Survey", "Desc", LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(2), 1, false, SurveyLifecycleState.PUBLISHED);
+        Survey survey = new Survey(
+                1,
+                "Published Survey",
+                "Khao sat",
+                "Published Survey EN",
+                "Desc",
+                "Mo ta",
+                "Description EN",
+                "vi",
+                true,
+                "test-model",
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().plusDays(2),
+                1,
+                false,
+                SurveyLifecycleState.PUBLISHED
+        );
         GetSurveyDetailService service = service(survey, false);
 
-        var result = service.getSurveyDetail(1, 3, "vi");
+        var result = service.getSurveyDetail(1, 3, "en");
 
         assertEquals(1, result.id());
-        assertEquals("Published Survey", result.title());
+        assertEquals("Published Survey EN", result.title());
+        assertEquals("Description EN", result.description());
         assertEquals(1, result.questions().size());
-        assertEquals("Danh gia giang vien", result.questions().getFirst().content());
+        assertEquals("Rate the lecturer", result.questions().getFirst().content());
+    }
+
+    @Test
+    void shouldRejectExpiredPublishedSurveyDetailAccess() {
+        Survey survey = new Survey(
+                1,
+                "Expired Survey",
+                "Desc",
+                LocalDateTime.now().minusDays(3),
+                LocalDateTime.now().minusMinutes(1),
+                1,
+                false,
+                SurveyLifecycleState.PUBLISHED
+        );
+        GetSurveyDetailService service = service(survey, false);
+
+        assertThrows(SurveyNotFoundException.class, () -> service.getSurveyDetail(1, 3, "en"));
     }
 
     private GetSurveyDetailService service(Survey survey, boolean hidden) {
         Survey effectiveSurvey = new Survey(
                 survey.getId(),
                 survey.getTitle(),
+                survey.getTitleVi(),
+                survey.getTitleEn(),
                 survey.getDescription(),
+                survey.getDescriptionVi(),
+                survey.getDescriptionEn(),
+                survey.getSourceLang(),
+                survey.isAutoTranslated(),
+                survey.getModelInfo(),
                 survey.getStartDate(),
                 survey.getEndDate(),
                 survey.getCreatedBy(),

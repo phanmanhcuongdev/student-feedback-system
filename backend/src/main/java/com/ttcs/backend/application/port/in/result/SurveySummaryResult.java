@@ -11,6 +11,7 @@ public record SurveySummaryResult(
         LocalDateTime startDate,
         LocalDateTime endDate,
         Integer createdBy,
-        SurveyStatus status
+        SurveyStatus status,
+        boolean submitted
 ) {
 }

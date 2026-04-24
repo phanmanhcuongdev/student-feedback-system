@@ -1,10 +1,22 @@
 {
   "surveys": {
+    "hero": {
+      "workspace": "Student Workspace",
+      "title": "Available surveys",
+      "description": "Review assigned surveys, check their current status, and complete open forms through one authenticated workflow."
+    },
     "filters": {
-      "all": "All",
+      "pending": "To do",
       "open": "Open",
       "upcoming": "Upcoming",
-      "closed": "Closed"
+      "completed": "Completed"
+    },
+    "card": {
+      "start": "Start Survey",
+      "closed": "Closed",
+      "notOpenYet": "Not Open Yet",
+      "unavailable": "Unavailable",
+      "completed": "Completed"
     },
     "detail": {
       "backToSurveys": "Back to surveys",

@@ -184,8 +184,13 @@ public class AdminSurveyController {
     }
 
     @PostMapping("/{surveyId}/publish")
-    public ResponseEntity<SurveyManagementActionResponse> publishSurvey(@PathVariable Integer surveyId) {
-        return ResponseEntity.ok(toActionResponse(publishSurveyUseCase.publishSurvey(surveyId, currentIdentityProvider.currentUserId())));
+    public ResponseEntity<SurveyManagementActionResponse> publishSurvey(
+            @PathVariable Integer surveyId,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
+    ) {
+        return ResponseEntity.ok(toActionResponse(
+                publishSurveyUseCase.publishSurvey(surveyId, currentIdentityProvider.currentUserId(), acceptLanguage)
+        ));
     }
 
     @PostMapping("/{surveyId}/close")

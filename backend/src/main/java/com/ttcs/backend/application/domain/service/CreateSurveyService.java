@@ -84,6 +84,7 @@ public class CreateSurveyService implements CreateSurveyUseCase {
                 false,
                 SurveyLifecycleState.DRAFT
         ));
+        sendSurveyTranslationTasksAfterCommit(savedSurvey, normalizeLanguage(command.targetLang()));
 
         List<Question> savedQuestions = saveQuestionPort.saveAllReturning(command.questions().stream()
                 .map(qCmd -> new Question(
@@ -140,6 +141,38 @@ public class CreateSurveyService implements CreateSurveyUseCase {
                 question.getContent(),
                 targetLang
         )));
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            dispatch.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                dispatch.run();
+            }
+        });
+    }
+
+    private void sendSurveyTranslationTasksAfterCommit(Survey survey, String targetLang) {
+        if (survey == null || isBlank(survey.getTitle())) {
+            return;
+        }
+        Runnable dispatch = () -> {
+            sendTranslationTaskPort.send(new TranslationTaskCommand(
+                    survey.getId(),
+                    "SURVEY_TITLE",
+                    survey.getTitle(),
+                    targetLang
+            ));
+            if (!isBlank(survey.getDescription())) {
+                sendTranslationTaskPort.send(new TranslationTaskCommand(
+                        survey.getId(),
+                        "SURVEY_DESCRIPTION",
+                        survey.getDescription(),
+                        targetLang
+                ));
+            }
+        };
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             dispatch.run();
             return;
