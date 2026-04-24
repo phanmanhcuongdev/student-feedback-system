@@ -114,11 +114,14 @@ public class SurveyPersistenceAdapter implements LoadSurveyPort, com.ttcs.backen
     }
 
     private String buildStudentSurveyWhereClause(LoadStudentSurveysQuery query, String runtimeSql) {
-        StringBuilder where = new StringBuilder("""
+        StringBuilder where = new StringBuilder(
+                """
                  WHERE sr.student_id = :studentId
                    AND s.lifecycle_state = 'PUBLISHED'
                    AND s.hidden = 0
-                """);
+                """
+        );
+        where.append(" AND ").append(runtimeSql).append(" <> 'CLOSED'");
         if (query.status() != null && !query.status().isBlank() && !"ALL".equalsIgnoreCase(query.status())) {
             where.append(" AND ").append(runtimeSql).append(" = :status");
         }
