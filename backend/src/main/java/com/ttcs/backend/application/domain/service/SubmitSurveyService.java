@@ -7,9 +7,13 @@ import com.ttcs.backend.application.port.in.command.SubmitSurveyCommand;
 import com.ttcs.backend.application.port.in.result.SubmitSurveyResult;
 import com.ttcs.backend.application.port.in.result.SubmitSurveyResultCode;
 import com.ttcs.backend.application.port.out.*;
+import com.ttcs.backend.application.port.out.ai.SendTranslationTaskPort;
+import com.ttcs.backend.application.port.out.ai.TranslationTaskCommand;
 import com.ttcs.backend.common.UseCase;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,6 +36,7 @@ public class SubmitSurveyService implements SubmitSurveyUseCase {
     private final SaveResponseDetailPort saveResponseDetailPort;
     private final LoadSurveyRecipientPort loadSurveyRecipientPort;
     private final SaveSurveyRecipientPort saveSurveyRecipientPort;
+    private final SendTranslationTaskPort sendTranslationTaskPort;
 
     @Override
     public SubmitSurveyResult submitSurvey(SubmitSurveyCommand command) {
@@ -115,7 +120,8 @@ public class SubmitSurveyService implements SubmitSurveyUseCase {
         SurveyResponse savedSurveyResponse = saveSurveyResponsePort.save(surveyResponse);
 
         List<ResponseDetail> responseDetails = validationResult.responseDetails(savedSurveyResponse);
-        saveResponseDetailPort.saveAll(responseDetails);
+        List<ResponseDetail> savedResponseDetails = saveResponseDetailPort.saveAll(responseDetails);
+        sendSurveyResponseTranslationTasksAfterCommit(savedResponseDetails);
         saveSurveyRecipientPort.save(new SurveyRecipient(
                 recipient.getId(),
                 recipient.getSurveyId(),
@@ -126,6 +132,42 @@ public class SubmitSurveyService implements SubmitSurveyUseCase {
         ));
 
         return SubmitSurveyResult.success("Submit survey successfully");
+    }
+
+    private void sendSurveyResponseTranslationTasksAfterCommit(List<ResponseDetail> responseDetails) {
+        if (responseDetails == null || responseDetails.isEmpty()) {
+            return;
+        }
+
+        Runnable dispatch = () -> responseDetails.stream()
+                .filter(this::shouldTranslateResponseComment)
+                .forEach(detail -> sendTranslationTaskPort.send(new TranslationTaskCommand(
+                        detail.getId(),
+                        "SURVEY_RESPONSE",
+                        detail.getComment(),
+                        "vi"
+                )));
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            dispatch.run();
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                dispatch.run();
+            }
+        });
+    }
+
+    private boolean shouldTranslateResponseComment(ResponseDetail detail) {
+        return detail != null
+                && detail.getId() != null
+                && detail.getQuestion() != null
+                && detail.getQuestion().isText()
+                && detail.getComment() != null
+                && !detail.getComment().isBlank();
     }
 
     private ValidationResult validateAnswers(List<SubmitSurveyAnswerCommand> answers, List<Question> surveyQuestions) {

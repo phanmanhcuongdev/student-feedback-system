@@ -103,7 +103,7 @@ export default function SurveyResultsPage() {
         } finally {
             setLoading(false);
         }
-    }, [audienceFilter, debouncedQuery, endDateTo, lifecycleFilter, page, runtimeFilter, sortBy, sortDir, startDateFrom, t]);
+    }, [audienceFilter, debouncedQuery, endDateTo, i18n.resolvedLanguage, lifecycleFilter, page, runtimeFilter, sortBy, sortDir, startDateFrom, t]);
 
     useEffect(() => {
         void loadSurveyResults();

@@ -161,6 +161,8 @@ Rules:
 - Every survey question must be answered exactly once
 - Submission is rejected if the survey is not published and open, does not exist, the current student does not exist, or the student already submitted
 - Successful submission updates the matching recipient row with `submitted_at`
+- Successful submission also publishes translation tasks with `entity_type = SURVEY_RESPONSE` for persisted text comments
+- Translation replies for survey responses are stored on `Response_Detail.comment_vi`, `Response_Detail.comment_en`, `source_lang`, `is_auto_translated`, and `model_info`
 
 Response body:
 

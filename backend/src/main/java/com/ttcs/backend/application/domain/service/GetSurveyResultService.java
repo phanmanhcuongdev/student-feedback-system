@@ -38,7 +38,7 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
     private final LoadLecturerByUserIdPort loadLecturerByUserIdPort;
 
     @Override
-    public SurveyResultPageResult getSurveyResults(GetSurveyResultsQuery query, Integer viewerUserId, Role viewerRole) {
+    public SurveyResultPageResult getSurveyResults(GetSurveyResultsQuery query, Integer viewerUserId, Role viewerRole, String targetLang) {
         Integer lecturerDepartmentId = null;
         if (viewerRole != Role.ADMIN) {
             Lecturer lecturer = requireLecturer(viewerUserId, viewerRole);
@@ -60,7 +60,7 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
                 query == null ? 12 : query.size(),
                 query == null ? "responseRate" : query.sortBy(),
                 query == null ? "desc" : query.sortDir()
-        ));
+        ), normalizeLanguage(targetLang));
 
         return new SurveyResultPageResult(
                 page.items().stream()
@@ -98,8 +98,8 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
     }
 
     @Override
-    public SurveyResultDetailResult getSurveyResult(Integer surveyId, Integer viewerUserId, Role viewerRole) {
-        SurveyResultDetail result = loadSurveyResultPort.loadSurveyResult(surveyId)
+    public SurveyResultDetailResult getSurveyResult(Integer surveyId, Integer viewerUserId, Role viewerRole, String targetLang) {
+        SurveyResultDetail result = loadSurveyResultPort.loadSurveyResult(surveyId, normalizeLanguage(targetLang))
                 .orElseThrow(() -> new SurveyNotFoundException(surveyId));
 
         if (viewerRole == Role.ADMIN) {
@@ -172,5 +172,13 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
                         && assignment.getSubjectType() == SubjectType.DEPARTMENT
                         && lecturerDepartmentId.equals(assignment.getSubjectValue())
         );
+    }
+
+    private String normalizeLanguage(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return "vi";
+        }
+        String language = value.split(",")[0].trim().split("-")[0].toLowerCase();
+        return "en".equals(language) ? "en" : "vi";
     }
 }

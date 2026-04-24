@@ -14,7 +14,12 @@ public class ResponseDetailMapper {
                 SurveyResponseMapper.toDomain(entity.getResponse()),
                 QuestionMapper.toDomain(entity.getQuestion()),
                 entity.getRating(),
-                entity.getComment()
+                entity.getComment(),
+                entity.getCommentVi(),
+                entity.getCommentEn(),
+                entity.getSourceLang(),
+                entity.isAutoTranslated(),
+                entity.getModelInfo()
         );
     }
 
@@ -27,6 +32,11 @@ public class ResponseDetailMapper {
         entity.setQuestion(QuestionMapper.toEntity(domain.getQuestion()));
         entity.setRating(domain.getRating());
         entity.setComment(domain.getComment());
+        entity.setCommentVi(domain.getCommentVi());
+        entity.setCommentEn(domain.getCommentEn());
+        entity.setSourceLang(domain.getSourceLang());
+        entity.setAutoTranslated(domain.isAutoTranslated());
+        entity.setModelInfo(domain.getModelInfo());
 
         return entity;
     }
