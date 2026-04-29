@@ -71,6 +71,7 @@
       "loadDetail": "Unable to load survey statistics.",
       "invalidId": "Invalid survey id.",
       "export": "Unable to export survey report.",
+      "renderFailed": "Unable to render the report. Please try again later.",
       "loadAiStatus": "Unable to load AI summary status.",
       "generateAi": "Unable to generate AI summary.",
       "aiFailed": "AI summary generation failed."
@@ -82,7 +83,8 @@
         "emptyDescription": "Review survey analytics."
       },
       "buttons": {
-        "exportCsv": "Export CSV",
+        "exportPdf": "Export PDF",
+        "exportXlsx": "Export XLSX",
         "exporting": "Exporting...",
         "backToResults": "Back to results",
         "collapse": "Collapse",

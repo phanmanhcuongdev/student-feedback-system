@@ -14,7 +14,7 @@ It handles:
 - Admin user management queries and mutations
 - Admin survey management lifecycle actions and operational queries
 - Question Bank and Survey Template administration
-- Survey analytics overview and CSV result export
+- Survey analytics overview and PDF/XLSX result export
 - Admin audit log viewing
 - Persisted student notifications with read/unread state
 - Feedback reply handling for staff roles
@@ -29,6 +29,7 @@ It handles:
 - Flyway
 - Microsoft SQL Server
 - Resend API for verification emails
+- Eclipse BIRT for PDF/XLSX survey report export
 
 ## Project Structure
 
@@ -60,18 +61,19 @@ APP_RESET_PASSWORD_URL_BASE=http://localhost:5173
 APP_RESET_PASSWORD_EXPIRATION_MINUTES=30
 
 RESEND_API_KEY=
-APP_MAIL_FROM=noreply@cuongdso.id.vn
+APP_MAIL_FROM=noreply@example.com
 RESEND_API_URL=https://api.resend.com/emails
 APP_WEB_ALLOWED_ORIGINS=http://localhost:5173
 
-MINIO_ACCESS_KEY=
-MINIO_SECRET_KEY=
-MINIO_BUCKET=student-feedback-bucket
-MINIO_URL=http://localhost:9000
-
 APP_STORAGE_MINIO_ACCESS_KEY=
 APP_STORAGE_MINIO_SECRET_KEY=
+APP_STORAGE_MINIO_BUCKET=student-documents
 APP_STORAGE_MINIO_ENDPOINT=http://localhost:9000
+
+APP_AI_API_KEY=
+RABBITMQ_HOST=localhost
+RABBITMQ_PASSWORD=guest
+APP_REPORTS_BIRT_TEMPLATE_PATH=classpath:/reports/survey_template.rptdesign
 ```
 
 Important notes:
@@ -79,8 +81,26 @@ Important notes:
 - Flyway manages schema creation and migration before Hibernate validation runs.
 - Email verification uses Resend. Registration will not silently fake success if email delivery is unavailable.
 - SQL Server is the only database wired in the current configuration.
-- `backend/.env.dev` is the canonical env reference for backend variable names in this repo.
-- Spring Boot reads MinIO client config from `APP_STORAGE_MINIO_*`, while the same canonical env file also carries `MINIO_*` values for MinIO service/container setup.
+- [../.env.example](../.env.example) is the canonical safe env reference for backend variable names. Keep real local `.env.*` files out of Git.
+- Spring Boot reads MinIO client config from `APP_STORAGE_MINIO_*`.
+- Spring Boot reads the BIRT report template from `APP_REPORTS_BIRT_TEMPLATE_PATH`, defaulting to `classpath:/reports/survey_template.rptdesign`.
+
+## BIRT Report Export
+
+Survey result export follows the same ports-and-adapters boundary as the rest of the backend:
+
+```text
+SurveyResultController
+  -> SurveyReportExportService
+      -> LoadSurveyReportPort
+          -> SurveyResultPersistenceAdapter
+              -> SurveyReportDataAssembler
+      -> BirtSurveyReportRenderer
+```
+
+The active template is [`src/main/resources/reports/survey_template.rptdesign`](src/main/resources/reports/survey_template.rptdesign). The renderer loads it from the classpath, injects prepared POJO data into BIRT appContext, and hydrates the executive dashboard, participation funnel, question table, and grid-based rating chart fallback at render time.
+
+Install Roboto on the backend host before rendering PDF reports so Vietnamese text is embedded consistently.
 
 ## Flyway Integration
 

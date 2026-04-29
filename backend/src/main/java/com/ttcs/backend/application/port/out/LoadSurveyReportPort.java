@@ -4,5 +4,5 @@ import java.util.Optional;
 
 public interface LoadSurveyReportPort {
 
-    Optional<SurveyReport> loadSurveyReport(Integer surveyId);
+    Optional<EnterpriseSurveyReport> loadSurveyReport(Integer surveyId, Integer generatedByUserId);
 }
