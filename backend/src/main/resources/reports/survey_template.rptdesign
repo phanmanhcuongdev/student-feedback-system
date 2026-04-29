@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<report xmlns="http://www.eclipse.org/birt/2005/design" version="3.2.23" id="1">
+    <property name="createdBy">Eclipse BIRT Designer Version 4.13.0</property>
+    <property name="units">in</property>
+    <property name="imageDPI">96</property>
+
+    <styles>
+        <style name="ReportTitle" id="2">
+            <property name="fontFamily">Roboto, Arial, sans-serif</property>
+            <property name="fontSize">18pt</property>
+            <property name="fontWeight">bold</property>
+            <property name="color">#0D9488</property>
+            <property name="pdfEncoding">Identity-H</property>
+        </style>
+        <style name="SectionHeader" id="3">
+            <property name="fontFamily">Roboto, Arial, sans-serif</property>
+            <property name="fontSize">14pt</property>
+            <property name="fontWeight">bold</property>
+            <property name="paddingTop">15pt</property>
+            <property name="paddingBottom">10pt</property>
+            <property name="pdfEncoding">Identity-H</property>
+        </style>
+        <style name="KpiCardStyle" id="4">
+            <property name="backgroundColor">#FFFFFF</property>
+            <property name="borderTopColor">#0D9488</property>
+            <property name="borderTopStyle">solid</property>
+            <property name="borderTopWidth">3.5pt</property>
+            <property name="borderBottomColor">#E2E8F0</property>
+            <property name="borderBottomStyle">solid</property>
+            <property name="borderBottomWidth">1pt</property>
+            <property name="paddingTop">10pt</property>
+            <property name="paddingBottom">10pt</property>
+            <property name="textAlign">center</property>
+        </style>
+        <style name="TableHeaderStyle" id="5">
+            <property name="backgroundColor">#0D9488</property>
+            <property name="color">#FFFFFF</property>
+            <property name="fontWeight">bold</property>
+            <property name="paddingTop">5pt</property>
+            <property name="paddingBottom">5pt</property>
+            <property name="pdfEncoding">Identity-H</property>
+        </style>
+        <style name="TableCellStyle" id="6">
+            <property name="borderBottomColor">#E2E8F0</property>
+            <property name="borderBottomStyle">solid</property>
+            <property name="borderBottomWidth">1pt</property>
+            <property name="paddingTop">4pt</property>
+            <property name="paddingBottom">4pt</property>
+            <property name="pdfEncoding">Identity-H</property>
+        </style>
+    </styles>
+
+    <data-sources>
+        <script-data-source name="PojoSource" id="10"/>
+    </data-sources>
+
+    <data-sets>
+        <script-data-set name="SummaryDS" id="11">
+            <property name="dataSource">PojoSource</property>
+            <list-property name="resultSetHints">
+                <structure><property name="position">1</property><property name="name">targeted</property><property name="dataType">string</property></structure>
+                <structure><property name="position">2</property><property name="name">submitted</property><property name="dataType">string</property></structure>
+                <structure><property name="position">3</property><property name="name">rate</property><property name="dataType">string</property></structure>
+                <structure><property name="position">4</property><property name="name">avgRating</property><property name="dataType">string</property></structure>
+            </list-property>
+            <method name="open"><![CDATA[
+                summary = reportContext.getAppContext().get("summary");
+                fetched = false;
+            ]]></method>
+            <method name="fetch"><![CDATA[
+                if (fetched || summary == null) return false;
+                row["targeted"] = String(summary.getTargetedCount());
+                row["submitted"] = String(summary.getSubmittedCount());
+                row["rate"] = summary.getResponseRate() + "%";
+                row["avgRating"] = new Packages.java.text.DecimalFormat("#,##0.00").format(summary.getAverageRating());
+                fetched = true;
+                return true;
+            ]]></method>
+        </script-data-set>
+
+        <script-data-set name="QuestionsDS" id="12">
+            <property name="dataSource">PojoSource</property>
+            <list-property name="resultSetHints">
+                <structure><property name="position">1</property><property name="name">id</property><property name="dataType">string</property></structure>
+                <structure><property name="position">2</property><property name="name">content</property><property name="dataType">string</property></structure>
+                <structure><property name="position">3</property><property name="name">rating</property><property name="dataType">float</property></structure>
+            </list-property>
+            <method name="open"><![CDATA[
+                qs = reportContext.getAppContext().get("rows");
+                idx = 0;
+            ]]></method>
+            <method name="fetch"><![CDATA[
+                if (qs == null || idx >= qs.size()) return false;
+                var q = qs.get(idx++);
+                row["id"] = String(q.getId());
+                row["content"] = q.getContent();
+                row["rating"] = q.getAverageRating();
+                return true;
+            ]]></method>
+        </script-data-set>
+    </data-sets>
+
+    <page-setup>
+        <simple-master-page name="Master" id="20">
+            <property name="topMargin">0.5in</property>
+            <page-footer>
+                <grid id="21">
+                    <property name="width">100%</property>
+                    <column id="22"><property name="width">50%</property></column>
+                    <column id="23"><property name="width">50%</property></column>
+                    <row id="24">
+                        <cell id="25"><label id="26"><property name="fontSize">8pt</property><text-property name="text">Student Feedback System - Enterprise Report</text-property></label></cell>
+                        <cell id="27"><property name="textAlign">right</property><data id="28"><property name="fontSize">8pt</property><expression name="valueExpr">"Page " + pageNumber + " / " + totalPage</expression></data></cell>
+                    </row>
+                </grid>
+            </page-footer>
+        </simple-master-page>
+    </page-setup>
+
+    <body>
+        <label id="30"><property name="style">ReportTitle</property><text-property name="text">Executive Dashboard</text-property></label>
+
+        <list id="31">
+            <property name="dataSet">SummaryDS</property>
+            <list-property name="boundDataColumns">
+                <structure><property name="name">targeted</property><expression name="expression" type="javascript">dataSetRow["targeted"]</expression></structure>
+                <structure><property name="name">submitted</property><expression name="expression" type="javascript">dataSetRow["submitted"]</expression></structure>
+                <structure><property name="name">rate</property><expression name="expression" type="javascript">dataSetRow["rate"]</expression></structure>
+                <structure><property name="name">avgRating</property><expression name="expression" type="javascript">dataSetRow["avgRating"]</expression></structure>
+            </list-property>
+            <detail>
+                <grid id="32">
+                    <property name="width">100%</property>
+                    <column id="33"><property name="width">25%</property></column>
+                    <column id="34"><property name="width">25%</property></column>
+                    <column id="35"><property name="width">25%</property></column>
+                    <column id="36"><property name="width">25%</property></column>
+                    <row id="37">
+                        <cell id="38"><property name="style">KpiCardStyle</property><label id="39"><property name="fontSize">8pt</property><text-property name="text">TARGETED</text-property></label><data id="40"><property name="style">KpiValue</property><expression name="valueExpr">row["targeted"]</expression></data></cell>
+                        <cell id="41"><property name="style">KpiCardStyle</property><label id="42"><property name="fontSize">8pt</property><text-property name="text">SUBMITTED</text-property></label><data id="43"><property name="style">KpiValue</property><expression name="valueExpr">row["submitted"]</expression></data></cell>
+                        <cell id="44"><property name="style">KpiCardStyle</property><label id="45"><property name="fontSize">8pt</property><text-property name="text">RATE</text-property></label><data id="46"><property name="style">KpiValue</property><expression name="valueExpr">row["rate"]</expression></data></cell>
+                        <cell id="47"><property name="style">KpiCardStyle</property><label id="48"><property name="fontSize">8pt</property><text-property name="text">AVG RATING</text-property></label><data id="49"><property name="style">KpiValue</property><expression name="valueExpr">row["avgRating"]</expression></data></cell>
+                    </row>
+                </grid>
+            </detail>
+        </list>
+
+        <label id="50"><property name="style">SectionHeader</property><text-property name="text">Detailed Question Analysis</text-property></label>
+
+        <table id="51">
+            <property name="width">100%</property>
+            <property name="dataSet">QuestionsDS</property>
+            <list-property name="boundDataColumns">
+                <structure><property name="name">id</property><expression name="expression" type="javascript">dataSetRow["id"]</expression></structure>
+                <structure><property name="name">content</property><expression name="expression" type="javascript">dataSetRow["content"]</expression></structure>
+                <structure><property name="name">rating</property><expression name="expression" type="javascript">dataSetRow["rating"]</expression></structure>
+            </list-property>
+            <column id="52"><property name="width">10%</property></column>
+            <column id="53"><property name="width">75%</property></column>
+            <column id="54"><property name="width">15%</property></column>
+            <header>
+                <row id="55">
+                    <cell id="56"><label id="57"><property name="style">TableHeaderStyle</property><text-property name="text">ID</text-property></label></cell>
+                    <cell id="58"><label id="59"><property name="style">TableHeaderStyle</property><text-property name="text">Nội dung câu hỏi</text-property></label></cell>
+                    <cell id="60"><label id="61"><property name="style">TableHeaderStyle</property><property name="textAlign">center</property><text-property name="text">Điểm TB</text-property></label></cell>
+                </row>
+            </header>
+            <detail>
+                <row id="62">
+                    <cell id="63"><data id="64"><property name="style">TableCellStyle</property><expression name="valueExpr">row["id"]</expression></data></cell>
+                    <cell id="65"><data id="66"><property name="style">TableCellStyle</property><expression name="valueExpr">row["content"]</expression></data></cell>
+                    <cell id="67"><property name="textAlign">center</property><data id="68"><property name="style">TableCellStyle</property><expression name="valueExpr">new Packages.java.text.DecimalFormat("0.00").format(row["rating"])</expression></data></cell>
+                </row>
+            </detail>
+        </table>
+
+        <label id="70"><property name="style">SectionHeader</property><text-property name="text">Phân bổ Rating theo câu hỏi</text-property></label>
+        <extended-item extensionName="Chart" id="71">
+            <property name="width">100%</property>
+            <property name="height">3in</property>
+            <property name="dataSet">QuestionsDS</property>
+            <xml-property name="xmlRepresentation"><![CDATA[
+                <model:ChartWithAxes xmlns:model="http://www.eclipse.org/birt/chart/model" xmlns:attribute="http://www.eclipse.org/birt/chart/model/attribute" xmlns:type="http://www.eclipse.org/birt/chart/model/type" Type="Bar Chart" SubType="Side-by-side">
+                    <Block><Bounds/><Insets Top="10.0" Left="10.0" Bottom="10.0" Right="10.0"/></Block>
+                    <Plot><ClientArea><Background xsi:type="attribute:ColorDefinition" red="255" green="255" blue="255"/></ClientArea></Plot>
+                    <Axes>
+                        <Type>Text</Type>
+                        <SeriesDefinitions>
+                            <Series><DataDefinition><Definition>row["id"]</Definition></DataDefinition></Series>
+                        </SeriesDefinitions>
+                        <AssociatedAxes>
+                            <Type>Linear</Type>
+                            <SeriesDefinitions>
+                                <SeriesPalette><Entries red="13" green="148" blue="136"/></SeriesPalette>
+                                <Series xsi:type="type:BarSeries">
+                                    <DataDefinition><Definition>row["rating"]</Definition></DataDefinition>
+                                </Series>
+                            </SeriesDefinitions>
+                        </AssociatedAxes>
+                    </Axes>
+                </model:ChartWithAxes>
+            ]]></xml-property>
+        </extended-item>
+    </body>
+</report>

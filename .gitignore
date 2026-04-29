@@ -89,6 +89,8 @@ temp/
 ############################
 test-output/
 reports/
+!backend/src/main/resources/reports/
+!backend/src/main/resources/reports/*.rptdesign
 
 ############################
 # Misc

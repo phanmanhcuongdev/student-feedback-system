@@ -1,6 +1,8 @@
 import axios from "./axios";
 import type { SurveyResultDetail, SurveyResultPage } from "../types/surveyResult";
 
+export type SurveyReportFormat = "pdf" | "xlsx";
+
 export async function getSurveyResults(params?: {
     keyword?: string;
     lifecycleState?: string;
@@ -22,8 +24,9 @@ export async function getSurveyResult(surveyId: number): Promise<SurveyResultDet
     return response.data;
 }
 
-export async function exportSurveyResult(surveyId: number): Promise<Blob> {
+export async function exportSurveyResult(surveyId: number, format: SurveyReportFormat): Promise<Blob> {
     const response = await axios.get<Blob>(`/v1/survey-results/${surveyId}/export`, {
+        params: { format },
         responseType: "blob",
     });
     return response.data;

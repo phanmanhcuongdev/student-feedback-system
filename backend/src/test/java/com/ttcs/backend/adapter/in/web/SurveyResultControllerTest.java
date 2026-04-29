@@ -6,6 +6,7 @@ import com.ttcs.backend.application.port.in.resultview.ExportedReport;
 import com.ttcs.backend.application.port.out.auth.LoadStudentByIdPort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -41,33 +42,36 @@ class SurveyResultControllerTest {
                 new CurrentIdentityProvider(new EmptyStudentPort())
         );
 
-        ResponseEntity<byte[]> response = controller.exportSurveyResult(12);
+        ResponseEntity<ByteArrayResource> response = controller.exportSurveyResult(12, "xlsx");
 
-        byte[] expectedContent = "csv body".getBytes(StandardCharsets.UTF_8);
+        byte[] expectedContent = "report body".getBytes(StandardCharsets.UTF_8);
         assertEquals(200, response.getStatusCode().value());
-        assertArrayEquals(expectedContent, response.getBody());
-        assertEquals("text/csv;charset=UTF-8", response.getHeaders().getContentType().toString());
+        assertArrayEquals(expectedContent, response.getBody().getByteArray());
+        assertEquals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", response.getHeaders().getContentType().toString());
         assertTrue(response.getHeaders().getFirst("Content-Disposition").contains("attachment"));
-        assertTrue(response.getHeaders().getFirst("Content-Disposition").contains("survey-12-report.csv"));
+        assertTrue(response.getHeaders().getFirst("Content-Disposition").contains("survey-report.xlsx"));
         assertEquals(12, exportUseCase.surveyId);
         assertEquals(99, exportUseCase.viewerUserId);
         assertEquals(Role.ADMIN, exportUseCase.viewerRole);
+        assertEquals("xlsx", exportUseCase.format);
     }
 
     private static final class TrackingExportUseCase implements com.ttcs.backend.application.port.in.resultview.ExportSurveyReportUseCase {
         private Integer surveyId;
         private Integer viewerUserId;
         private Role viewerRole;
+        private String format;
 
         @Override
-        public ExportedReport exportSurveyReport(Integer surveyId, Integer viewerUserId, Role viewerRole) {
+        public ExportedReport exportSurveyReport(Integer surveyId, Integer viewerUserId, Role viewerRole, String format) {
             this.surveyId = surveyId;
             this.viewerUserId = viewerUserId;
             this.viewerRole = viewerRole;
+            this.format = format;
             return new ExportedReport(
-                    "survey-" + surveyId + "-report.csv",
-                    "text/csv;charset=UTF-8",
-                    "csv body".getBytes(StandardCharsets.UTF_8)
+                    "survey-report." + format,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "report body".getBytes(StandardCharsets.UTF_8)
             );
         }
     }

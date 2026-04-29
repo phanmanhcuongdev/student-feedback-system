@@ -17,7 +17,7 @@ The current implementation supports:
 - Authenticated survey listing, detail view, and submission
 - Student survey visibility enforced in the backend using recipient rows, publish state, hidden flag, and end-date expiry
 - Survey result viewing for admin and lecturer roles
-- CSV survey result export for admins
+- PDF/XLSX survey result export for admins
 - Admin analytics dashboard with lifecycle, participation, and attention metrics
 - Admin audit log viewer for privileged actions
 - Persisted student notifications with read/unread state
@@ -61,15 +61,16 @@ The current implementation supports:
 - Microsoft SQL Server with the application schema already created
 - A Resend account and API key if you want to test the real email verification flow
 - A reachable MinIO instance for document storage
+- Roboto font installed on the backend host for PDF export with Vietnamese text
 
 ## Environment Variables
 
-Backend variables from [`.env.example`](.env.example):
+Backend variables are documented in [`.env.example`](.env.example). Keep real credentials in your shell, deployment secret store, or IDE run configuration. Do not commit `.env`, `.env.dev`, `.env.prod`, or copied local secrets.
 
 ```env
 DB_URL=jdbc:sqlserver://localhost;databaseName=SURVEY_SYSTEM_DEV;encrypt=true;trustServerCertificate=true
 DB_USERNAME=sa
-DB_PASSWORD=your-password
+DB_PASSWORD=change-me
 APP_JWT_SECRET=change-me-local-dev-secret-key-32b
 APP_JWT_ACCESS_TOKEN_EXPIRATION_MS=86400000
 APP_VERIFY_EMAIL_URL_BASE=http://localhost:5173
@@ -79,42 +80,15 @@ RESEND_API_KEY=re_...
 APP_MAIL_FROM=noreply@cuongdso.id.vn
 RESEND_API_URL=https://api.resend.com/emails
 APP_WEB_ALLOWED_ORIGINS=http://localhost:5173
-MINIO_ACCESS_KEY=your-access-key
-MINIO_SECRET_KEY=your-secret-key
-MINIO_BUCKET=student-feedback-bucket
-MINIO_URL=http://localhost:9000
-APP_STORAGE_MINIO_ACCESS_KEY=your-access-key
-APP_STORAGE_MINIO_SECRET_KEY=your-secret-key
+
 APP_STORAGE_MINIO_ENDPOINT=http://localhost:9000
-```
-
-Backend runtime variables currently used in [`backend/.env.dev`](backend/.env.dev):
-
-```env
-DB_URL=jdbc:sqlserver://192.168.10.211;databaseName=SURVEY_SYSTEM_DEV;encrypt=true;trustServerCertificate=true
-DB_USERNAME=sa
-DB_PASSWORD=TTCS@1234
-
-APP_JWT_SECRET=...
-APP_JWT_ACCESS_TOKEN_EXPIRATION_MS=86400000
-
-APP_VERIFY_EMAIL_URL_BASE=https://survey.cuongdso.id.vn
-APP_RESET_PASSWORD_URL_BASE=https://survey.cuongdso.id.vn
-APP_RESET_PASSWORD_EXPIRATION_MINUTES=30
-
-RESEND_API_KEY=re_...
-APP_MAIL_FROM=noreply@cuongdso.id.vn
-RESEND_API_URL=https://api.resend.com/emails
-
-APP_WEB_ALLOWED_ORIGINS=https://survey.cuongdso.id.vn
-
-MINIO_ACCESS_KEY=...
-MINIO_SECRET_KEY=...
-MINIO_BUCKET=student-feedback-bucket
-MINIO_URL=http://minio:9000
-APP_STORAGE_MINIO_ACCESS_KEY=...
-APP_STORAGE_MINIO_SECRET_KEY=...
-APP_STORAGE_MINIO_ENDPOINT=http://minio:9000
+APP_STORAGE_MINIO_ACCESS_KEY=minioadmin
+APP_STORAGE_MINIO_SECRET_KEY=minioadmin
+APP_STORAGE_MINIO_BUCKET=student-documents
+APP_AI_API_KEY=
+RABBITMQ_HOST=localhost
+RABBITMQ_PASSWORD=guest
+APP_REPORTS_BIRT_TEMPLATE_PATH=classpath:/reports/survey_template.rptdesign
 ```
 
 Frontend variables from [`frontend/.env.example`](frontend/.env.example):
@@ -127,9 +101,8 @@ VITE_API_PROXY_TARGET=http://localhost:8080
 Notes:
 
 - Spring Boot in this repo does not auto-load `.env` files. Export variables in your shell or configure them in your IDE run configuration.
-- `backend/.env.dev` is the canonical backend env reference in this repo. Root `.env.example`, `.env.dev`, and `.env.prod` should follow its variable names and ordering.
+- `.env.example` is the canonical safe reference. Local `.env.*` files are ignored by Git and should stay out of the repository.
 - The backend document storage configuration is read from `app.storage.minio.*` in [`backend/src/main/resources/application.yaml`](backend/src/main/resources/application.yaml), which means the Spring application needs `APP_STORAGE_MINIO_ENDPOINT`, `APP_STORAGE_MINIO_ACCESS_KEY`, and `APP_STORAGE_MINIO_SECRET_KEY`.
-- `backend/.env.dev` also keeps `MINIO_*` values alongside `APP_STORAGE_MINIO_*` so MinIO service/container config and Spring Boot client config stay aligned from one source of truth.
 - `spring.jpa.hibernate.ddl-auto=validate` is enabled, so Flyway is responsible for creating or updating schema state before Hibernate validates entities.
 - Flyway is enabled through `spring.flyway.enabled=true` and scans SQL migrations from `classpath:db/migration`, which maps to `backend/src/main/resources/db/migration/`.
 - `spring.flyway.baseline-on-migrate=true` is enabled so an existing SQL Server database can be brought under Flyway management without replaying the initial schema migration.
@@ -144,33 +117,24 @@ Student onboarding documents are stored in MinIO through the backend storage ada
 
 Variables involved:
 
-- `MINIO_ACCESS_KEY`: access key passed to the MinIO server/container.
-- `MINIO_SECRET_KEY`: secret key passed to the MinIO server/container.
-- `MINIO_BUCKET`: bucket name used for student documents.
-- `MINIO_URL`: MinIO service URL, typically `http://minio:9000` inside Docker networking.
 - `APP_STORAGE_MINIO_ENDPOINT`: Spring Boot endpoint for the MinIO SDK. In most deployments this matches `MINIO_URL`.
 - `APP_STORAGE_MINIO_ACCESS_KEY`: Spring Boot credential used by the backend MinIO client. In most deployments this matches `MINIO_ACCESS_KEY`.
 - `APP_STORAGE_MINIO_SECRET_KEY`: Spring Boot credential used by the backend MinIO client. In most deployments this matches `MINIO_SECRET_KEY`.
+- `APP_STORAGE_MINIO_BUCKET`: bucket name used for student documents.
 
-Recommended mapping in deployment:
+Recommended local mapping:
 
 ```env
-MINIO_ACCESS_KEY=your-access-key
-MINIO_SECRET_KEY=your-secret-key
-MINIO_BUCKET=student-feedback-bucket
-MINIO_URL=http://minio:9000
-
-APP_STORAGE_MINIO_ENDPOINT=${MINIO_URL}
-APP_STORAGE_MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
-APP_STORAGE_MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+APP_STORAGE_MINIO_ENDPOINT=http://localhost:9000
+APP_STORAGE_MINIO_ACCESS_KEY=minioadmin
+APP_STORAGE_MINIO_SECRET_KEY=minioadmin
+APP_STORAGE_MINIO_BUCKET=student-documents
 ```
 
 Operational notes:
 
 - The backend only talks to MinIO through the `APP_STORAGE_MINIO_*` variables.
-- The MinIO container/service itself only needs the `MINIO_*` variables.
 - If the backend starts without the `APP_STORAGE_MINIO_*` values, document upload and document review endpoints cannot initialize correctly.
-- `MINIO_BUCKET` is still part of the canonical env file because the MinIO service setup needs it, even though Spring Boot reads credentials/endpoint from `APP_STORAGE_MINIO_*`.
 
 ## Database Migrations
 
@@ -198,6 +162,45 @@ How it works in this project:
 - On a fresh database, Flyway creates `flyway_schema_history` and applies the migration files in version order.
 - On an existing database, Flyway baselines the current schema first, then manages subsequent versioned migrations from that point forward.
 - Hibernate runs in `validate` mode after schema migration, so entity validation happens against the Flyway-managed schema.
+
+## BIRT Reporting
+
+Survey result exports use Eclipse BIRT through the outbound adapter at [`BirtSurveyReportRenderer.java`](backend/src/main/java/com/ttcs/backend/adapter/out/export/BirtSurveyReportRenderer.java). The renderer supports PDF and XLSX and receives a prepared `EnterpriseSurveyReport`; it does not query the database.
+
+Template management:
+
+- Active template: [`backend/src/main/resources/reports/survey_template.rptdesign`](backend/src/main/resources/reports/survey_template.rptdesign)
+- Runtime property: `APP_REPORTS_BIRT_TEMPLATE_PATH=classpath:/reports/survey_template.rptdesign`
+- Keep `.rptdesign` files under `backend/src/main/resources/reports/` so Spring can package them into the application JAR.
+- If template-driven schema changes are needed, add a new Flyway migration. Do not edit existing migration files.
+
+Data flow:
+
+```text
+SurveyResultController
+  -> SurveyReportExportService
+      -> SurveyResultPersistenceAdapter
+          -> SurveyReportDataAssembler
+              -> EnterpriseSurveyReport
+      -> BirtSurveyReportRenderer
+          -> BIRT appContext / in-memory template patch
+          -> PDF or XLSX bytes
+```
+
+The renderer populates BIRT `appContext` with the enterprise report, summary statistics, organization branding, filter metadata, report period, and question rows. For stable PDF/XLSX rendering, the current implementation hydrates dashboard, participation funnel, question table, and the bar chart fallback into the template at render time.
+
+Chart fallback:
+
+- Native BIRT chart XML is brittle across runtime and designer versions.
+- The report uses a grid-based horizontal bar chart for the Top 5 question ratings.
+- The fallback is deterministic in both PDF and XLSX and uses the same prepared POJO data as the rest of the report.
+
+Font setup for Vietnamese PDF output:
+
+- Install Roboto on the backend host before rendering reports.
+- On Windows, install `Roboto-Regular.ttf` and restart the backend process.
+- In containers, copy Roboto into the image and register it with the system font cache.
+- The runtime-injected report styles force Roboto for consistent Vietnamese glyph rendering.
 
 ## How to Run Locally
 
@@ -314,7 +317,7 @@ Compatibility note:
 6. Edit the draft until dates, questions, and recipient scope are ready
 7. Publish the survey
 8. Monitor targeted, opened, submitted, and response-rate metrics
-9. Export result CSV reports from survey result detail as admin
+9. Export result PDF/XLSX reports from survey result detail as admin
 10. Close it when collection should stop, then archive it when the run is complete
 
 ### Analytics, audit, and notifications

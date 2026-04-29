@@ -1,6 +1,7 @@
 package com.ttcs.backend.adapter.in.web;
 
 import com.ttcs.backend.adapter.in.web.dto.ApiErrorResponse;
+import com.ttcs.backend.adapter.out.export.BirtRenderException;
 import com.ttcs.backend.application.domain.exception.FileTooLargeException;
 import com.ttcs.backend.application.domain.exception.SurveyNotFoundException;
 import com.ttcs.backend.application.domain.exception.VerifyEmailDeliveryException;
@@ -23,6 +24,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleVerifyEmailDelivery(VerifyEmailDeliveryException exception) {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ApiErrorResponse("EMAIL_DELIVERY_FAILED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(BirtRenderException.class)
+    public ResponseEntity<ApiErrorResponse> handleBirtRender(BirtRenderException exception) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ApiErrorResponse("REPORT_RENDER_FAILED", exception.getMessage()));
     }
 
     @ExceptionHandler(FileTooLargeException.class)

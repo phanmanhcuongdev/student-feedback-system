@@ -70,3 +70,7 @@ app:
     reply-routing-key: ${RABBITMQ_REPLY_ROUTING_KEY:translation.reply.key}
     reply-dlq: ${RABBITMQ_REPLY_DLQ:translation.reply.dlq}
     reply-dlx: ${RABBITMQ_REPLY_DLX:translation.reply.dlx}
+  reports:
+    birt:
+      template-path: ${APP_REPORTS_BIRT_TEMPLATE_PATH:classpath:/reports/survey_template.rptdesign}
+      output-format: ${APP_REPORTS_BIRT_OUTPUT_FORMAT:pdf}

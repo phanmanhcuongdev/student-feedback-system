@@ -661,9 +661,9 @@ Detail payloads also include:
 - `submittedCount`
 - `responseRate`
 
-### `GET /api/v1/survey-results/{surveyId}/export`
+### `GET /api/v1/survey-results/{surveyId}/export?format=pdf|xlsx`
 
-Exports a CSV report for admin users. The CSV is generated from the same real result data as the detail endpoint and includes:
+Exports a PDF or XLSX report for admin users. The report is generated from the same real result data as the detail endpoint and includes:
 
 - survey summary and lifecycle/runtime status
 - participation metrics

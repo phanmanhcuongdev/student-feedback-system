@@ -71,6 +71,7 @@
       "loadDetail": "Không thể tải thống kê khảo sát.",
       "invalidId": "ID khảo sát không hợp lệ.",
       "export": "Không thể xuất báo cáo khảo sát.",
+      "renderFailed": "Không thể render báo cáo. Vui lòng thử lại sau.",
       "loadAiStatus": "Không thể tải trạng thái tóm tắt AI.",
       "generateAi": "Không thể tạo tóm tắt AI.",
       "aiFailed": "Tạo tóm tắt AI thất bại."
@@ -82,7 +83,8 @@
         "emptyDescription": "Xem phân tích khảo sát."
       },
       "buttons": {
-        "exportCsv": "Xuất CSV",
+        "exportPdf": "Xuất PDF",
+        "exportXlsx": "Xuất XLSX",
         "exporting": "Đang xuất...",
         "backToResults": "Quay lại kết quả",
         "collapse": "Thu gọn",

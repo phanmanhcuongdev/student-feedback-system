@@ -6,7 +6,7 @@ import com.ttcs.backend.application.port.in.resultview.ExportedReport;
 import com.ttcs.backend.application.port.in.resultview.ExportSurveyReportUseCase;
 import com.ttcs.backend.application.port.out.LoadSurveyReportPort;
 import com.ttcs.backend.application.port.out.RenderedReport;
-import com.ttcs.backend.application.port.out.SurveyReport;
+import com.ttcs.backend.application.port.out.EnterpriseSurveyReport;
 import com.ttcs.backend.application.port.out.SurveyReportRenderer;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
@@ -23,14 +23,14 @@ public class SurveyReportExportService implements ExportSurveyReportUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public ExportedReport exportSurveyReport(Integer surveyId, Integer viewerUserId, Role viewerRole) {
+    public ExportedReport exportSurveyReport(Integer surveyId, Integer viewerUserId, Role viewerRole, String format) {
         if (viewerRole != Role.ADMIN) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can export survey reports");
         }
 
-        SurveyReport report = loadSurveyReportPort.loadSurveyReport(surveyId)
+        EnterpriseSurveyReport report = loadSurveyReportPort.loadSurveyReport(surveyId, viewerUserId)
                 .orElseThrow(() -> new SurveyNotFoundException(surveyId));
-        return toExportedReport(surveyReportRenderer.render(report));
+        return toExportedReport(surveyReportRenderer.render(report, format));
     }
 
     private ExportedReport toExportedReport(RenderedReport report) {
