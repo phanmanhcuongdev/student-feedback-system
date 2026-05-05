@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -47,8 +48,26 @@ public class NotificationPersistenceAdapter implements SaveNotificationPort, Loa
                 results.getSize(),
                 results.getTotalElements(),
                 results.getTotalPages(),
-                notificationUserRepository.countUnreadByUserId(studentUserId)
+                countUnread(studentUserId)
         );
+    }
+
+    @Override
+    public List<LoadedStudentNotification> loadUnread(Integer studentUserId) {
+        if (studentUserId == null) {
+            return List.of();
+        }
+        return notificationUserRepository.findUnreadForUser(studentUserId).stream()
+                .map(this::toLoadedNotification)
+                .toList();
+    }
+
+    @Override
+    public long countUnread(Integer studentUserId) {
+        if (studentUserId == null) {
+            return 0L;
+        }
+        return notificationUserRepository.countUnreadByUserId(studentUserId);
     }
 
     @Override
@@ -57,6 +76,21 @@ public class NotificationPersistenceAdapter implements SaveNotificationPort, Loa
             return false;
         }
         return notificationUserRepository.existsByUser_IdAndNotification_TypeAndNotification_Survey_Id(studentUserId, type, surveyId);
+    }
+
+    @Override
+    public boolean existsForUserAndSurveyOnDate(Integer studentUserId, String type, Integer surveyId, LocalDate date) {
+        if (studentUserId == null || type == null || surveyId == null || date == null) {
+            return false;
+        }
+        LocalDateTime startOfDay = date.atStartOfDay();
+        return notificationUserRepository.existsForUserAndSurveyOnDate(
+                studentUserId,
+                type,
+                surveyId,
+                startOfDay,
+                startOfDay.plusDays(1)
+        );
     }
 
     @Override
@@ -79,9 +113,9 @@ public class NotificationPersistenceAdapter implements SaveNotificationPort, Loa
     }
 
     @Override
-    public void create(NotificationCreateCommand command) {
+    public List<Integer> create(NotificationCreateCommand command) {
         if (command == null || command.recipientUserIds() == null || command.recipientUserIds().isEmpty()) {
-            return;
+            return List.of();
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -108,7 +142,10 @@ public class NotificationPersistenceAdapter implements SaveNotificationPort, Loa
                 .filter(Objects::nonNull)
                 .map(user -> toRecipient(savedNotification, user, now))
                 .toList();
-        notificationUserRepository.saveAll(recipients);
+        return notificationUserRepository.saveAll(recipients).stream()
+                .map(NotificationUserEntity::getId)
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     private NotificationUserEntity toRecipient(NotificationEntity notification, UserEntity user, LocalDateTime deliveredAt) {

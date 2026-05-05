@@ -1,5 +1,5 @@
 import axios from "./axios";
-import type { NotificationActionResponse, StudentNotificationPage } from "../types/notification";
+import type { NotificationActionResponse, StudentNotificationPage, UnreadNotificationCount } from "../types/notification";
 
 export async function getStudentNotifications(params: {
     page?: number;
@@ -7,6 +7,11 @@ export async function getStudentNotifications(params: {
     unreadOnly?: boolean;
 }): Promise<StudentNotificationPage> {
     const response = await axios.get<StudentNotificationPage>("/v1/notifications", { params });
+    return response.data;
+}
+
+export async function getUnreadNotificationCount(): Promise<UnreadNotificationCount> {
+    const response = await axios.get<UnreadNotificationCount>("/v1/notifications/unread-count");
     return response.data;
 }
 

@@ -9,6 +9,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -18,7 +19,12 @@ import com.ttcs.backend.adapter.out.persistence.user.UserEntity;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Notification")
+@Table(
+        name = "Notification",
+        indexes = {
+                @Index(name = "IX_Notification_TypeSurvey", columnList = "type, survey_id, created_at")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor

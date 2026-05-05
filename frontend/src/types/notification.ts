@@ -11,6 +11,16 @@ export type StudentNotification = {
     readAt: string | null;
 };
 
+export type RealtimeNotification = {
+    id: number | null;
+    type: StudentNotification["type"];
+    title: string;
+    message: string;
+    surveyId: number | null;
+    actionLabel: string | null;
+    eventAt: string;
+};
+
 export type StudentNotificationPage = {
     items: StudentNotification[];
     page: number;
@@ -24,4 +34,8 @@ export type NotificationActionResponse = {
     success: boolean;
     code: string;
     message: string;
+};
+
+export type UnreadNotificationCount = {
+    unreadCount: number;
 };

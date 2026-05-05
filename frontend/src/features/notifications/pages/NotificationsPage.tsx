@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { getStudentNotifications, markAllNotificationsRead, markNotificationRead } from "../../../api/notificationApi";
 import PaginationControls from "../../../components/data-view/PaginationControls";
 import type { StudentNotification } from "../../../types/notification";
+import { getNotificationTarget } from "../notificationRouting";
+import { useNotifications } from "../useNotifications";
 
 function formatDate(date: string, language: string) {
     return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", {
@@ -29,20 +31,6 @@ function getAccent(type: StudentNotification["type"]) {
         default:
             return "border-slate-200 bg-slate-50 text-slate-700";
     }
-}
-
-function getTarget(notification: StudentNotification) {
-    if (notification.type === "SURVEY_PUBLISHED" || notification.type === "SURVEY_DEADLINE_REMINDER") {
-        return notification.surveyId ? `/surveys/${notification.surveyId}` : "/surveys";
-    }
-    if (notification.type === "ONBOARDING_REJECTED") {
-        return "/upload-documents";
-    }
-    if (notification.type === "ONBOARDING_APPROVED") {
-        return "/dashboard/student";
-    }
-
-    return "/notifications";
 }
 
 function getTypeLabel(notification: StudentNotification, t: (key: string, options?: Record<string, unknown>) => string) {
@@ -109,10 +97,17 @@ function getLocalizedActionLabel(notification: StudentNotification, t: (key: str
 
 export default function NotificationsPage() {
     const { i18n, t } = useTranslation(["notifications"]);
+    const navigate = useNavigate();
+    const {
+        unreadCount,
+        latestRealtimeNotification,
+        refreshUnreadCount,
+        decrementUnreadCount,
+        clearUnreadCount,
+    } = useNotifications();
     const [notifications, setNotifications] = useState<StudentNotification[]>([]);
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-    const [unreadCount, setUnreadCount] = useState(0);
     const [unreadOnly, setUnreadOnly] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -128,7 +123,7 @@ export default function NotificationsPage() {
             }
             setNotifications(response.items);
             setTotalPages(response.totalPages);
-            setUnreadCount(response.unreadCount);
+            await refreshUnreadCount();
         } catch (requestError) {
             setError(getApiErrorMessage(requestError, t("notifications:notifications.errors.load")));
         } finally {
@@ -140,18 +135,41 @@ export default function NotificationsPage() {
         void fetchNotifications();
     }, [page, unreadOnly]);
 
+    useEffect(() => {
+        if (latestRealtimeNotification) {
+            void fetchNotifications();
+        }
+    }, [latestRealtimeNotification]);
+
     async function handleMarkRead(notificationId: number) {
         try {
-            await markNotificationRead(notificationId);
-            await fetchNotifications();
+            const response = await markNotificationRead(notificationId);
+            if (response.success) {
+                decrementUnreadCount();
+                setNotifications((current) => current.map((notification) => (
+                    notification.id === notificationId
+                        ? { ...notification, read: true, readAt: new Date().toISOString() }
+                        : notification
+                )));
+            } else {
+                await refreshUnreadCount();
+            }
         } catch (requestError) {
             setError(getApiErrorMessage(requestError, t("notifications:notifications.errors.markRead")));
         }
     }
 
+    async function handleOpenNotification(notification: StudentNotification) {
+        if (!notification.read) {
+            await handleMarkRead(notification.id);
+        }
+        navigate(getNotificationTarget(notification));
+    }
+
     async function handleMarkAllRead() {
         try {
             await markAllNotificationsRead();
+            clearUnreadCount();
             await fetchNotifications();
         } catch (requestError) {
             setError(getApiErrorMessage(requestError, t("notifications:notifications.errors.markAllRead")));
@@ -251,13 +269,14 @@ export default function NotificationsPage() {
 
                                     <div className="pt-2">
                                         <div className="flex flex-wrap gap-3">
-                                            <Link
-                                                to={getTarget(notification)}
+                                            <button
+                                                type="button"
+                                                onClick={() => void handleOpenNotification(notification)}
                                                 className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
                                             >
                                                 <span>{getLocalizedActionLabel(notification, t)}</span>
                                                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                                            </Link>
+                                            </button>
                                             {!notification.read ? (
                                                 <button
                                                     type="button"
