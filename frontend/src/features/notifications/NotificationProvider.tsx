@@ -69,8 +69,35 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
-        void refreshUnreadCount();
-    }, [refreshUnreadCount]);
+        let ignored = false;
+
+        if (session?.role !== "STUDENT") {
+            queueMicrotask(() => {
+                if (!ignored) {
+                    setUnreadCount(0);
+                }
+            });
+            return () => {
+                ignored = true;
+            };
+        }
+
+        void getUnreadNotificationCount()
+            .then((response) => {
+                if (!ignored) {
+                    setUnreadCount(response.unreadCount);
+                }
+            })
+            .catch(() => {
+                if (!ignored) {
+                    setUnreadCount(0);
+                }
+            });
+
+        return () => {
+            ignored = true;
+        };
+    }, [session?.role]);
 
     useEffect(() => {
         if (toastTimerRef.current !== null) {
