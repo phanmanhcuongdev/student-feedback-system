@@ -5,8 +5,13 @@ import com.ttcs.backend.application.port.in.resultview.StudentNotificationResult
 import com.ttcs.backend.application.port.out.LoadStudentNotificationPort;
 import com.ttcs.backend.application.port.out.LoadedStudentNotification;
 import com.ttcs.backend.application.port.out.LoadedStudentNotificationPage;
+import com.ttcs.backend.application.port.out.NotificationCreateCommand;
+import com.ttcs.backend.application.port.out.RealtimeNotificationMessage;
+import com.ttcs.backend.application.port.out.SaveNotificationPort;
+import com.ttcs.backend.application.port.out.SendRealtimeNotificationPort;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,7 +24,7 @@ class GetStudentNotificationsServiceTest {
     @Test
     void shouldLoadNotificationsWithoutCreatingDeadlineReminders() {
         InMemoryNotificationPort notificationPort = new InMemoryNotificationPort();
-        GetStudentNotificationsService service = new GetStudentNotificationsService(notificationPort);
+        NotificationService service = new NotificationService(notificationPort, noOpSaveNotificationPort(), noOpRealtimeNotificationPort());
 
         List<StudentNotificationResult> results = service.getNotifications(new GetStudentNotificationsQuery(0, 10), 10).items();
 
@@ -43,7 +48,7 @@ class GetStudentNotificationsServiceTest {
                 LocalDateTime.now(),
                 null
         ));
-        GetStudentNotificationsService service = new GetStudentNotificationsService(notificationPort);
+        NotificationService service = new NotificationService(notificationPort, noOpSaveNotificationPort(), noOpRealtimeNotificationPort());
 
         List<StudentNotificationResult> results = service.getNotifications(new GetStudentNotificationsQuery(0, 10), 10).items();
 
@@ -74,10 +79,27 @@ class GetStudentNotificationsServiceTest {
         }
 
         @Override
+        public List<LoadedStudentNotification> loadUnread(Integer userId) {
+            return notifications.stream()
+                    .filter(item -> item.readAt() == null)
+                    .toList();
+        }
+
+        @Override
+        public long countUnread(Integer userId) {
+            return notifications.stream().filter(item -> item.readAt() == null).count();
+        }
+
+        @Override
         public boolean existsForUserAndSurvey(Integer userId, String type, Integer surveyId) {
             return notifications.stream().anyMatch(item ->
                     item.type().equals(type) && item.surveyId() != null && item.surveyId().equals(surveyId)
             );
+        }
+
+        @Override
+        public boolean existsForUserAndSurveyOnDate(Integer userId, String type, Integer surveyId, LocalDate date) {
+            return existsForUserAndSurvey(userId, type, surveyId);
         }
 
         @Override
@@ -91,5 +113,22 @@ class GetStudentNotificationsServiceTest {
             markAllAsReadCalls++;
             return 0;
         }
+    }
+
+    private SaveNotificationPort noOpSaveNotificationPort() {
+        return new SaveNotificationPort() {
+            @Override
+            public List<Integer> create(NotificationCreateCommand command) {
+                return List.of();
+            }
+        };
+    }
+
+    private SendRealtimeNotificationPort noOpRealtimeNotificationPort() {
+        return new SendRealtimeNotificationPort() {
+            @Override
+            public void sendToUser(Integer userId, RealtimeNotificationMessage message) {
+            }
+        };
     }
 }

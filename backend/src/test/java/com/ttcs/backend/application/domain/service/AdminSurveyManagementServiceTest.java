@@ -19,6 +19,7 @@ import com.ttcs.backend.application.domain.model.User;
 import com.ttcs.backend.application.port.in.admin.SurveyManagementActionResult;
 import com.ttcs.backend.application.port.in.admin.UpdateSurveyCommand;
 import com.ttcs.backend.application.port.in.admin.UpdateSurveyQuestionCommand;
+import com.ttcs.backend.application.port.in.resultview.SendNotificationToUserUseCase;
 import com.ttcs.backend.application.port.out.LoadQuestionPort;
 import com.ttcs.backend.application.port.out.LoadSurveyRecipientCandidatePort;
 import com.ttcs.backend.application.port.out.LoadSurveyRecipientPort;
@@ -110,8 +111,10 @@ class AdminSurveyManagementServiceTest {
         assertEquals(2, state.recipients.size());
         assertEquals(1, state.auditLogs.size());
         assertEquals(AuditActionType.SURVEY_PUBLISHED, state.auditLogs.getFirst().getActionType());
+        assertEquals(2, state.notifications.size());
         assertEquals("SURVEY_PUBLISHED", state.notifications.getFirst().type());
-        assertEquals(List.of(103, 104), state.notifications.getFirst().recipientUserIds());
+        assertEquals(List.of(103), state.notifications.getFirst().recipientUserIds());
+        assertEquals(List.of(104), state.notifications.get(1).recipientUserIds());
         assertEquals(1, state.studentBulkLoadCount);
         assertEquals(0, state.studentSingleLoadCount);
         assertEquals("SURVEY_TITLE", state.translationTasks.get(0).entityType());
@@ -136,10 +139,13 @@ class AdminSurveyManagementServiceTest {
         SurveyManagementActionResult result = service.publishSurvey(1, 1);
 
         assertTrue(result.success());
-        assertEquals(2, state.notifications.size());
+        assertEquals(4, state.notifications.size());
         assertEquals("SURVEY_PUBLISHED", state.notifications.get(0).type());
-        assertEquals("SURVEY_DEADLINE_REMINDER", state.notifications.get(1).type());
-        assertEquals(List.of(103, 104), state.notifications.get(1).recipientUserIds());
+        assertEquals("SURVEY_PUBLISHED", state.notifications.get(1).type());
+        assertEquals("SURVEY_DEADLINE_REMINDER", state.notifications.get(2).type());
+        assertEquals("SURVEY_DEADLINE_REMINDER", state.notifications.get(3).type());
+        assertEquals(List.of(103), state.notifications.get(2).recipientUserIds());
+        assertEquals(List.of(104), state.notifications.get(3).recipientUserIds());
     }
 
     @Test
@@ -331,7 +337,7 @@ class AdminSurveyManagementServiceTest {
                 new CandidatePort(state),
                 new StudentPort(state),
                 new AuditPort(state),
-                command -> state.notifications.add(command),
+                new NotificationUseCase(state),
                 new ManageSurveyQueryPort(state),
                 command -> state.translationTasks.add(command)
         );
@@ -362,7 +368,7 @@ class AdminSurveyManagementServiceTest {
                     "Initial Survey",
                     "Initial description",
                     LocalDateTime.now().minusDays(2),
-                    LocalDateTime.now().plusDays(2),
+                    LocalDateTime.now().plusDays(5),
                     1,
                     false,
                     lifecycleState
@@ -616,6 +622,41 @@ class AdminSurveyManagementServiceTest {
         public AuditLog save(AuditLog auditLog) {
             state.auditLogs.add(auditLog);
             return auditLog;
+        }
+    }
+
+    private static final class NotificationUseCase implements SendNotificationToUserUseCase {
+        private final InMemorySurveyState state;
+
+        private NotificationUseCase(InMemorySurveyState state) {
+            this.state = state;
+        }
+
+        @Override
+        public void sendNotificationToUser(Integer userId, String message, String type) {
+            sendSurveyNotificationToUser(userId, message, type, null, "Notification", null, null);
+        }
+
+        @Override
+        public void sendSurveyNotificationToUser(
+                Integer userId,
+                String message,
+                String type,
+                Integer surveyId,
+                String title,
+                String actionLabel,
+                String metadata
+        ) {
+            state.notifications.add(new NotificationCreateCommand(
+                    type,
+                    title,
+                    message,
+                    surveyId,
+                    actionLabel,
+                    null,
+                    metadata,
+                    List.of(userId)
+            ));
         }
     }
 

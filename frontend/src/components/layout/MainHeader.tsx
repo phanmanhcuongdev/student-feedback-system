@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getDefaultAppRoute } from "../../features/auth/defaultRoute";
 import { useAuth } from "../../features/auth/useAuth";
+import NotificationBell from "../../features/notifications/NotificationBell";
 import { getRoleLabelKey, getStatusLabelKey } from "./appNavigation";
 import LanguageSwitcher from "./LanguageSwitcher";
 
@@ -117,6 +118,7 @@ export default function MainHeader() {
 
                 <div className="flex items-center gap-3">
                     <LanguageSwitcher />
+                    {isStudent ? <NotificationBell /> : null}
                     {session && (
                         <div className="hidden items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 md:flex">
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">

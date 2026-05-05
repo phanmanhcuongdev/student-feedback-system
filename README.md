@@ -20,7 +20,7 @@ The current implementation supports:
 - PDF/XLSX survey result export for admins
 - Admin analytics dashboard with lifecycle, participation, and attention metrics
 - Admin audit log viewer for privileged actions
-- Persisted student notifications with read/unread state
+- Persisted student notifications with read/unread state, WebSocket realtime delivery, and scheduled survey deadline reminders
 - Shared authenticated frontend shell with role-aware navigation
 - Account area for current-user overview and password management
 - Admin user management with backend-backed search, filter, pagination, and sort
@@ -29,11 +29,11 @@ The current implementation supports:
 
 ## Tech Stack
 
-- Backend: Java 21, Spring Boot 4, Spring MVC, Spring Security, Spring Data JPA, Flyway
+- Backend: Java 21, Spring Boot 4, Spring MVC, Spring Security, Spring WebSocket, Spring Data JPA, Flyway
 - Database: Microsoft SQL Server
 - Authentication: JWT bearer tokens
 - Email delivery: Resend API
-- Frontend: React 19, TypeScript, Vite, React Router, Axios, Tailwind CSS
+- Frontend: React 19, TypeScript, Vite, React Router, Axios, STOMP/SockJS, Tailwind CSS
 - CI: GitHub Actions
 - Container images: Docker for backend and frontend
 
@@ -80,6 +80,9 @@ RESEND_API_KEY=re_...
 APP_MAIL_FROM=noreply@cuongdso.id.vn
 RESEND_API_URL=https://api.resend.com/emails
 APP_WEB_ALLOWED_ORIGINS=http://localhost:5173
+APP_NOTIFICATIONS_SURVEY_REMINDER_CRON=0 */5 * * * *
+APP_NOTIFICATIONS_SURVEY_REMINDER_ZONE=Asia/Ho_Chi_Minh
+APP_NOTIFICATIONS_SURVEY_REMINDER_WINDOW_HOURS=24
 
 APP_STORAGE_MINIO_ENDPOINT=http://localhost:9000
 APP_STORAGE_MINIO_ACCESS_KEY=minioadmin
@@ -108,6 +111,7 @@ Notes:
 - `spring.flyway.baseline-on-migrate=true` is enabled so an existing SQL Server database can be brought under Flyway management without replaying the initial schema migration.
 - `backend/src/main/resources/db/migration/V1__initial_schema.sql` is the baseline schema migration used for new environments.
 - `backend/src/main/resources/db/migration/V2__notification_module.sql` extends notification storage with type, title, survey metadata, delivery timestamp, and read state.
+- `backend/src/main/resources/db/migration/V14__optimize_notification_query.sql` adds a filtered unread-notification index for faster badge and unread-list queries.
 - For a new database, let Flyway apply the versioned scripts at startup. The legacy `database/full_schema.sql` and `database/migrations/` files are still useful as reference SQL, but the application now runs migrations from the Flyway folder.
 - Resend must be configured if you want registration to send a real verification email. If `RESEND_API_KEY` is missing, registration email delivery will fail by design.
 
@@ -221,6 +225,9 @@ $env:RESEND_API_KEY="re_..."
 $env:APP_MAIL_FROM="noreply@cuongdso.id.vn"
 $env:RESEND_API_URL="https://api.resend.com/emails"
 $env:APP_WEB_ALLOWED_ORIGINS="http://localhost:5173"
+$env:APP_NOTIFICATIONS_SURVEY_REMINDER_CRON="0 */5 * * * *"
+$env:APP_NOTIFICATIONS_SURVEY_REMINDER_ZONE="Asia/Ho_Chi_Minh"
+$env:APP_NOTIFICATIONS_SURVEY_REMINDER_WINDOW_HOURS="24"
 $env:MINIO_ACCESS_KEY="your-access-key"
 $env:MINIO_SECRET_KEY="your-secret-key"
 $env:MINIO_BUCKET="student-feedback-bucket"
@@ -325,7 +332,9 @@ Compatibility note:
 1. Sign in with an admin account
 2. Open `/dashboard/admin` for survey lifecycle, participation, department, and attention metrics
 3. Open `/admin/audit-logs` to inspect successful privileged actions with filters and pagination
-4. Sign in as a student and open `/notifications` to review survey and onboarding notifications, filter unread items, and mark items as read
+4. Sign in as a student and watch the notification bell in the app header
+5. Open `/notifications` to review survey and onboarding notifications, filter unread items, and mark items as read
+6. Keep the student UI open while an admin publishes a survey or while a survey deadline reminder is generated; a realtime toast should appear and the bell badge should update without reload
 
 ### User administration
 
@@ -363,7 +372,10 @@ Compatibility note:
 - Student survey completion state is derived from `Survey_Recipient.submitted_at`, not a frontend-only flag.
 - Student survey list/detail responses prefer bilingual survey title and description columns when translated content exists.
 - Student survey text responses publish `SURVEY_RESPONSE` translation tasks after submit and persist bilingual comment columns on `Response_Detail`.
-- Notification deadline reminders are generated lazily when the student opens the notification center; no scheduler platform is used in the current implementation.
+- Student notifications are persisted in SQL Server and delivered realtime over STOMP/SockJS when the student is online.
+- The student header shows a notification bell with the unread count from `GET /api/v1/notifications/unread-count`.
+- Realtime notification toasts are private user messages delivered through `/user/topic/notifications`; clicking a toast marks it read and navigates to the relevant survey or onboarding page.
+- Notification deadline reminders are generated by `SurveyReminderTask`, which runs on `APP_NOTIFICATIONS_SURVEY_REMINDER_CRON` and skips duplicates for the same student, survey, type, and day.
 - Seed accounts in `database/seed_data.sql` are BCrypt-compatible and can be used directly after import:
   - `admin@university.edu` / `admin123`
   - `lecturer@university.edu` / `lecturer123`

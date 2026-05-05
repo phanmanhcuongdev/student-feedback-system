@@ -32,6 +32,7 @@ import com.ttcs.backend.application.port.in.admin.SurveyManagementSummaryResult;
 import com.ttcs.backend.application.port.in.admin.UpdateSurveyCommand;
 import com.ttcs.backend.application.port.in.admin.UpdateSurveyQuestionCommand;
 import com.ttcs.backend.application.port.in.admin.UpdateSurveyUseCase;
+import com.ttcs.backend.application.port.in.resultview.SendNotificationToUserUseCase;
 import com.ttcs.backend.application.port.out.LoadQuestionPort;
 import com.ttcs.backend.application.port.out.LoadSurveyRecipientCandidatePort;
 import com.ttcs.backend.application.port.out.LoadSurveyRecipientPort;
@@ -39,10 +40,8 @@ import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResponsePort;
 import com.ttcs.backend.application.port.out.LoadStudentPort;
-import com.ttcs.backend.application.port.out.NotificationCreateCommand;
 import com.ttcs.backend.application.port.out.SaveQuestionPort;
 import com.ttcs.backend.application.port.out.SaveAuditLogPort;
-import com.ttcs.backend.application.port.out.SaveNotificationPort;
 import com.ttcs.backend.application.port.out.SaveSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.SaveSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.SaveSurveyPort;
@@ -85,7 +84,7 @@ public class AdminSurveyManagementService implements
     private final LoadSurveyRecipientCandidatePort loadSurveyRecipientCandidatePort;
     private final LoadStudentPort loadStudentPort;
     private final SaveAuditLogPort saveAuditLogPort;
-    private final SaveNotificationPort saveNotificationPort;
+    private final SendNotificationToUserUseCase sendNotificationToUserUseCase;
     private final ManageSurveyPort manageSurveyPort;
     private final SendTranslationTaskPort sendTranslationTaskPort;
 
@@ -103,7 +102,7 @@ public class AdminSurveyManagementService implements
             LoadSurveyRecipientCandidatePort loadSurveyRecipientCandidatePort,
             LoadStudentPort loadStudentPort,
             SaveAuditLogPort saveAuditLogPort,
-            SaveNotificationPort saveNotificationPort,
+            SendNotificationToUserUseCase sendNotificationToUserUseCase,
             ManageSurveyPort manageSurveyPort,
             SendTranslationTaskPort sendTranslationTaskPort
     ) {
@@ -119,7 +118,7 @@ public class AdminSurveyManagementService implements
         this.loadSurveyRecipientCandidatePort = loadSurveyRecipientCandidatePort;
         this.loadStudentPort = loadStudentPort;
         this.saveAuditLogPort = saveAuditLogPort;
-        this.saveNotificationPort = saveNotificationPort;
+        this.sendNotificationToUserUseCase = sendNotificationToUserUseCase;
         this.manageSurveyPort = manageSurveyPort;
         this.sendTranslationTaskPort = sendTranslationTaskPort;
     }
@@ -137,7 +136,7 @@ public class AdminSurveyManagementService implements
             LoadSurveyRecipientCandidatePort loadSurveyRecipientCandidatePort,
             LoadStudentPort loadStudentPort,
             SaveAuditLogPort saveAuditLogPort,
-            SaveNotificationPort saveNotificationPort,
+            SendNotificationToUserUseCase sendNotificationToUserUseCase,
             ManageSurveyPort manageSurveyPort
     ) {
         this(
@@ -153,7 +152,7 @@ public class AdminSurveyManagementService implements
                 loadSurveyRecipientCandidatePort,
                 loadStudentPort,
                 saveAuditLogPort,
-                saveNotificationPort,
+                sendNotificationToUserUseCase,
                 manageSurveyPort,
                 command -> {
                 }
@@ -399,16 +398,7 @@ public class AdminSurveyManagementService implements
         ));
         List<Integer> recipientUserIds = recipientUserIds(recipients);
         if (!recipientUserIds.isEmpty()) {
-            saveNotificationPort.create(new NotificationCreateCommand(
-                    "SURVEY_PUBLISHED",
-                    "New survey available",
-                    "A new survey is available for responses: " + survey.getTitle(),
-                    survey.getId(),
-                    "Open survey",
-                    actorUserId,
-                    "recipients=" + recipients.size(),
-                    recipientUserIds
-            ));
+            sendSurveyPublishedNotificationToRecipients(publishedSurvey, recipientUserIds, recipients.size());
             createDeadlineReminderForClosingSoonSurvey(publishedSurvey, recipientUserIds);
         }
 
@@ -668,15 +658,26 @@ public class AdminSurveyManagementService implements
             return;
         }
 
-        saveNotificationPort.create(new NotificationCreateCommand(
-                "SURVEY_DEADLINE_REMINDER",
-                "Survey closing soon",
+        recipientUserIds.forEach(userId -> sendNotificationToUserUseCase.sendSurveyNotificationToUser(
+                userId,
                 "The survey \"" + survey.getTitle() + "\" is closing soon. Submit before the deadline.",
+                "SURVEY_DEADLINE_REMINDER",
                 survey.getId(),
+                "Survey closing soon",
                 "Respond now",
-                null,
-                "deadline=" + safeEventAt(survey.getEndDate(), now),
-                recipientUserIds
+                "deadline=" + safeEventAt(survey.getEndDate(), now)
+        ));
+    }
+
+    private void sendSurveyPublishedNotificationToRecipients(Survey survey, List<Integer> recipientUserIds, int recipientCount) {
+        recipientUserIds.forEach(userId -> sendNotificationToUserUseCase.sendSurveyNotificationToUser(
+                userId,
+                "A new survey is available for responses: " + survey.getTitle(),
+                "SURVEY_PUBLISHED",
+                survey.getId(),
+                "New survey available",
+                "Open survey",
+                "recipients=" + recipientCount
         ));
     }
 
