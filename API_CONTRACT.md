@@ -282,6 +282,17 @@ Private subscription:
 - Server-side delivery uses `convertAndSendToUser(userId, "/topic/notifications", payload)`.
 - Realtime payload includes the notification-recipient `id`, so clients can mark the toast notification as read before navigation.
 
+Expected frontend behavior:
+
+- Student UI shows a notification bell in the authenticated header.
+- The bell badge is initialized from `GET /api/v1/notifications/unread-count`.
+- When a realtime message arrives on `/user/topic/notifications`, the UI shows a toast popup immediately and increments the bell badge without reloading the page.
+- Clicking a toast calls `POST /api/v1/notifications/{notificationId}/read` using the realtime payload `id`, then navigates to the relevant screen.
+- Clicking a notification list item also marks it read before navigation.
+- Survey notification navigation targets `/surveys/{surveyId}` when `surveyId` is present.
+- Onboarding rejection navigation targets `/upload-documents`.
+- Onboarding approval navigation targets `/dashboard/student`.
+
 ## Admin Analytics
 
 ### `GET /api/admin/analytics/overview`
