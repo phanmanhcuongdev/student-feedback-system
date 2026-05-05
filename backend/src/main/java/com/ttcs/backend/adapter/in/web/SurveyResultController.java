@@ -17,6 +17,7 @@ import com.ttcs.backend.application.port.in.resultview.SurveyResultPageResult;
 import com.ttcs.backend.application.port.in.resultview.SurveyResultSummaryResult;
 import com.ttcs.backend.common.WebAdapter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -105,18 +106,22 @@ public class SurveyResultController {
     }
 
     @GetMapping("/{surveyId}/export")
-    public ResponseEntity<byte[]> exportSurveyResult(@PathVariable Integer surveyId) {
+    public ResponseEntity<ByteArrayResource> exportSurveyResult(
+            @PathVariable Integer surveyId,
+            @RequestParam(defaultValue = "pdf") String format
+    ) {
         ExportedReport result = exportSurveyReportUseCase.exportSurveyReport(
                 surveyId,
                 currentIdentityProvider.currentUserId(),
-                currentIdentityProvider.currentRole()
+                currentIdentityProvider.currentRole(),
+                format
         );
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType(result.contentType()));
         headers.setContentDisposition(ContentDisposition.attachment()
                 .filename(result.filename())
                 .build());
-        return new ResponseEntity<>(result.content(), headers, HttpStatus.OK);
+        return new ResponseEntity<>(new ByteArrayResource(result.content()), headers, HttpStatus.OK);
     }
 
     private SurveyResultSummaryResponse toSummaryResponse(SurveyResultSummaryResult result) {

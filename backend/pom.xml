@@ -28,6 +28,13 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <eclipse.core.runtime.version>3.34.200</eclipse.core.runtime.version>
+        <eclipse.equinox.common.version>3.20.300</eclipse.equinox.common.version>
+        <eclipse.equinox.registry.version>3.12.600</eclipse.equinox.registry.version>
+        <eclipse.osgi.version>3.24.100</eclipse.osgi.version>
+        <eclipse.emf.common.version>2.31.0</eclipse.emf.common.version>
+        <eclipse.emf.ecore.version>2.33.0</eclipse.emf.ecore.version>
+        <eclipse.emf.ecore.xmi.version>2.18.0</eclipse.emf.ecore.xmi.version>
     </properties>
     <dependencies>
         <dependency>
@@ -41,6 +48,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -61,6 +72,87 @@
         <dependency>
             <groupId>org.apache.httpcomponents.client5</groupId>
             <artifactId>httpclient5</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>eu.eureka-bpo.birt</groupId>
+            <artifactId>org.eclipse.birt.runtime</artifactId>
+            <version>4.13.0.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-nop</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.platform</groupId>
+            <artifactId>org.eclipse.core.runtime</artifactId>
+            <version>${eclipse.core.runtime.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.platform</groupId>
+            <artifactId>org.eclipse.equinox.common</artifactId>
+            <version>${eclipse.equinox.common.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.platform</groupId>
+            <artifactId>org.eclipse.equinox.registry</artifactId>
+            <version>${eclipse.equinox.registry.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.platform</groupId>
+            <artifactId>org.eclipse.osgi</artifactId>
+            <version>${eclipse.osgi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.emf</groupId>
+            <artifactId>org.eclipse.emf.common</artifactId>
+            <version>${eclipse.emf.common.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.emf</groupId>
+            <artifactId>org.eclipse.emf.ecore</artifactId>
+            <version>${eclipse.emf.ecore.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.emf</groupId>
+            <artifactId>org.eclipse.emf.ecore.xmi</artifactId>
+            <version>${eclipse.emf.ecore.xmi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.birt.dependencies</groupId>
+            <artifactId>org.eclipse.datatools.connectivity.oda</artifactId>
+            <version>3.7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ibm.icu</groupId>
+            <artifactId>icu4j</artifactId>
+            <version>72.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mozilla</groupId>
+            <artifactId>rhino</artifactId>
+            <version>1.7.14</version>
+        </dependency>
+        <dependency>
+            <groupId>org.w3c.css</groupId>
+            <artifactId>sac</artifactId>
+            <version>1.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.xmlgraphics</groupId>
+            <artifactId>batik-css</artifactId>
+            <version>1.19</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>1.3.30</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.3</version>
         </dependency>
 
         <dependency>
@@ -105,6 +197,11 @@
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
             <version>8.5.17</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>33.4.8-jre</version>
         </dependency>
 
         <dependency>

@@ -14,9 +14,9 @@ It handles:
 - Admin user management queries and mutations
 - Admin survey management lifecycle actions and operational queries
 - Question Bank and Survey Template administration
-- Survey analytics overview and CSV result export
+- Survey analytics overview and PDF/XLSX result export
 - Admin audit log viewing
-- Persisted student notifications with read/unread state
+- Persisted student notifications with read/unread state, WebSocket realtime delivery, and scheduled survey deadline reminders
 - Feedback reply handling for staff roles
 
 ## Stack
@@ -25,10 +25,12 @@ It handles:
 - Spring Boot 4
 - Spring MVC
 - Spring Security
+- Spring WebSocket / STOMP
 - Spring Data JPA
 - Flyway
 - Microsoft SQL Server
 - Resend API for verification emails
+- Eclipse BIRT for PDF/XLSX survey report export
 
 ## Project Structure
 
@@ -60,18 +62,22 @@ APP_RESET_PASSWORD_URL_BASE=http://localhost:5173
 APP_RESET_PASSWORD_EXPIRATION_MINUTES=30
 
 RESEND_API_KEY=
-APP_MAIL_FROM=noreply@cuongdso.id.vn
+APP_MAIL_FROM=noreply@example.com
 RESEND_API_URL=https://api.resend.com/emails
 APP_WEB_ALLOWED_ORIGINS=http://localhost:5173
-
-MINIO_ACCESS_KEY=
-MINIO_SECRET_KEY=
-MINIO_BUCKET=student-feedback-bucket
-MINIO_URL=http://localhost:9000
+APP_NOTIFICATIONS_SURVEY_REMINDER_CRON=0 */5 * * * *
+APP_NOTIFICATIONS_SURVEY_REMINDER_ZONE=Asia/Ho_Chi_Minh
+APP_NOTIFICATIONS_SURVEY_REMINDER_WINDOW_HOURS=24
 
 APP_STORAGE_MINIO_ACCESS_KEY=
 APP_STORAGE_MINIO_SECRET_KEY=
+APP_STORAGE_MINIO_BUCKET=student-documents
 APP_STORAGE_MINIO_ENDPOINT=http://localhost:9000
+
+APP_AI_API_KEY=
+RABBITMQ_HOST=localhost
+RABBITMQ_PASSWORD=guest
+APP_REPORTS_BIRT_TEMPLATE_PATH=classpath:/reports/survey_template.rptdesign
 ```
 
 Important notes:
@@ -79,8 +85,28 @@ Important notes:
 - Flyway manages schema creation and migration before Hibernate validation runs.
 - Email verification uses Resend. Registration will not silently fake success if email delivery is unavailable.
 - SQL Server is the only database wired in the current configuration.
-- `backend/.env.dev` is the canonical env reference for backend variable names in this repo.
-- Spring Boot reads MinIO client config from `APP_STORAGE_MINIO_*`, while the same canonical env file also carries `MINIO_*` values for MinIO service/container setup.
+- [../.env.example](../.env.example) is the canonical safe env reference for backend variable names. Keep real local `.env.*` files out of Git.
+- Spring Boot reads MinIO client config from `APP_STORAGE_MINIO_*`.
+- Spring Boot reads the BIRT report template from `APP_REPORTS_BIRT_TEMPLATE_PATH`, defaulting to `classpath:/reports/survey_template.rptdesign`.
+- WebSocket CORS uses `APP_WEB_ALLOWED_ORIGINS`, matching the REST CORS configuration.
+- Survey deadline reminders default to a 5-minute test cron, Asia/Ho_Chi_Minh timezone, and a 24-hour deadline window. Override `APP_NOTIFICATIONS_SURVEY_REMINDER_*` for production.
+
+## BIRT Report Export
+
+Survey result export follows the same ports-and-adapters boundary as the rest of the backend:
+
+```text
+SurveyResultController
+  -> SurveyReportExportService
+      -> LoadSurveyReportPort
+          -> SurveyResultPersistenceAdapter
+              -> SurveyReportDataAssembler
+      -> BirtSurveyReportRenderer
+```
+
+The active template is [`src/main/resources/reports/survey_template.rptdesign`](src/main/resources/reports/survey_template.rptdesign). The renderer loads it from the classpath, injects prepared POJO data into BIRT appContext, and hydrates the executive dashboard, participation funnel, question table, and grid-based rating chart fallback at render time.
+
+Install Roboto on the backend host before rendering PDF reports so Vietnamese text is embedded consistently.
 
 ## Flyway Integration
 
@@ -95,6 +121,8 @@ Flyway is configured through Spring Boot 4 auto-configuration.
   - [`src/main/resources/db/migration/V1__initial_schema.sql`](src/main/resources/db/migration/V1__initial_schema.sql)
 - Current notification module migration:
   - [`src/main/resources/db/migration/V2__notification_module.sql`](src/main/resources/db/migration/V2__notification_module.sql)
+- Current notification query optimization:
+  - [`src/main/resources/db/migration/V14__optimize_notification_query.sql`](src/main/resources/db/migration/V14__optimize_notification_query.sql)
 
 The active Flyway properties in [`src/main/resources/application.yaml`](src/main/resources/application.yaml) are:
 
@@ -160,12 +188,79 @@ Backend runs on:
   Returns paginated privileged-action audit records.
 - `GET /api/v1/notifications`
   Returns persisted student notifications with read/unread metadata.
+- `GET /api/v1/notifications/unread-count`
+  Returns the current student's unread notification count for the UI bell badge.
+- `POST /api/v1/notifications/{notificationId}/read`
+  Marks one notification-recipient row as read for the current student.
+- `POST /api/v1/notifications/read-all`
+  Marks all unread notification-recipient rows as read for the current student.
+
+## Realtime Notifications
+
+Student notifications are both persisted and delivered in realtime.
+
+Backend flow:
+
+```text
+NotificationService
+  -> SaveNotificationPort
+      -> NotificationPersistenceAdapter
+          -> Notification / Notification_User rows
+  -> SendRealtimeNotificationPort
+      -> WebSocketNotificationAdapter
+          -> convertAndSendToUser(userId, "/topic/notifications", payload)
+```
+
+WebSocket setup:
+
+- STOMP endpoint: `/ws-notifications`
+- SockJS fallback: enabled
+- Client subscription: `/user/topic/notifications`
+- Message destination for server-side private send: `/topic/notifications`
+- Application destination prefix: `/app`
+
+Authentication:
+
+- The HTTP handshake path `/ws-notifications/**` is permitted by REST security so SockJS can connect.
+- Actual STOMP authentication happens in `AuthChannelInterceptor` on the `CONNECT` frame.
+- Clients must send native STOMP header `Authorization: Bearer <accessToken>`.
+- The interceptor validates the JWT through `JwtTokenPort` and sets the STOMP `Principal` name to the JWT `userId`.
+- Private delivery uses that user id, so one student's notification is not broadcast to other connected students.
+
+Realtime payload includes:
+
+- `id`: `Notification_User.id`, used by the frontend to mark a toast notification as read
+- `type`
+- `title`
+- `message`
+- `surveyId`
+- `actionLabel`
+- `eventAt`
+
+## Survey Reminder Task
+
+`SurveyReminderTask` is enabled through `@EnableScheduling` on the Spring Boot application.
+
+Default behavior:
+
+- Runs every 5 minutes by default: `0 */5 * * * *`
+- Looks for published, visible surveys ending within the configured window
+- Selects assigned students whose `Survey_Recipient.submitted_at` is still null
+- Skips reminders already sent for the same user, survey, type, and day
+- Sends each reminder through `SendNotificationToUserUseCase`
+
+Resilience:
+
+- Each candidate is handled inside its own `try-catch`.
+- If one user/survey reminder fails, the task logs a warning with `userId` and `surveyId`, then continues with the next candidate.
 
 ## Development Notes
 
 - Controllers stay in `adapter.in.web`.
 - Business logic stays in `application.domain.service`.
 - External service calls such as Resend stay in `adapter.out`.
+- Realtime push stays behind `SendRealtimeNotificationPort`; domain services must not depend on Spring WebSocket APIs directly.
+- Scheduled reminder candidate lookup stays behind `LoadSurveyReminderCandidatePort`; scheduled code must not call repositories directly.
 - If you update environment variables, restart the application so Spring picks them up.
 - Department lookup endpoints currently support operational filters for user and survey management screens.
 - Add future schema changes as new versioned files under `src/main/resources/db/migration`, not by editing an already-applied migration.

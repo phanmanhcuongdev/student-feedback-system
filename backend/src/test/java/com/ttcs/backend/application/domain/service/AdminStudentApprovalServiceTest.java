@@ -239,8 +239,9 @@ class AdminStudentApprovalServiceTest {
         private final List<NotificationCreateCommand> commands = new ArrayList<>();
 
         @Override
-        public void create(NotificationCreateCommand command) {
+        public List<Integer> create(NotificationCreateCommand command) {
             commands.add(command);
+            return List.of(commands.size());
         }
     }
 }

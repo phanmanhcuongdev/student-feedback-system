@@ -49,6 +49,7 @@ public class SecurityConfig {
                                 "/api/auth/reset-password"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/verify-email", "/api/auth/verify-email/**").permitAll()
+                        .requestMatchers("/ws-notifications/**").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"

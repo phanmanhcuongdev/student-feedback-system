@@ -3,6 +3,8 @@ package com.ttcs.backend.adapter.in.web;
 import com.ttcs.backend.adapter.in.web.dto.NotificationActionResponse;
 import com.ttcs.backend.adapter.in.web.dto.StudentNotificationResponse;
 import com.ttcs.backend.adapter.in.web.dto.StudentNotificationPageResponse;
+import com.ttcs.backend.adapter.in.web.dto.UnreadNotificationCountResponse;
+import com.ttcs.backend.application.port.in.resultview.CountUnreadNotificationsUseCase;
 import com.ttcs.backend.application.port.in.resultview.GetStudentNotificationsQuery;
 import com.ttcs.backend.application.port.in.resultview.GetStudentNotificationsUseCase;
 import com.ttcs.backend.application.port.in.resultview.MarkStudentNotificationReadUseCase;
@@ -27,6 +29,7 @@ public class NotificationController {
 
     private final GetStudentNotificationsUseCase getStudentNotificationsUseCase;
     private final MarkStudentNotificationReadUseCase markStudentNotificationReadUseCase;
+    private final CountUnreadNotificationsUseCase countUnreadNotificationsUseCase;
     private final CurrentIdentityProvider currentIdentityProvider;
 
     @GetMapping
@@ -47,6 +50,13 @@ public class NotificationController {
                 result.totalElements(),
                 result.totalPages(),
                 result.unreadCount()
+        ));
+    }
+
+    @GetMapping("/unread-count")
+    public ResponseEntity<UnreadNotificationCountResponse> getUnreadCount() {
+        return ResponseEntity.ok(new UnreadNotificationCountResponse(
+                countUnreadNotificationsUseCase.countUnreadNotifications(currentStudentUserId())
         ));
     }
 

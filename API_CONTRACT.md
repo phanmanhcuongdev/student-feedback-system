@@ -237,7 +237,8 @@ Rules:
 
 - Student notification access requires role `STUDENT`, but does not require the onboarding status to be `ACTIVE`. This lets rejected students read onboarding feedback notifications.
 - Survey-publish notifications are created when an admin publishes a survey.
-- Deadline reminders are created lazily when the student opens the notification center and has an open, unsubmitted survey near its end date.
+- Deadline reminders are created by a scheduled task for open, unsubmitted surveys near their end date.
+- Deadline reminders are not duplicated for the same student, survey, type, and day.
 - Onboarding approval/rejection notifications are created when admin completes the review action.
 - Response is a paged envelope with `items`, `page`, `size`, `totalElements`, `totalPages`, and `unreadCount`.
 
@@ -258,9 +259,39 @@ Notification item fields include:
 
 Marks one notification-recipient row as read for the current student.
 
+### `GET /api/v1/notifications/unread-count`
+
+Returns `{ "unreadCount": number }` for the authenticated student.
+
 ### `POST /api/v1/notifications/read-all`
 
 Marks all unread notification-recipient rows as read for the current student.
+
+### WebSocket notifications
+
+Clients can connect to STOMP endpoint `/ws-notifications` with SockJS.
+
+Authentication:
+
+- Send the JWT in the STOMP `CONNECT` native header: `Authorization: Bearer <accessToken>`.
+- The server resolves the token user id as the STOMP `Principal`.
+
+Private subscription:
+
+- Subscribe to `/user/topic/notifications`.
+- Server-side delivery uses `convertAndSendToUser(userId, "/topic/notifications", payload)`.
+- Realtime payload includes the notification-recipient `id`, so clients can mark the toast notification as read before navigation.
+
+Expected frontend behavior:
+
+- Student UI shows a notification bell in the authenticated header.
+- The bell badge is initialized from `GET /api/v1/notifications/unread-count`.
+- When a realtime message arrives on `/user/topic/notifications`, the UI shows a toast popup immediately and increments the bell badge without reloading the page.
+- Clicking a toast calls `POST /api/v1/notifications/{notificationId}/read` using the realtime payload `id`, then navigates to the relevant screen.
+- Clicking a notification list item also marks it read before navigation.
+- Survey notification navigation targets `/surveys/{surveyId}` when `surveyId` is present.
+- Onboarding rejection navigation targets `/upload-documents`.
+- Onboarding approval navigation targets `/dashboard/student`.
 
 ## Admin Analytics
 
@@ -661,9 +692,9 @@ Detail payloads also include:
 - `submittedCount`
 - `responseRate`
 
-### `GET /api/v1/survey-results/{surveyId}/export`
+### `GET /api/v1/survey-results/{surveyId}/export?format=pdf|xlsx`
 
-Exports a CSV report for admin users. The CSV is generated from the same real result data as the detail endpoint and includes:
+Exports a PDF or XLSX report for admin users. The report is generated from the same real result data as the detail endpoint and includes:
 
 - survey summary and lifecycle/runtime status
 - participation metrics

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { isAxiosError } from "axios";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "../../../api/apiError";
 import { generateSurveyAiSummary, getSurveyAiSummary } from "../../../api/surveyAiSummaryApi";
 import { exportSurveyResult, getSurveyResult } from "../../../api/surveyResultApi";
+import type { SurveyReportFormat } from "../../../api/surveyResultApi";
 import EmptyState from "../../../components/ui/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
@@ -39,6 +41,16 @@ function formatDateTime(value: string | null, language: string) {
         hour: "2-digit",
         minute: "2-digit",
     }).format(new Date(value));
+}
+
+function exportExtension(contentType: string) {
+    if (contentType.includes("spreadsheetml")) {
+        return "xlsx";
+    }
+    if (contentType.includes("pdf")) {
+        return "pdf";
+    }
+    return "bin";
 }
 
 function getSummaryStatusLabel(status: string, t: (key: string) => string) {
@@ -108,7 +120,7 @@ export default function SurveyResultDetailPage() {
     const [commentQuery, setCommentQuery] = useState("");
     const [expandedQuestions, setExpandedQuestions] = useState<Record<number, boolean>>({});
     const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
-    const [exporting, setExporting] = useState(false);
+    const [exportingFormat, setExportingFormat] = useState<SurveyReportFormat | null>(null);
     const [aiSummary, setAiSummary] = useState<SurveyAiSummary | null>(null);
     const [aiLoading, setAiLoading] = useState(true);
     const [aiError, setAiError] = useState("");
@@ -195,23 +207,25 @@ export default function SurveyResultDetailPage() {
             .filter((question) => question.comments.length > 0 || question.content.toLowerCase().includes(normalizedQuery));
     }, [commentQuery, textQuestions]);
 
-    async function handleExport() {
+    async function handleExport(format: SurveyReportFormat) {
         try {
-            setExporting(true);
+            setExportingFormat(format);
             setError("");
-            const blob = await exportSurveyResult(surveyId);
+            const blob = await exportSurveyResult(surveyId, format);
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
-            link.download = `survey-${surveyId}-report.csv`;
+            link.download = `survey-${surveyId}-report.${exportExtension(blob.type)}`;
             document.body.appendChild(link);
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
         } catch (requestError) {
-            setError(getApiErrorMessage(requestError, t("surveyResults:surveyResults.errors.export")));
+            setError(isAxiosError(requestError) && requestError.response?.status === 503
+                ? t("surveyResults:surveyResults.errors.renderFailed")
+                : getApiErrorMessage(requestError, t("surveyResults:surveyResults.errors.export")));
         } finally {
-            setExporting(false);
+            setExportingFormat(null);
         }
     }
 
@@ -236,7 +250,10 @@ export default function SurveyResultDetailPage() {
                     description={survey ? t("surveyResults:surveyResults.detail.header.description") : t("surveyResults:surveyResults.detail.header.emptyDescription")}
                     actions={<div className="flex flex-wrap gap-2">
                         {session?.role === "ADMIN" ? (
-                            <button type="button" onClick={() => void handleExport()} disabled={exporting || !survey} className="inline-flex items-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60">{exporting ? t("surveyResults:surveyResults.detail.buttons.exporting") : t("surveyResults:surveyResults.detail.buttons.exportCsv")}</button>
+                            <>
+                                <button type="button" onClick={() => void handleExport("pdf")} disabled={exportingFormat !== null || !survey} className="inline-flex items-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60">{exportingFormat === "pdf" ? t("surveyResults:surveyResults.detail.buttons.exporting") : t("surveyResults:surveyResults.detail.buttons.exportPdf")}</button>
+                                <button type="button" onClick={() => void handleExport("xlsx")} disabled={exportingFormat !== null || !survey} className="inline-flex items-center rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60">{exportingFormat === "xlsx" ? t("surveyResults:surveyResults.detail.buttons.exporting") : t("surveyResults:surveyResults.detail.buttons.exportXlsx")}</button>
+                            </>
                         ) : null}
                         <Link to="/survey-results" className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">{t("surveyResults:surveyResults.detail.buttons.backToResults")}</Link>
                     </div>}

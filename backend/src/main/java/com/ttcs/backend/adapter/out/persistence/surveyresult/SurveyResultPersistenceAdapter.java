@@ -1,6 +1,7 @@
 package com.ttcs.backend.adapter.out.persistence.surveyresult;
 
 import com.ttcs.backend.adapter.out.persistence.DepartmentRepository;
+import com.ttcs.backend.adapter.out.persistence.UserRepository;
 import com.ttcs.backend.adapter.out.persistence.question.QuestionEntity;
 import com.ttcs.backend.adapter.out.persistence.reporting.ReportingSqlFragments;
 import com.ttcs.backend.adapter.out.persistence.responsedetail.ResponseDetailEntity;
@@ -16,8 +17,8 @@ import com.ttcs.backend.application.port.out.LoadSurveyReportPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResultsQuery;
 import com.ttcs.backend.application.port.out.LoadSurveyResultPort;
 import com.ttcs.backend.application.port.out.QuestionStatistics;
+import com.ttcs.backend.application.port.out.EnterpriseSurveyReport;
 import com.ttcs.backend.application.port.out.RatingBreakdown;
-import com.ttcs.backend.application.port.out.SurveyReport;
 import com.ttcs.backend.application.port.out.SurveyReportQuestion;
 import com.ttcs.backend.application.port.out.SurveyReportRatingBreakdown;
 import com.ttcs.backend.application.port.out.SurveyResultDetail;
@@ -49,6 +50,8 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
     private final SurveyRecipientRepository surveyRecipientRepository;
     private final SurveyAssignmentRepository surveyAssignmentRepository;
     private final DepartmentRepository departmentRepository;
+    private final UserRepository userRepository;
+    private final SurveyReportDataAssembler surveyReportDataAssembler;
 
     private static final String RUNTIME_STATUS_SQL = ReportingSqlFragments.runtimeStatus("s");
 
@@ -209,7 +212,7 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
     }
 
     @Override
-    public Optional<SurveyReport> loadSurveyReport(Integer surveyId) {
+    public Optional<EnterpriseSurveyReport> loadSurveyReport(Integer surveyId, Integer generatedByUserId) {
         SurveyEntity survey = surveyRepository.findById(surveyId).orElse(null);
         if (survey == null) {
             return Optional.empty();
@@ -220,34 +223,22 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
         List<ResponseDetailEntity> details = responseDetailRepository.findAllBySurveyIdForResults(surveyId);
         RecipientSummary recipientSummary = recipientSummary(surveyId);
 
-        Map<Integer, List<ResponseDetailEntity>> detailsByQuestionId = new LinkedHashMap<>();
-        for (QuestionEntity question : questions) {
-            detailsByQuestionId.put(question.getId(), new ArrayList<>());
-        }
-        for (ResponseDetailEntity detail : details) {
-            QuestionEntity question = detail.getQuestion();
-            if (question != null) {
-                detailsByQuestionId.computeIfAbsent(question.getId(), key -> new ArrayList<>()).add(detail);
-            }
-        }
+        String runtimeStatus = SurveyMapper.toDomain(survey).status().name();
+        String scope = recipientScope(surveyId);
+        String departmentName = recipientDepartmentName(surveyId);
+        String generatedBy = userRepository.findById(generatedByUserId)
+                .map(user -> user.getEmail())
+                .orElse("unknown");
 
-        return Optional.of(new SurveyReport(
-                survey.getId(),
-                survey.getTitle(),
-                survey.getDescription(),
-                survey.getStartDate(),
-                survey.getEndDate(),
-                survey.getLifecycleState(),
-                SurveyMapper.toDomain(survey).status().name(),
-                recipientScope(surveyId),
-                recipientDepartmentName(surveyId),
-                recipientSummary.targetedCount(),
-                recipientSummary.openedCount(),
-                recipientSummary.submittedCount(),
-                recipientSummary.responseRate(),
-                questions.stream()
-                        .map(question -> toSurveyReportQuestion(question, detailsByQuestionId.getOrDefault(question.getId(), List.of()), normalizedTargetLang))
-                        .toList()
+        return Optional.of(surveyReportDataAssembler.toEnterpriseSurveyReport(
+                localizedSurvey(survey, normalizedTargetLang),
+                runtimeStatus,
+                scope,
+                departmentName,
+                recipientSummary,
+                localizedQuestions(questions, normalizedTargetLang),
+                localizedDetails(details, normalizedTargetLang),
+                generatedBy
         ));
     }
 
@@ -365,6 +356,46 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
                 List.of(),
                 comments
         );
+    }
+
+    private SurveyEntity localizedSurvey(SurveyEntity survey, String targetLang) {
+        SurveyEntity localizedSurvey = new SurveyEntity();
+        localizedSurvey.setId(survey.getId());
+        localizedSurvey.setTitle(displaySurveyTitle(survey, targetLang));
+        localizedSurvey.setDescription(displaySurveyDescription(survey, targetLang));
+        localizedSurvey.setStartDate(survey.getStartDate());
+        localizedSurvey.setEndDate(survey.getEndDate());
+        localizedSurvey.setLifecycleState(survey.getLifecycleState());
+        return localizedSurvey;
+    }
+
+    private List<QuestionEntity> localizedQuestions(List<QuestionEntity> questions, String targetLang) {
+        return questions.stream()
+                .map(question -> localizedQuestion(question, targetLang))
+                .toList();
+    }
+
+    private QuestionEntity localizedQuestion(QuestionEntity question, String targetLang) {
+        QuestionEntity localizedQuestion = new QuestionEntity();
+        localizedQuestion.setId(question.getId());
+        localizedQuestion.setContent(displayQuestionContent(question, targetLang));
+        localizedQuestion.setType(question.getType());
+        return localizedQuestion;
+    }
+
+    private List<ResponseDetailEntity> localizedDetails(List<ResponseDetailEntity> details, String targetLang) {
+        return details.stream()
+                .map(detail -> localizedDetail(detail, targetLang))
+                .toList();
+    }
+
+    private ResponseDetailEntity localizedDetail(ResponseDetailEntity detail, String targetLang) {
+        ResponseDetailEntity localizedDetail = new ResponseDetailEntity();
+        localizedDetail.setId(detail.getId());
+        localizedDetail.setQuestion(detail.getQuestion());
+        localizedDetail.setRating(detail.getRating());
+        localizedDetail.setComment(displayComment(detail, targetLang));
+        return localizedDetail;
     }
 
     private String recipientScope(Integer surveyId) {
@@ -575,6 +606,4 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
         throw new IllegalArgumentException("Unsupported datetime value: " + value.getClass().getName());
     }
 
-    private record RecipientSummary(long targetedCount, long openedCount, long submittedCount, double responseRate) {
-    }
 }

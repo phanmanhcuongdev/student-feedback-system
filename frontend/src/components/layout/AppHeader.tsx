@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../features/auth/useAuth";
+import NotificationBell from "../../features/notifications/NotificationBell";
 import { getRoleLabelKey, getStatusLabelKey } from "./appNavigation";
 import LanguageSwitcher from "./LanguageSwitcher";
 
@@ -73,6 +74,7 @@ export default function AppHeader({ onOpenNavigation }: AppHeaderProps) {
 
                 <div className="flex items-center gap-3">
                     <LanguageSwitcher />
+                    {session.role === "STUDENT" ? <NotificationBell /> : null}
                     <div className="relative" ref={menuRef}>
                         <button
                             type="button"
