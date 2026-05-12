@@ -6,12 +6,14 @@ import com.ttcs.backend.application.port.in.command.SubmitSurveyAnswerCommand;
 import com.ttcs.backend.application.port.in.command.SubmitSurveyCommand;
 import com.ttcs.backend.application.port.in.result.SubmitSurveyResult;
 import com.ttcs.backend.application.port.in.result.SubmitSurveyResultCode;
+import com.ttcs.backend.application.port.in.resultview.RecordSurveyAiSummaryChangeUseCase;
 import com.ttcs.backend.application.port.out.*;
 import com.ttcs.backend.application.port.out.ai.SendTranslationTaskPort;
 import com.ttcs.backend.application.port.out.ai.TranslationTaskCommand;
 import com.ttcs.backend.common.UseCase;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -26,6 +28,7 @@ import java.util.Set;
 @UseCase
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class SubmitSurveyService implements SubmitSurveyUseCase {
 
     private final LoadSurveyPort loadSurveyPort;
@@ -37,6 +40,7 @@ public class SubmitSurveyService implements SubmitSurveyUseCase {
     private final LoadSurveyRecipientPort loadSurveyRecipientPort;
     private final SaveSurveyRecipientPort saveSurveyRecipientPort;
     private final SendTranslationTaskPort sendTranslationTaskPort;
+    private final RecordSurveyAiSummaryChangeUseCase recordSurveyAiSummaryChangeUseCase;
 
     @Override
     public SubmitSurveyResult submitSurvey(SubmitSurveyCommand command) {
@@ -122,6 +126,7 @@ public class SubmitSurveyService implements SubmitSurveyUseCase {
         List<ResponseDetail> responseDetails = validationResult.responseDetails(savedSurveyResponse);
         List<ResponseDetail> savedResponseDetails = saveResponseDetailPort.saveAll(responseDetails);
         sendSurveyResponseTranslationTasksAfterCommit(savedResponseDetails);
+        recordAiSummaryChangesAfterCommit(savedResponseDetails);
         saveSurveyRecipientPort.save(new SurveyRecipient(
                 recipient.getId(),
                 recipient.getSurveyId(),
@@ -157,6 +162,31 @@ public class SubmitSurveyService implements SubmitSurveyUseCase {
             @Override
             public void afterCommit() {
                 dispatch.run();
+            }
+        });
+    }
+
+    private void recordAiSummaryChangesAfterCommit(List<ResponseDetail> responseDetails) {
+        if (responseDetails == null || responseDetails.isEmpty()) {
+            return;
+        }
+
+        Runnable recordChanges = () -> {
+            try {
+                recordSurveyAiSummaryChangeUseCase.recordSubmittedTextComments(responseDetails);
+            } catch (Exception exception) {
+                log.warn("Skip AI summary change tracking because recorder failed: {}", exception.getMessage());
+            }
+        };
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            recordChanges.run();
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                recordChanges.run();
             }
         });
     }

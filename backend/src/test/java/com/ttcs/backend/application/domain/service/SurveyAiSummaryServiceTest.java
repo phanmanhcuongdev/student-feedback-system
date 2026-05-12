@@ -50,7 +50,8 @@ class SurveyAiSummaryServiceTest {
                 loadSurveyAiSummaryPort,
                 generateSurveyCommentSummaryPort,
                 saveSurveyAiSummaryPort,
-                selfProvider
+                selfProvider,
+                new SurveyAiSummaryChangeScorer()
         );
         serviceRef.set(service);
         when(selfProvider.getObject()).thenAnswer(invocation -> serviceRef.get());
@@ -125,7 +126,52 @@ class SurveyAiSummaryServiceTest {
         verify(saveSurveyAiSummaryPort, never()).markJobCompleted(any(), any(), any());
     }
 
+    @Test
+    void shouldReuseExistingSummaryWithoutLoadingPayloadWhenPendingChangesAreMinor() {
+        givenSurveyOnly();
+        when(loadSurveyAiSummaryPort.loadLatestSummary(1)).thenReturn(Optional.of(summary(100)));
+        when(loadSurveyAiSummaryPort.loadSourceState(1)).thenReturn(Optional.of(sourceState(2, 3, 2, 0.01d, 12)));
+
+        var result = service.generate(1, 99, Role.ADMIN);
+
+        assertEquals("COMPLETED", result.status());
+        assertEquals("Students liked the course.", result.summary());
+        assertEquals(true, result.stale());
+        assertEquals(false, result.refreshRecommended());
+        verify(loadSurveyAiSummaryPort, never()).loadSurveySummaryPayload(1);
+        verify(saveSurveyAiSummaryPort, never()).createJob(any(), any(), any(), any());
+        verify(generateSurveyCommentSummaryPort, never()).generateSummary(any());
+    }
+
+    @Test
+    void shouldRefreshExistingSummaryWhenPendingChangesAreMeaningful() {
+        givenSurveyAndPayload();
+        when(loadSurveyAiSummaryPort.loadLatestSummary(1)).thenReturn(Optional.of(summary(100, "old-source-hash")));
+        when(loadSurveyAiSummaryPort.loadSourceState(1)).thenReturn(Optional.of(sourceState(10, 15, 7, 0.2d, 42)));
+        when(loadSurveyAiSummaryPort.loadLatestJob(1)).thenReturn(Optional.empty());
+        when(loadSurveyAiSummaryPort.loadActiveJob(1)).thenReturn(Optional.empty());
+        when(saveSurveyAiSummaryPort.createJob(1, sourceHash(), 1, 99)).thenReturn(job(13, SurveyAiSummaryJobStatus.QUEUED));
+        when(saveSurveyAiSummaryPort.markJobProcessingIfNoActiveJob(eq(13), eq(1), any(LocalDateTime.class))).thenReturn(false);
+
+        var result = service.generate(1, 99, Role.ADMIN);
+
+        assertEquals("QUEUED", result.status());
+        assertEquals(13, result.jobId());
+        verify(loadSurveyAiSummaryPort).loadSurveySummaryPayload(1);
+        verify(saveSurveyAiSummaryPort).createJob(1, sourceHash(), 1, 99);
+    }
+
     private void givenSurveyAndPayload() {
+        givenSurveyOnly();
+        when(loadSurveyAiSummaryPort.loadSurveySummaryPayload(1)).thenReturn(new LoadSurveyAiSummaryPort.SurveyAiSummaryPayload(
+                1,
+                "Course survey",
+                1,
+                List.of(new LoadSurveyAiSummaryPort.QuestionCommentPayload(100, "What went well?", "Lectures were clear."))
+        ));
+    }
+
+    private void givenSurveyOnly() {
         when(loadSurveyPort.loadById(1)).thenReturn(Optional.of(new Survey(
                 1,
                 "Course survey",
@@ -136,12 +182,6 @@ class SurveyAiSummaryServiceTest {
                 false,
                 SurveyLifecycleState.PUBLISHED
         )));
-        when(loadSurveyAiSummaryPort.loadSurveySummaryPayload(1)).thenReturn(new LoadSurveyAiSummaryPort.SurveyAiSummaryPayload(
-                1,
-                "Course survey",
-                1,
-                List.of(new LoadSurveyAiSummaryPort.QuestionCommentPayload(100, "What went well?", "Lectures were clear."))
-        ));
     }
 
     private String sourceHash() {
@@ -166,10 +206,14 @@ class SurveyAiSummaryServiceTest {
     }
 
     private LoadSurveyAiSummaryPort.SurveyAiSummaryRecord summary(Integer id) {
+        return summary(id, sourceHash());
+    }
+
+    private LoadSurveyAiSummaryPort.SurveyAiSummaryRecord summary(Integer id, String sourceHash) {
         return new LoadSurveyAiSummaryPort.SurveyAiSummaryRecord(
                 id,
                 1,
-                sourceHash(),
+                sourceHash,
                 "gemini-test",
                 1,
                 "Students liked the course.",
@@ -178,6 +222,29 @@ class SurveyAiSummaryServiceTest {
                 List.of("Add exercises"),
                 99,
                 LocalDateTime.now()
+        );
+    }
+
+    private LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord sourceState(int pendingCount,
+                                                                                 int pendingScore,
+                                                                                 int maxPendingScore,
+                                                                                 double entropyDelta,
+                                                                                 int sourceVersion) {
+        return new LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord(
+                1,
+                100 + pendingCount,
+                100,
+                pendingCount,
+                pendingScore,
+                maxPendingScore,
+                "{}",
+                "{}",
+                1.0d + entropyDelta,
+                1.0d,
+                sourceVersion,
+                sourceVersion - pendingCount,
+                LocalDateTime.now(),
+                LocalDateTime.now().minusHours(1)
         );
     }
 

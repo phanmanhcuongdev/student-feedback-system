@@ -15,6 +15,16 @@ public record SurveyAiSummaryResponse(
         String errorMessage,
         LocalDateTime requestedAt,
         LocalDateTime startedAt,
-        LocalDateTime finishedAt
+        LocalDateTime finishedAt,
+        Boolean stale,
+        Boolean refreshRecommended,
+        Integer pendingCommentCount,
+        Integer pendingScoreSum,
+        Integer maxPendingScore,
+        Double pendingRatio,
+        Double entropyDelta,
+        String changeReason,
+        LocalDateTime lastChangedAt,
+        LocalDateTime lastSummarizedAt
 ) {
 }

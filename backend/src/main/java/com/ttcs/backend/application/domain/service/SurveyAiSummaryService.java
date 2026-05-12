@@ -29,8 +29,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.springframework.http.HttpStatus.FORBIDDEN;
@@ -40,6 +42,12 @@ import static org.springframework.http.HttpStatus.FORBIDDEN;
 @Slf4j
 public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, GetSurveyAiSummaryUseCase {
 
+    private static final int REFRESH_PENDING_COUNT_THRESHOLD = 10;
+    private static final double REFRESH_PENDING_RATIO_THRESHOLD = 0.05d;
+    private static final int REFRESH_PENDING_SCORE_THRESHOLD = 15;
+    private static final int REFRESH_MAX_SINGLE_SCORE_THRESHOLD = 7;
+    private static final double REFRESH_ENTROPY_DELTA_THRESHOLD = 0.15d;
+
     private final LoadSurveyPort loadSurveyPort;
     private final LoadSurveyAssignmentPort loadSurveyAssignmentPort;
     private final LoadLecturerByUserIdPort loadLecturerByUserIdPort;
@@ -47,6 +55,7 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
     private final GenerateSurveyCommentSummaryPort generateSurveyCommentSummaryPort;
     private final SaveSurveyAiSummaryPort saveSurveyAiSummaryPort;
     private final ObjectProvider<SurveyAiSummaryService> selfProvider;
+    private final SurveyAiSummaryChangeScorer changeScorer;
 
     @Override
     public SurveyAiSummaryViewResult getSummary(Integer surveyId, Integer viewerUserId, Role viewerRole) {
@@ -54,31 +63,69 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
 
         var latestJob = loadSurveyAiSummaryPort.loadLatestJob(surveyId).orElse(null);
         var latestSummary = resolveSummary(surveyId, latestJob);
+        var sourceState = loadSurveyAiSummaryPort.loadSourceState(surveyId).orElse(null);
         if (latestJob != null) {
-            return toView(surveyId, latestJob, latestSummary);
+            return toView(surveyId, latestJob, latestSummary, sourceState);
         }
         if (latestSummary != null) {
-            return completedView(surveyId, latestSummary);
+            return completedView(surveyId, latestSummary, sourceState);
         }
-        return new SurveyAiSummaryViewResult(surveyId, "NOT_REQUESTED", null, 0, null, List.of(), List.of(), List.of(), null, null, null, null);
+        return new SurveyAiSummaryViewResult(
+                surveyId,
+                "NOT_REQUESTED",
+                null,
+                0,
+                null,
+                List.of(),
+                List.of(),
+                List.of(),
+                null,
+                null,
+                null,
+                null,
+                false,
+                true,
+                sourceState != null ? sourceState.pendingCommentCount() : 0,
+                sourceState != null ? sourceState.pendingScoreSum() : 0,
+                sourceState != null ? sourceState.maxPendingScore() : 0,
+                sourceState != null ? sourceState.pendingRatio() : 0.0d,
+                sourceState != null ? sourceState.entropyDelta() : 0.0d,
+                "No AI summary has been generated yet.",
+                sourceState != null ? sourceState.lastChangedAt() : null,
+                sourceState != null ? sourceState.lastSummarizedAt() : null
+        );
     }
 
     @Override
     public SurveyAiSummaryViewResult generate(Integer surveyId, Integer viewerUserId, Role viewerRole) {
         Survey survey = authorizeAccess(surveyId, viewerUserId, viewerRole);
+        var latestSummary = loadSurveyAiSummaryPort.loadLatestSummary(surveyId).orElse(null);
+        var sourceState = loadSurveyAiSummaryPort.loadSourceState(surveyId).orElse(null);
+        if (latestSummary != null && sourceState != null && !refreshRecommended(sourceState)) {
+            return completedView(surveyId, latestSummary, sourceState);
+        }
+        int expectedSourceVersion = sourceState != null ? sourceState.sourceVersion() : 0;
+
         var payload = loadSurveyAiSummaryPort.loadSurveySummaryPayload(surveyId);
         String sourceHash = computeSourceHash(payload);
 
-        var latestSummary = loadSurveyAiSummaryPort.loadLatestSummary(surveyId).orElse(null);
         if (latestSummary != null && sourceHash.equals(latestSummary.sourceHash())) {
-            return completedView(surveyId, latestSummary);
+            saveSurveyAiSummaryPort.markSourceStateSummarized(
+                    surveyId,
+                    payload.commentCount(),
+                    topicCounts(payload),
+                    expectedSourceVersion,
+                    LocalDateTime.now()
+            );
+            var refreshedState = loadSurveyAiSummaryPort.loadSourceState(surveyId).orElse(sourceState);
+            return completedView(surveyId, latestSummary, refreshedState);
         }
 
         var latestJob = loadSurveyAiSummaryPort.loadLatestJob(surveyId).orElse(null);
         if (latestJob != null
                 && sourceHash.equals(latestJob.sourceHash())
                 && (latestJob.status() == SurveyAiSummaryJobStatus.QUEUED || latestJob.status() == SurveyAiSummaryJobStatus.PROCESSING)) {
-            return toView(surveyId, latestJob, null);
+            return toView(surveyId, latestJob, null, sourceState);
         }
 
         var activeJob = loadSurveyAiSummaryPort.loadActiveJob(surveyId).orElse(null);
@@ -89,10 +136,11 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
                     activeJob.id(),
                     activeJob.status()
             );
-            return toView(surveyId, activeJob, null);
+            return toView(surveyId, activeJob, null, sourceState);
         }
 
         if (payload.commentCount() == 0) {
+            LocalDateTime now = LocalDateTime.now();
             var summary = saveSurveyAiSummaryPort.saveSummary(
                     surveyId,
                     sourceHash,
@@ -104,16 +152,24 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
                     List.of("Thu thap them cau tra loi text neu admin can tong hop y kien chi tiet hon."),
                     viewerUserId
             );
-            return completedView(surveyId, summary);
+            saveSurveyAiSummaryPort.markSourceStateSummarized(
+                    surveyId,
+                    payload.commentCount(),
+                    topicCounts(payload),
+                    expectedSourceVersion,
+                    now
+            );
+            var refreshedState = loadSurveyAiSummaryPort.loadSourceState(surveyId).orElse(sourceState);
+            return completedView(surveyId, summary, refreshedState);
         }
 
         var job = saveSurveyAiSummaryPort.createJob(surveyId, sourceHash, payload.commentCount(), viewerUserId);
         try {
-            selfProvider.getObject().processJob(job.id(), survey, payload, sourceHash, viewerUserId);
+            selfProvider.getObject().processJob(job.id(), survey, payload, sourceHash, expectedSourceVersion, viewerUserId);
         } catch (Exception exception) {
             saveSurveyAiSummaryPort.markJobFailed(job.id(), errorMessage(exception), LocalDateTime.now());
         }
-        return toView(surveyId, job, null);
+        return toView(surveyId, job, null, sourceState);
     }
 
     @Async("aiTaskExecutor")
@@ -121,6 +177,7 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
                                               Survey survey,
                                               LoadSurveyAiSummaryPort.SurveyAiSummaryPayload payload,
                                               String sourceHash,
+                                              Integer expectedSourceVersion,
                                               Integer viewerUserId) {
         try {
             boolean claimed = saveSurveyAiSummaryPort.markJobProcessingIfNoActiveJob(jobId, survey.getId(), LocalDateTime.now());
@@ -152,7 +209,15 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
                     result.actions(),
                     viewerUserId
             );
-            saveSurveyAiSummaryPort.markJobCompleted(jobId, summary.id(), LocalDateTime.now());
+            LocalDateTime finishedAt = LocalDateTime.now();
+            saveSurveyAiSummaryPort.markJobCompleted(jobId, summary.id(), finishedAt);
+            saveSurveyAiSummaryPort.markSourceStateSummarized(
+                    survey.getId(),
+                    payload.commentCount(),
+                    topicCounts(payload),
+                    expectedSourceVersion,
+                    finishedAt
+            );
         } catch (Exception exception) {
             saveSurveyAiSummaryPort.markJobFailed(jobId, errorMessage(exception), LocalDateTime.now());
         }
@@ -206,7 +271,9 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
 
     private SurveyAiSummaryViewResult toView(Integer surveyId,
                                              LoadSurveyAiSummaryPort.SurveyAiSummaryJobRecord job,
-                                             LoadSurveyAiSummaryPort.SurveyAiSummaryRecord summary) {
+                                             LoadSurveyAiSummaryPort.SurveyAiSummaryRecord summary,
+                                             LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord sourceState) {
+        ChangeDecision decision = changeDecision(sourceState);
         return new SurveyAiSummaryViewResult(
                 surveyId,
                 job.status().name(),
@@ -219,11 +286,24 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
                 job.errorMessage(),
                 job.createdAt(),
                 job.startedAt(),
-                job.finishedAt()
+                job.finishedAt(),
+                decision.stale(),
+                decision.refreshRecommended(),
+                decision.pendingCommentCount(),
+                decision.pendingScoreSum(),
+                decision.maxPendingScore(),
+                decision.pendingRatio(),
+                decision.entropyDelta(),
+                decision.reason(),
+                sourceState != null ? sourceState.lastChangedAt() : null,
+                sourceState != null ? sourceState.lastSummarizedAt() : null
         );
     }
 
-    private SurveyAiSummaryViewResult completedView(Integer surveyId, LoadSurveyAiSummaryPort.SurveyAiSummaryRecord summary) {
+    private SurveyAiSummaryViewResult completedView(Integer surveyId,
+                                                    LoadSurveyAiSummaryPort.SurveyAiSummaryRecord summary,
+                                                    LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord sourceState) {
+        ChangeDecision decision = changeDecision(sourceState);
         return new SurveyAiSummaryViewResult(
                 surveyId,
                 SurveyAiSummaryJobStatus.COMPLETED.name(),
@@ -236,8 +316,57 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
                 null,
                 summary.createdAt(),
                 summary.createdAt(),
-                summary.createdAt()
+                summary.createdAt(),
+                decision.stale(),
+                decision.refreshRecommended(),
+                decision.pendingCommentCount(),
+                decision.pendingScoreSum(),
+                decision.maxPendingScore(),
+                decision.pendingRatio(),
+                decision.entropyDelta(),
+                decision.reason(),
+                sourceState != null ? sourceState.lastChangedAt() : null,
+                sourceState != null ? sourceState.lastSummarizedAt() : summary.createdAt()
         );
+    }
+
+    private boolean refreshRecommended(LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord sourceState) {
+        return changeDecision(sourceState).refreshRecommended();
+    }
+
+    private ChangeDecision changeDecision(LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord sourceState) {
+        if (sourceState == null || !sourceState.hasPendingChanges()) {
+            return new ChangeDecision(false, false, 0, 0, 0, 0.0d, 0.0d, "Summary source has no pending text feedback changes.");
+        }
+
+        int pendingCount = sourceState.pendingCommentCount();
+        int pendingScore = sourceState.pendingScoreSum();
+        int maxPendingScore = sourceState.maxPendingScore();
+        double pendingRatio = sourceState.pendingRatio();
+        double entropyDelta = sourceState.entropyDelta();
+
+        boolean recommended = pendingCount >= REFRESH_PENDING_COUNT_THRESHOLD
+                || pendingRatio >= REFRESH_PENDING_RATIO_THRESHOLD
+                || pendingScore >= REFRESH_PENDING_SCORE_THRESHOLD
+                || maxPendingScore >= REFRESH_MAX_SINGLE_SCORE_THRESHOLD
+                || entropyDelta >= REFRESH_ENTROPY_DELTA_THRESHOLD;
+
+        String reason = recommended
+                ? "Pending feedback changes are large or meaningful enough to refresh the AI summary."
+                : "Pending feedback changes are minor, so the current AI summary can still be reused.";
+        return new ChangeDecision(true, recommended, pendingCount, pendingScore, maxPendingScore, pendingRatio, entropyDelta, reason);
+    }
+
+    private record ChangeDecision(
+            boolean stale,
+            boolean refreshRecommended,
+            int pendingCommentCount,
+            int pendingScoreSum,
+            int maxPendingScore,
+            double pendingRatio,
+            double entropyDelta,
+            String reason
+    ) {
     }
 
     private String computeSourceHash(LoadSurveyAiSummaryPort.SurveyAiSummaryPayload payload) {
@@ -251,6 +380,18 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
         } catch (Exception exception) {
             throw new IllegalStateException("Unable to compute AI summary source hash", exception);
         }
+    }
+
+    private Map<String, Integer> topicCounts(LoadSurveyAiSummaryPort.SurveyAiSummaryPayload payload) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        if (payload == null || payload.comments() == null) {
+            return counts;
+        }
+        for (LoadSurveyAiSummaryPort.QuestionCommentPayload comment : payload.comments()) {
+            String topic = changeScorer.classifyTopic(comment.comment());
+            counts.merge(topic, 1, Integer::sum);
+        }
+        return counts;
     }
 
     private String errorMessage(Exception exception) {

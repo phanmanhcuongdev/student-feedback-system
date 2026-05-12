@@ -16,6 +16,7 @@ import com.ttcs.backend.application.port.in.command.SubmitSurveyAnswerCommand;
 import com.ttcs.backend.application.port.in.command.SubmitSurveyCommand;
 import com.ttcs.backend.application.port.in.result.SubmitSurveyResult;
 import com.ttcs.backend.application.port.in.result.SubmitSurveyResultCode;
+import com.ttcs.backend.application.port.in.resultview.RecordSurveyAiSummaryChangeUseCase;
 import com.ttcs.backend.application.port.out.LoadQuestionPort;
 import com.ttcs.backend.application.port.out.LoadStudentPort;
 import com.ttcs.backend.application.port.out.LoadStudentSurveysQuery;
@@ -54,7 +55,8 @@ class SubmitSurveyServiceTest {
                 saveResponseDetailPort,
                 recipientPort(recipient()),
                 new RecordingSaveSurveyRecipientPort(),
-                new RecordingTranslationTaskPort()
+                new RecordingTranslationTaskPort(),
+                noopAiSummaryChangeRecorder()
         );
 
         SubmitSurveyResult result = service.submitSurvey(new SubmitSurveyCommand(
@@ -82,7 +84,8 @@ class SubmitSurveyServiceTest {
                 saveResponseDetailPort,
                 recipientPort(recipient()),
                 new RecordingSaveSurveyRecipientPort(),
-                new RecordingTranslationTaskPort()
+                new RecordingTranslationTaskPort(),
+                noopAiSummaryChangeRecorder()
         );
 
         SubmitSurveyResult result = service.submitSurvey(new SubmitSurveyCommand(
@@ -103,6 +106,7 @@ class SubmitSurveyServiceTest {
         RecordingSaveResponseDetailPort saveResponseDetailPort = new RecordingSaveResponseDetailPort();
         RecordingSaveSurveyRecipientPort saveSurveyRecipientPort = new RecordingSaveSurveyRecipientPort();
         RecordingTranslationTaskPort translationTaskPort = new RecordingTranslationTaskPort();
+        RecordingAiSummaryChangeRecorder aiSummaryChangeRecorder = new RecordingAiSummaryChangeRecorder();
         SubmitSurveyService service = new SubmitSurveyService(
                 surveyPort(openSurvey()),
                 studentPort(student()),
@@ -112,7 +116,8 @@ class SubmitSurveyServiceTest {
                 saveResponseDetailPort,
                 recipientPort(recipient()),
                 saveSurveyRecipientPort,
-                translationTaskPort
+                translationTaskPort,
+                aiSummaryChangeRecorder
         );
 
         SubmitSurveyResult result = service.submitSurvey(new SubmitSurveyCommand(
@@ -139,6 +144,8 @@ class SubmitSurveyServiceTest {
         assertEquals("SURVEY_RESPONSE", translationTask.entityType());
         assertEquals("Useful survey", translationTask.content());
         assertEquals(2, translationTask.entityId());
+        assertEquals(1, aiSummaryChangeRecorder.recordCalls);
+        assertEquals(2, aiSummaryChangeRecorder.lastRecordedDetails.size());
     }
 
     @Test
@@ -156,7 +163,8 @@ class SubmitSurveyServiceTest {
                 saveResponseDetailPort,
                 recipientPort(recipient()),
                 saveSurveyRecipientPort,
-                translationTaskPort
+                translationTaskPort,
+                noopAiSummaryChangeRecorder()
         );
 
         SubmitSurveyResult result = service.submitSurvey(new SubmitSurveyCommand(
@@ -288,6 +296,11 @@ class SubmitSurveyServiceTest {
         return new Question(12, 1, "Share a comment", QuestionType.TEXT);
     }
 
+    private RecordSurveyAiSummaryChangeUseCase noopAiSummaryChangeRecorder() {
+        return responseDetails -> {
+        };
+    }
+
     private static final class RecordingSaveSurveyResponsePort implements SaveSurveyResponsePort {
         private int saveCalls;
 
@@ -361,6 +374,17 @@ class SubmitSurveyServiceTest {
         @Override
         public void send(TranslationTaskCommand command) {
             sent.add(command);
+        }
+    }
+
+    private static final class RecordingAiSummaryChangeRecorder implements RecordSurveyAiSummaryChangeUseCase {
+        private int recordCalls;
+        private List<ResponseDetail> lastRecordedDetails = List.of();
+
+        @Override
+        public void recordSubmittedTextComments(List<ResponseDetail> responseDetails) {
+            recordCalls++;
+            lastRecordedDetails = responseDetails;
         }
     }
 }
