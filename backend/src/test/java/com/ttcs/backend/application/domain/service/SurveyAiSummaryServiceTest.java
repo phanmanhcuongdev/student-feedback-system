@@ -5,6 +5,7 @@ import com.ttcs.backend.application.domain.model.Survey;
 import com.ttcs.backend.application.domain.model.SurveyAiSummaryJobStatus;
 import com.ttcs.backend.application.domain.model.SurveyLifecycleState;
 import com.ttcs.backend.application.port.out.GenerateSurveyCommentSummaryPort;
+import com.ttcs.backend.application.port.out.GenerateTextEmbeddingPort;
 import com.ttcs.backend.application.port.out.LoadLecturerByUserIdPort;
 import com.ttcs.backend.application.port.out.LoadSurveyAiSummaryPort;
 import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
@@ -22,6 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -36,6 +38,7 @@ class SurveyAiSummaryServiceTest {
     private final LoadSurveyAiSummaryPort loadSurveyAiSummaryPort = mock(LoadSurveyAiSummaryPort.class);
     private final SaveSurveyAiSummaryPort saveSurveyAiSummaryPort = mock(SaveSurveyAiSummaryPort.class);
     private final GenerateSurveyCommentSummaryPort generateSurveyCommentSummaryPort = mock(GenerateSurveyCommentSummaryPort.class);
+    private final GenerateTextEmbeddingPort generateTextEmbeddingPort = mock(GenerateTextEmbeddingPort.class);
     private final ObjectProvider<SurveyAiSummaryService> selfProvider = mock(ObjectProvider.class);
 
     private SurveyAiSummaryService service;
@@ -49,6 +52,7 @@ class SurveyAiSummaryServiceTest {
                 loadLecturerByUserIdPort,
                 loadSurveyAiSummaryPort,
                 generateSurveyCommentSummaryPort,
+                generateTextEmbeddingPort,
                 saveSurveyAiSummaryPort,
                 selfProvider,
                 new SurveyAiSummaryChangeScorer()
@@ -72,6 +76,10 @@ class SurveyAiSummaryServiceTest {
                 List.of("More practice needed"),
                 List.of("Add exercises")
         ));
+        when(generateTextEmbeddingPort.embed(any())).thenReturn(new GenerateTextEmbeddingPort.TextEmbeddingResult(
+                "embedding-test",
+                List.of(List.of(1.0d), List.of(0.9d), List.of(0.8d), List.of(0.7d))
+        ));
         when(saveSurveyAiSummaryPort.saveSummary(
                 eq(1),
                 eq(sourceHash()),
@@ -91,6 +99,7 @@ class SurveyAiSummaryServiceTest {
         verify(saveSurveyAiSummaryPort).markJobProcessingIfNoActiveJob(eq(10), eq(1), any(LocalDateTime.class));
         verify(generateSurveyCommentSummaryPort).generateSummary(any());
         verify(saveSurveyAiSummaryPort).markJobCompleted(eq(10), eq(100), any(LocalDateTime.class));
+        verify(saveSurveyAiSummaryPort).saveThemeEmbeddings(any());
     }
 
     @Test
@@ -159,6 +168,42 @@ class SurveyAiSummaryServiceTest {
         assertEquals(13, result.jobId());
         verify(loadSurveyAiSummaryPort).loadSurveySummaryPayload(1);
         verify(saveSurveyAiSummaryPort).createJob(1, sourceHash(), 1, 99);
+    }
+
+    @Test
+    void shouldRefreshExistingSummaryWhenNewImportantTopicAppearsOftenEnough() {
+        givenSurveyAndPayload();
+        when(loadSurveyAiSummaryPort.loadLatestSummary(1)).thenReturn(Optional.of(summary(100, "old-source-hash")));
+        when(loadSurveyAiSummaryPort.loadSourceState(1)).thenReturn(Optional.of(sourceState(3, 3, 1, 0.01d, 42, 3)));
+        when(loadSurveyAiSummaryPort.loadLatestJob(1)).thenReturn(Optional.empty());
+        when(loadSurveyAiSummaryPort.loadActiveJob(1)).thenReturn(Optional.empty());
+        when(saveSurveyAiSummaryPort.createJob(1, sourceHash(), 1, 99)).thenReturn(job(14, SurveyAiSummaryJobStatus.QUEUED));
+        when(saveSurveyAiSummaryPort.markJobProcessingIfNoActiveJob(eq(14), eq(1), any(LocalDateTime.class))).thenReturn(false);
+
+        var result = service.generate(1, 99, Role.ADMIN);
+
+        assertEquals("QUEUED", result.status());
+        assertEquals(14, result.jobId());
+        verify(loadSurveyAiSummaryPort).loadSurveySummaryPayload(1);
+        verify(saveSurveyAiSummaryPort).createJob(1, sourceHash(), 1, 99);
+    }
+
+    @Test
+    void shouldRebuildSourceStateWhenTrackingStateIsMissing() {
+        givenSurveyAndPayload();
+        when(loadSurveyAiSummaryPort.loadLatestJob(1)).thenReturn(Optional.empty());
+        when(loadSurveyAiSummaryPort.loadLatestSummary(1)).thenReturn(Optional.empty());
+        when(loadSurveyAiSummaryPort.loadSourceState(1)).thenReturn(Optional.empty());
+
+        var result = service.getSummary(1, 99, Role.ADMIN);
+
+        assertEquals("NOT_REQUESTED", result.status());
+        assertEquals(1, result.pendingCommentCount());
+        verify(saveSurveyAiSummaryPort).rebuildSourceState(argThat(command ->
+                command.surveyId().equals(1)
+                        && command.currentCommentCount().equals(1)
+                        && command.summarizedCommentCount().equals(0)
+        ));
     }
 
     private void givenSurveyAndPayload() {
@@ -241,6 +286,32 @@ class SurveyAiSummaryServiceTest {
                 "{}",
                 1.0d + entropyDelta,
                 1.0d,
+                0,
+                sourceVersion,
+                sourceVersion - pendingCount,
+                LocalDateTime.now(),
+                LocalDateTime.now().minusHours(1)
+        );
+    }
+
+    private LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord sourceState(int pendingCount,
+                                                                                 int pendingScore,
+                                                                                 int maxPendingScore,
+                                                                                 double entropyDelta,
+                                                                                 int sourceVersion,
+                                                                                 int importantPendingTopicCount) {
+        return new LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord(
+                1,
+                100 + pendingCount,
+                100,
+                pendingCount,
+                pendingScore,
+                maxPendingScore,
+                "{}",
+                "{}",
+                1.0d + entropyDelta,
+                1.0d,
+                importantPendingTopicCount,
                 sourceVersion,
                 sourceVersion - pendingCount,
                 LocalDateTime.now(),

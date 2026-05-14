@@ -59,6 +59,7 @@ public class SurveyAiSummaryController {
                 result.startedAt(),
                 result.finishedAt(),
                 result.stale(),
+                result.stale(),
                 result.refreshRecommended(),
                 result.pendingCommentCount(),
                 result.pendingScoreSum(),

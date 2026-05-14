@@ -17,6 +17,7 @@ public record SurveyAiSummaryResponse(
         LocalDateTime startedAt,
         LocalDateTime finishedAt,
         Boolean stale,
+        Boolean isStale,
         Boolean refreshRecommended,
         Integer pendingCommentCount,
         Integer pendingScoreSum,

@@ -17,6 +17,8 @@ public interface LoadSurveyAiSummaryPort {
 
     Optional<SurveyAiSummarySourceStateRecord> loadSourceState(Integer surveyId);
 
+    List<SurveyAiSummaryThemeEmbeddingRecord> loadLatestThemeEmbeddings(Integer surveyId);
+
     SurveyAiSummaryPayload loadSurveySummaryPayload(Integer surveyId);
 
     record SurveyAiSummaryRecord(
@@ -64,6 +66,19 @@ public interface LoadSurveyAiSummaryPort {
     ) {
     }
 
+    record SurveyAiSummaryThemeEmbeddingRecord(
+            Integer id,
+            Integer summaryId,
+            Integer surveyId,
+            String themeType,
+            Integer themeIndex,
+            String themeText,
+            List<Double> vector,
+            String modelName,
+            LocalDateTime createdAt
+    ) {
+    }
+
     record SurveyAiSummarySourceStateRecord(
             Integer surveyId,
             Integer currentCommentCount,
@@ -75,6 +90,7 @@ public interface LoadSurveyAiSummaryPort {
             String pendingTopicCountsJson,
             Double currentEntropy,
             Double summarizedEntropy,
+            Integer newImportantPendingTopicCount,
             Integer sourceVersion,
             Integer summarizedSourceVersion,
             LocalDateTime lastChangedAt,
@@ -96,6 +112,10 @@ public interface LoadSurveyAiSummaryPort {
             double current = currentEntropy == null ? 0.0d : currentEntropy;
             double summarized = summarizedEntropy == null ? 0.0d : summarizedEntropy;
             return Math.abs(current - summarized);
+        }
+
+        public int importantPendingTopicCount() {
+            return newImportantPendingTopicCount == null ? 0 : newImportantPendingTopicCount;
         }
     }
 }

@@ -127,6 +127,8 @@
         "buttons": {
           "generate": "Tạo tóm tắt AI",
           "regenerate": "Tạo lại tóm tắt AI",
+          "refresh": "Cập nhật tóm tắt AI",
+          "check": "Kiểm tra tóm tắt",
           "submitting": "Đang gửi...",
           "processing": "Đang xử lý..."
         },
@@ -141,14 +143,31 @@
         "stats": {
           "status": "Trạng thái",
           "textComments": "Bình luận văn bản",
+          "pendingComments": "Bình luận mới",
+          "pendingScore": "Điểm thay đổi",
           "requested": "Đã yêu cầu",
           "finished": "Hoàn tất"
+        },
+        "freshness": {
+          "upToDate": "Tóm tắt đang cập nhật.",
+          "upToDateDescription": "Không có phản hồi văn bản mới sau lần tóm tắt gần nhất.",
+          "minorChanges": "Có thể tiếp tục dùng tóm tắt hiện tại.",
+          "minorChangesDescription_one": "Có {{count}} phản hồi mới nhưng chưa đạt ngưỡng cập nhật.",
+          "minorChangesDescription_other": "Có {{count}} phản hồi mới nhưng chưa đạt ngưỡng cập nhật.",
+          "refreshRecommended": "Nên cập nhật tóm tắt.",
+          "refreshRecommendedDescription_one": "Có {{count}} phản hồi mới quan trọng. Nên cập nhật tóm tắt.",
+          "refreshRecommendedDescription_other": "Có {{count}} phản hồi mới quan trọng. Nên cập nhật tóm tắt.",
+          "pendingCount_one": "{{count}} bình luận mới",
+          "pendingCount_other": "{{count}} bình luận mới",
+          "pendingScore": "Điểm {{score}}"
         },
         "notRequested": "Chưa có tóm tắt AI nào được tạo cho khảo sát này. Hệ thống chỉ phân tích phản hồi văn bản sau khi bạn yêu cầu rõ ràng.",
         "processingNotice": "Tác vụ tóm tắt đang xử lý trong nền. Panel này tự làm mới cho đến khi có kết quả.",
         "jobDetails": {
           "title": "Chi tiết tác vụ",
           "jobId": "ID tác vụ",
+          "lastChangedAt": "Thay đổi gần nhất",
+          "lastSummarizedAt": "Tóm tắt gần nhất",
           "requestedAt": "Yêu cầu lúc",
           "startedAt": "Bắt đầu lúc",
           "finishedAt": "Hoàn tất lúc"

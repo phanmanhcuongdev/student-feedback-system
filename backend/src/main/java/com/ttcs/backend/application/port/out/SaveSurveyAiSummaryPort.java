@@ -17,6 +17,10 @@ public interface SaveSurveyAiSummaryPort {
 
     void recordTextCommentChange(SurveyAiSummaryTextChangeCommand command);
 
+    void rebuildSourceState(SurveyAiSummarySourceStateRebuildCommand command);
+
+    void saveThemeEmbeddings(SurveyAiSummaryThemeEmbeddingSaveCommand command);
+
     void markSourceStateSummarized(Integer surveyId,
                                    Integer commentCount,
                                    Map<String, Integer> topicCounts,
@@ -48,6 +52,32 @@ public interface SaveSurveyAiSummaryPort {
             Integer noveltyScore,
             Integer totalScore,
             LocalDateTime createdAt
+    ) {
+    }
+
+    record SurveyAiSummarySourceStateRebuildCommand(
+            Integer surveyId,
+            Integer currentCommentCount,
+            Integer summarizedCommentCount,
+            Map<String, Integer> topicCounts,
+            LocalDateTime lastSummarizedAt,
+            LocalDateTime rebuiltAt
+    ) {
+    }
+
+    record SurveyAiSummaryThemeEmbeddingSaveCommand(
+            Integer summaryId,
+            Integer surveyId,
+            String modelName,
+            List<SurveyAiSummaryThemeEmbeddingItem> items
+    ) {
+    }
+
+    record SurveyAiSummaryThemeEmbeddingItem(
+            String themeType,
+            Integer themeIndex,
+            String themeText,
+            List<Double> vector
     ) {
     }
 }

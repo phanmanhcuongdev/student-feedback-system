@@ -27,6 +27,8 @@ public class SurveyAiSummaryPersistenceAdapter implements LoadSurveyAiSummaryPor
 
     private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {
     };
+    private static final TypeReference<List<Double>> DOUBLE_LIST_TYPE = new TypeReference<>() {
+    };
     private static final TypeReference<Map<String, Integer>> TOPIC_COUNT_TYPE = new TypeReference<>() {
     };
 
@@ -34,6 +36,7 @@ public class SurveyAiSummaryPersistenceAdapter implements LoadSurveyAiSummaryPor
     private final SurveyAiSummaryJobRepository surveyAiSummaryJobRepository;
     private final SurveyAiSourceStateRepository surveyAiSourceStateRepository;
     private final SurveyAiPendingChangeRepository surveyAiPendingChangeRepository;
+    private final SurveyAiSummaryThemeEmbeddingRepository surveyAiSummaryThemeEmbeddingRepository;
     private final SurveyRepository surveyRepository;
     private final EntityManager entityManager;
     private final ObjectMapper objectMapper;
@@ -75,6 +78,19 @@ public class SurveyAiSummaryPersistenceAdapter implements LoadSurveyAiSummaryPor
     public Optional<SurveyAiSummarySourceStateRecord> loadSourceState(Integer surveyId) {
         return surveyAiSourceStateRepository.findById(surveyId)
                 .map(this::toSourceStateRecord);
+    }
+
+    @Override
+    public List<SurveyAiSummaryThemeEmbeddingRecord> loadLatestThemeEmbeddings(Integer surveyId) {
+        var latestSummary = surveyAiSummaryRepository.findFirstBySurvey_IdOrderByCreatedAtDesc(surveyId).orElse(null);
+        if (latestSummary == null) {
+            return List.of();
+        }
+        return surveyAiSummaryThemeEmbeddingRepository
+                .findBySurvey_IdAndSummary_IdOrderByThemeTypeAscThemeIndexAsc(surveyId, latestSummary.getId())
+                .stream()
+                .map(this::toThemeEmbeddingRecord)
+                .toList();
     }
 
     @Override
@@ -235,6 +251,61 @@ public class SurveyAiSummaryPersistenceAdapter implements LoadSurveyAiSummaryPor
 
     @Override
     @Transactional
+    public void rebuildSourceState(SurveyAiSummarySourceStateRebuildCommand command) {
+        lockSurveyForSourceStateUpdate(command.surveyId());
+        SurveyAiSourceStateEntity state = surveyAiSourceStateRepository.findById(command.surveyId())
+                .orElseGet(() -> newSourceState(command.surveyId()));
+        if (value(state.getSourceVersion()) > 0 || value(state.getCurrentCommentCount()) > 0) {
+            return;
+        }
+
+        Map<String, Integer> topicCounts = command.topicCounts() == null ? Map.of() : command.topicCounts();
+        int currentCommentCount = value(command.currentCommentCount());
+        int summarizedCommentCount = Math.min(value(command.summarizedCommentCount()), currentCommentCount);
+        int pendingCommentCount = Math.max(0, currentCommentCount - summarizedCommentCount);
+        double currentEntropy = calculateEntropy(topicCounts);
+
+        state.setCurrentCommentCount(currentCommentCount);
+        state.setSummarizedCommentCount(summarizedCommentCount);
+        state.setPendingCommentCount(pendingCommentCount);
+        state.setPendingScoreSum(0);
+        state.setMaxPendingScore(0);
+        state.setTopicCountsJson(writeJson(topicCounts));
+        state.setPendingTopicCountsJson(writeJson(Map.of()));
+        state.setCurrentEntropy(currentEntropy);
+        state.setSummarizedEntropy(pendingCommentCount == 0 ? currentEntropy : 0.0d);
+        state.setSourceVersion(currentCommentCount);
+        state.setSummarizedSourceVersion(summarizedCommentCount);
+        state.setLastChangedAt(pendingCommentCount > 0 ? command.rebuiltAt() : null);
+        state.setLastSummarizedAt(command.lastSummarizedAt());
+        surveyAiSourceStateRepository.save(state);
+    }
+
+    @Override
+    @Transactional
+    public void saveThemeEmbeddings(SurveyAiSummaryThemeEmbeddingSaveCommand command) {
+        if (command.items() == null || command.items().isEmpty()) {
+            return;
+        }
+        for (SurveyAiSummaryThemeEmbeddingItem item : command.items()) {
+            if (item == null || item.vector() == null || item.vector().isEmpty() || item.themeText() == null || item.themeText().isBlank()) {
+                continue;
+            }
+            SurveyAiSummaryThemeEmbeddingEntity entity = new SurveyAiSummaryThemeEmbeddingEntity();
+            entity.setSummary(surveyAiSummaryRepository.getReferenceById(command.summaryId()));
+            entity.setSurvey(surveyRepository.getReferenceById(command.surveyId()));
+            entity.setThemeType(item.themeType());
+            entity.setThemeIndex(value(item.themeIndex()));
+            entity.setThemeText(truncateThemeText(item.themeText()));
+            entity.setEmbeddingJson(writeJsonVector(item.vector()));
+            entity.setModelName(command.modelName());
+            entity.setCreatedAt(LocalDateTime.now());
+            surveyAiSummaryThemeEmbeddingRepository.save(entity);
+        }
+    }
+
+    @Override
+    @Transactional
     public void markSourceStateSummarized(Integer surveyId,
                                           Integer commentCount,
                                           Map<String, Integer> topicCounts,
@@ -320,10 +391,25 @@ public class SurveyAiSummaryPersistenceAdapter implements LoadSurveyAiSummaryPor
                 entity.getPendingTopicCountsJson(),
                 value(entity.getCurrentEntropy()),
                 value(entity.getSummarizedEntropy()),
+                newImportantPendingTopicCount(entity),
                 value(entity.getSourceVersion()),
                 value(entity.getSummarizedSourceVersion()),
                 entity.getLastChangedAt(),
                 entity.getLastSummarizedAt()
+        );
+    }
+
+    private SurveyAiSummaryThemeEmbeddingRecord toThemeEmbeddingRecord(SurveyAiSummaryThemeEmbeddingEntity entity) {
+        return new SurveyAiSummaryThemeEmbeddingRecord(
+                entity.getId(),
+                entity.getSummary().getId(),
+                entity.getSurvey().getId(),
+                entity.getThemeType(),
+                value(entity.getThemeIndex()),
+                entity.getThemeText(),
+                readDoubleList(entity.getEmbeddingJson()),
+                entity.getModelName(),
+                entity.getCreatedAt()
         );
     }
 
@@ -359,6 +445,14 @@ public class SurveyAiSummaryPersistenceAdapter implements LoadSurveyAiSummaryPor
         }
     }
 
+    private String writeJsonVector(List<Double> values) {
+        try {
+            return objectMapper.writeValueAsString(values == null ? List.of() : values);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Unable to serialize AI embedding vector", exception);
+        }
+    }
+
     private List<String> readJson(String value) {
         if (value == null || value.isBlank()) {
             return List.of();
@@ -379,6 +473,39 @@ public class SurveyAiSummaryPersistenceAdapter implements LoadSurveyAiSummaryPor
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Unable to parse AI summary topic counts", exception);
         }
+    }
+
+    private List<Double> readDoubleList(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(value, DOUBLE_LIST_TYPE);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Unable to parse AI embedding vector", exception);
+        }
+    }
+
+    private String truncateThemeText(String value) {
+        String normalized = value.strip();
+        return normalized.length() <= 1000 ? normalized : normalized.substring(0, 1000);
+    }
+
+    private int newImportantPendingTopicCount(SurveyAiSourceStateEntity entity) {
+        Map<String, Integer> allTopicCounts = readTopicCounts(entity.getTopicCountsJson());
+        Map<String, Integer> pendingTopicCounts = readTopicCounts(entity.getPendingTopicCountsJson());
+        int maxCount = 0;
+        for (Map.Entry<String, Integer> entry : pendingTopicCounts.entrySet()) {
+            String topic = entry.getKey();
+            if (isImportantTopic(topic) && value(allTopicCounts.get(topic)) == value(entry.getValue())) {
+                maxCount = Math.max(maxCount, value(entry.getValue()));
+            }
+        }
+        return maxCount;
+    }
+
+    private boolean isImportantTopic(String topic) {
+        return topic != null && !topic.isBlank() && !"OTHER".equals(topic);
     }
 
     private SurveyAiSourceStateEntity newSourceState(Integer surveyId) {

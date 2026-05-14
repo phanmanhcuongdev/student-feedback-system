@@ -12,6 +12,7 @@ export type SurveyAiSummary = {
     startedAt: string | null;
     finishedAt: string | null;
     stale: boolean;
+    isStale?: boolean;
     refreshRecommended: boolean;
     pendingCommentCount: number;
     pendingScoreSum: number;

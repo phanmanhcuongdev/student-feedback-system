@@ -45,7 +45,7 @@ public class ChatCompletionSurveyCommentSummaryAdapter implements GenerateSurvey
         this.objectMapper = new ObjectMapper();
         this.apiKey = apiKey;
         this.model = model;
-        this.restClient = restClientBuilder
+        this.restClient = restClientBuilder.clone()
                 .baseUrl(baseUrl)
                 .defaultHeader("Authorization", "Bearer " + apiKey)
                 .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)

@@ -12,6 +12,7 @@ import com.ttcs.backend.application.port.in.resultview.GenerateSurveyAiSummaryUs
 import com.ttcs.backend.application.port.in.resultview.GetSurveyAiSummaryUseCase;
 import com.ttcs.backend.application.port.in.resultview.SurveyAiSummaryViewResult;
 import com.ttcs.backend.application.port.out.GenerateSurveyCommentSummaryPort;
+import com.ttcs.backend.application.port.out.GenerateTextEmbeddingPort;
 import com.ttcs.backend.application.port.out.LoadSurveyAiSummaryPort;
 import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadLecturerByUserIdPort;
@@ -29,6 +30,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.HexFormat;
 import java.util.List;
@@ -47,12 +49,14 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
     private static final int REFRESH_PENDING_SCORE_THRESHOLD = 15;
     private static final int REFRESH_MAX_SINGLE_SCORE_THRESHOLD = 7;
     private static final double REFRESH_ENTROPY_DELTA_THRESHOLD = 0.15d;
+    private static final int REFRESH_NEW_IMPORTANT_TOPIC_THRESHOLD = 3;
 
     private final LoadSurveyPort loadSurveyPort;
     private final LoadSurveyAssignmentPort loadSurveyAssignmentPort;
     private final LoadLecturerByUserIdPort loadLecturerByUserIdPort;
     private final LoadSurveyAiSummaryPort loadSurveyAiSummaryPort;
     private final GenerateSurveyCommentSummaryPort generateSurveyCommentSummaryPort;
+    private final GenerateTextEmbeddingPort generateTextEmbeddingPort;
     private final SaveSurveyAiSummaryPort saveSurveyAiSummaryPort;
     private final ObjectProvider<SurveyAiSummaryService> selfProvider;
     private final SurveyAiSummaryChangeScorer changeScorer;
@@ -63,7 +67,7 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
 
         var latestJob = loadSurveyAiSummaryPort.loadLatestJob(surveyId).orElse(null);
         var latestSummary = resolveSummary(surveyId, latestJob);
-        var sourceState = loadSurveyAiSummaryPort.loadSourceState(surveyId).orElse(null);
+        var sourceState = loadOrRebuildSourceState(surveyId, latestSummary);
         if (latestJob != null) {
             return toView(surveyId, latestJob, latestSummary, sourceState);
         }
@@ -104,9 +108,11 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
         if (latestSummary != null && sourceState != null && !refreshRecommended(sourceState)) {
             return completedView(surveyId, latestSummary, sourceState);
         }
-        int expectedSourceVersion = sourceState != null ? sourceState.sourceVersion() : 0;
 
-        var payload = loadSurveyAiSummaryPort.loadSurveySummaryPayload(surveyId);
+        SourceSnapshot sourceSnapshot = loadSourceSnapshot(surveyId, latestSummary, sourceState);
+        sourceState = sourceSnapshot.sourceState();
+        var payload = sourceSnapshot.payload();
+        int expectedSourceVersion = sourceState != null ? sourceState.sourceVersion() : 0;
         String sourceHash = computeSourceHash(payload);
 
         if (latestSummary != null && sourceHash.equals(latestSummary.sourceHash())) {
@@ -218,10 +224,173 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
                     expectedSourceVersion,
                     finishedAt
             );
+            saveThemeEmbeddings(summary);
         } catch (Exception exception) {
             saveSurveyAiSummaryPort.markJobFailed(jobId, errorMessage(exception), LocalDateTime.now());
         }
         return CompletableFuture.completedFuture(null);
+    }
+
+    private LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord loadOrRebuildSourceState(
+            Integer surveyId,
+            LoadSurveyAiSummaryPort.SurveyAiSummaryRecord latestSummary
+    ) {
+        var sourceState = loadSurveyAiSummaryPort.loadSourceState(surveyId).orElse(null);
+        if (sourceState != null) {
+            return sourceState;
+        }
+        var payload = loadSurveyAiSummaryPort.loadSurveySummaryPayload(surveyId);
+        rebuildSourceState(surveyId, latestSummary, payload);
+        return loadSurveyAiSummaryPort.loadSourceState(surveyId)
+                .orElseGet(() -> fallbackRebuiltSourceState(surveyId, latestSummary, payload));
+    }
+
+    private SourceSnapshot loadSourceSnapshot(
+            Integer surveyId,
+            LoadSurveyAiSummaryPort.SurveyAiSummaryRecord latestSummary,
+            LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord knownSourceState
+    ) {
+        if (knownSourceState == null) {
+            var payload = loadSurveyAiSummaryPort.loadSurveySummaryPayload(surveyId);
+            rebuildSourceState(surveyId, latestSummary, payload);
+            var rebuiltState = loadSurveyAiSummaryPort.loadSourceState(surveyId)
+                    .orElseGet(() -> fallbackRebuiltSourceState(surveyId, latestSummary, payload));
+            return new SourceSnapshot(payload, rebuiltState);
+        }
+
+        var before = knownSourceState;
+        var payload = loadSurveyAiSummaryPort.loadSurveySummaryPayload(surveyId);
+        var after = loadSurveyAiSummaryPort.loadSourceState(surveyId).orElse(before);
+        if (!sameVersion(before, after)) {
+            payload = loadSurveyAiSummaryPort.loadSurveySummaryPayload(surveyId);
+            after = loadSurveyAiSummaryPort.loadSourceState(surveyId).orElse(after);
+        }
+        return new SourceSnapshot(payload, after);
+    }
+
+    private void rebuildSourceState(Integer surveyId,
+                                    LoadSurveyAiSummaryPort.SurveyAiSummaryRecord latestSummary,
+                                    LoadSurveyAiSummaryPort.SurveyAiSummaryPayload payload) {
+        saveSurveyAiSummaryPort.rebuildSourceState(new SaveSurveyAiSummaryPort.SurveyAiSummarySourceStateRebuildCommand(
+                surveyId,
+                payload.commentCount(),
+                latestSummary != null ? latestSummary.commentCount() : 0,
+                topicCounts(payload),
+                latestSummary != null ? latestSummary.createdAt() : null,
+                LocalDateTime.now()
+        ));
+    }
+
+    private LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord fallbackRebuiltSourceState(
+            Integer surveyId,
+            LoadSurveyAiSummaryPort.SurveyAiSummaryRecord latestSummary,
+            LoadSurveyAiSummaryPort.SurveyAiSummaryPayload payload
+    ) {
+        int currentCommentCount = payload.commentCount();
+        int summarizedCommentCount = latestSummary == null ? 0 : Math.min(latestSummary.commentCount(), currentCommentCount);
+        int pendingCommentCount = Math.max(0, currentCommentCount - summarizedCommentCount);
+        return new LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord(
+                surveyId,
+                currentCommentCount,
+                summarizedCommentCount,
+                pendingCommentCount,
+                0,
+                0,
+                "{}",
+                "{}",
+                0.0d,
+                0.0d,
+                0,
+                currentCommentCount,
+                summarizedCommentCount,
+                pendingCommentCount > 0 ? LocalDateTime.now() : null,
+                latestSummary != null ? latestSummary.createdAt() : null
+        );
+    }
+
+    private boolean sameVersion(LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord left,
+                                LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord right) {
+        if (left == null || right == null) {
+            return left == right;
+        }
+        return left.sourceVersion().equals(right.sourceVersion())
+                && left.pendingCommentCount().equals(right.pendingCommentCount());
+    }
+
+    private void saveThemeEmbeddings(LoadSurveyAiSummaryPort.SurveyAiSummaryRecord summary) {
+        try {
+            List<ThemeText> themeTexts = themeTexts(summary);
+            if (themeTexts.isEmpty()) {
+                return;
+            }
+            var embeddingResult = generateTextEmbeddingPort.embed(themeTexts.stream().map(ThemeText::text).toList());
+            if (embeddingResult.vectors().isEmpty()) {
+                return;
+            }
+            if (embeddingResult.vectors().size() != themeTexts.size()) {
+                log.warn("Skip AI summary theme embeddings for summaryId={} because embedding count does not match theme count", summary.id());
+                return;
+            }
+            List<SaveSurveyAiSummaryPort.SurveyAiSummaryThemeEmbeddingItem> items = new ArrayList<>();
+            for (int index = 0; index < themeTexts.size(); index++) {
+                List<Double> vector = embeddingResult.vectors().get(index);
+                if (vector == null || vector.isEmpty()) {
+                    continue;
+                }
+                ThemeText themeText = themeTexts.get(index);
+                items.add(new SaveSurveyAiSummaryPort.SurveyAiSummaryThemeEmbeddingItem(
+                        themeText.type(),
+                        themeText.index(),
+                        themeText.text(),
+                        vector
+                ));
+            }
+            saveSurveyAiSummaryPort.saveThemeEmbeddings(new SaveSurveyAiSummaryPort.SurveyAiSummaryThemeEmbeddingSaveCommand(
+                    summary.id(),
+                    summary.surveyId(),
+                    embeddingResult.modelName(),
+                    items
+            ));
+        } catch (Exception exception) {
+            log.warn("Skip AI summary theme embeddings for summaryId={} because embedding failed: {}", summary.id(), exception.getMessage());
+        }
+    }
+
+    private List<ThemeText> themeTexts(LoadSurveyAiSummaryPort.SurveyAiSummaryRecord summary) {
+        List<ThemeText> texts = new ArrayList<>();
+        addThemeText(texts, "SUMMARY", 0, summary.summaryText());
+        addThemeTexts(texts, "HIGHLIGHT", summary.highlights());
+        addThemeTexts(texts, "CONCERN", summary.concerns());
+        addThemeTexts(texts, "ACTION", summary.actions());
+        return texts;
+    }
+
+    private void addThemeTexts(List<ThemeText> target, String type, List<String> values) {
+        if (values == null) {
+            return;
+        }
+        for (int index = 0; index < values.size(); index++) {
+            addThemeText(target, type, index, values.get(index));
+        }
+    }
+
+    private void addThemeText(List<ThemeText> target, String type, int index, String value) {
+        if (value != null && !value.isBlank()) {
+            target.add(new ThemeText(type, index, value.strip()));
+        }
+    }
+
+    private record ThemeText(
+            String type,
+            int index,
+            String text
+    ) {
+    }
+
+    private record SourceSnapshot(
+            LoadSurveyAiSummaryPort.SurveyAiSummaryPayload payload,
+            LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord sourceState
+    ) {
     }
 
     private Survey authorizeAccess(Integer surveyId, Integer viewerUserId, Role viewerRole) {
@@ -344,17 +513,49 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
         int maxPendingScore = sourceState.maxPendingScore();
         double pendingRatio = sourceState.pendingRatio();
         double entropyDelta = sourceState.entropyDelta();
+        int importantTopicCount = sourceState.importantPendingTopicCount();
 
         boolean recommended = pendingCount >= REFRESH_PENDING_COUNT_THRESHOLD
                 || pendingRatio >= REFRESH_PENDING_RATIO_THRESHOLD
                 || pendingScore >= REFRESH_PENDING_SCORE_THRESHOLD
                 || maxPendingScore >= REFRESH_MAX_SINGLE_SCORE_THRESHOLD
-                || entropyDelta >= REFRESH_ENTROPY_DELTA_THRESHOLD;
+                || entropyDelta >= REFRESH_ENTROPY_DELTA_THRESHOLD
+                || importantTopicCount >= REFRESH_NEW_IMPORTANT_TOPIC_THRESHOLD;
 
-        String reason = recommended
-                ? "Pending feedback changes are large or meaningful enough to refresh the AI summary."
-                : "Pending feedback changes are minor, so the current AI summary can still be reused.";
+        String reason = changeReason(recommended, pendingCount, pendingScore, maxPendingScore, pendingRatio, entropyDelta, importantTopicCount);
         return new ChangeDecision(true, recommended, pendingCount, pendingScore, maxPendingScore, pendingRatio, entropyDelta, reason);
+    }
+
+    private String changeReason(boolean recommended,
+                                int pendingCount,
+                                int pendingScore,
+                                int maxPendingScore,
+                                double pendingRatio,
+                                double entropyDelta,
+                                int importantTopicCount) {
+        if (!recommended) {
+            return "There are " + pendingCount + " new text feedback item(s), but they are below the refresh thresholds.";
+        }
+        if (pendingCount >= REFRESH_PENDING_COUNT_THRESHOLD) {
+            return "There are " + pendingCount + " new text feedback item(s), meeting the refresh threshold.";
+        }
+        if (pendingRatio >= REFRESH_PENDING_RATIO_THRESHOLD) {
+            return "New text feedback is " + formatPercent(pendingRatio) + " of the summarized source, meeting the refresh threshold.";
+        }
+        if (pendingScore >= REFRESH_PENDING_SCORE_THRESHOLD) {
+            return "New text feedback has a pending score of " + pendingScore + ", meeting the refresh threshold.";
+        }
+        if (maxPendingScore >= REFRESH_MAX_SINGLE_SCORE_THRESHOLD) {
+            return "At least one new text feedback item has a high score of " + maxPendingScore + ".";
+        }
+        if (importantTopicCount >= REFRESH_NEW_IMPORTANT_TOPIC_THRESHOLD) {
+            return "A new important feedback topic appeared " + importantTopicCount + " time(s), meeting the refresh threshold.";
+        }
+        return "New text feedback changed the topic distribution enough to refresh the AI summary.";
+    }
+
+    private String formatPercent(double ratio) {
+        return "%.1f%%".formatted(ratio * 100.0d);
     }
 
     private record ChangeDecision(
