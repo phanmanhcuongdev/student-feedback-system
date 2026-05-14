@@ -16,13 +16,13 @@ import com.ttcs.backend.application.port.in.command.SubmitSurveyAnswerCommand;
 import com.ttcs.backend.application.port.in.command.SubmitSurveyCommand;
 import com.ttcs.backend.application.port.in.result.SubmitSurveyResult;
 import com.ttcs.backend.application.port.in.result.SubmitSurveyResultCode;
-import com.ttcs.backend.application.port.in.resultview.RecordSurveyAiSummaryChangeUseCase;
 import com.ttcs.backend.application.port.out.LoadQuestionPort;
 import com.ttcs.backend.application.port.out.LoadStudentPort;
 import com.ttcs.backend.application.port.out.LoadStudentSurveysQuery;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
 import com.ttcs.backend.application.port.out.LoadSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.LoadSurveyResponsePort;
+import com.ttcs.backend.application.port.out.ScheduleSurveyAiSummaryChangeTrackingPort;
 import com.ttcs.backend.application.port.out.SaveResponseDetailPort;
 import com.ttcs.backend.application.port.out.SaveSurveyRecipientPort;
 import com.ttcs.backend.application.port.out.SaveSurveyResponsePort;
@@ -144,7 +144,7 @@ class SubmitSurveyServiceTest {
         assertEquals("SURVEY_RESPONSE", translationTask.entityType());
         assertEquals("Useful survey", translationTask.content());
         assertEquals(2, translationTask.entityId());
-        assertEquals(1, aiSummaryChangeRecorder.recordCalls);
+        assertEquals(1, aiSummaryChangeRecorder.scheduleCalls);
         assertEquals(2, aiSummaryChangeRecorder.lastRecordedDetails.size());
     }
 
@@ -296,7 +296,7 @@ class SubmitSurveyServiceTest {
         return new Question(12, 1, "Share a comment", QuestionType.TEXT);
     }
 
-    private RecordSurveyAiSummaryChangeUseCase noopAiSummaryChangeRecorder() {
+    private ScheduleSurveyAiSummaryChangeTrackingPort noopAiSummaryChangeRecorder() {
         return responseDetails -> {
         };
     }
@@ -377,13 +377,13 @@ class SubmitSurveyServiceTest {
         }
     }
 
-    private static final class RecordingAiSummaryChangeRecorder implements RecordSurveyAiSummaryChangeUseCase {
-        private int recordCalls;
+    private static final class RecordingAiSummaryChangeRecorder implements ScheduleSurveyAiSummaryChangeTrackingPort {
+        private int scheduleCalls;
         private List<ResponseDetail> lastRecordedDetails = List.of();
 
         @Override
-        public void recordSubmittedTextComments(List<ResponseDetail> responseDetails) {
-            recordCalls++;
+        public void scheduleTextCommentTracking(List<ResponseDetail> responseDetails) {
+            scheduleCalls++;
             lastRecordedDetails = responseDetails;
         }
     }

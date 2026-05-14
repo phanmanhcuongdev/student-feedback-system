@@ -10,6 +10,8 @@ import com.ttcs.backend.application.domain.model.SurveyAssignment;
 import com.ttcs.backend.application.domain.model.Lecturer;
 import com.ttcs.backend.application.port.in.resultview.GenerateSurveyAiSummaryUseCase;
 import com.ttcs.backend.application.port.in.resultview.GetSurveyAiSummaryUseCase;
+import com.ttcs.backend.application.port.in.resultview.ProcessSurveyAiSummaryJobCommand;
+import com.ttcs.backend.application.port.in.resultview.ProcessSurveyAiSummaryJobUseCase;
 import com.ttcs.backend.application.port.in.resultview.SurveyAiSummaryViewResult;
 import com.ttcs.backend.application.port.out.GenerateSurveyCommentSummaryPort;
 import com.ttcs.backend.application.port.out.GenerateTextEmbeddingPort;
@@ -17,14 +19,13 @@ import com.ttcs.backend.application.port.out.LoadSurveyAiSummaryPort;
 import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadLecturerByUserIdPort;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
+import com.ttcs.backend.application.port.out.ScheduleSurveyAiSummaryJobPort;
 import com.ttcs.backend.application.port.out.SaveSurveyAiSummaryPort;
 import com.ttcs.backend.application.port.out.SurveyCommentSummaryCommand;
 import com.ttcs.backend.application.port.out.SurveyCommentSummaryResult;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.charset.StandardCharsets;
@@ -35,14 +36,13 @@ import java.util.LinkedHashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 
 @UseCase
 @RequiredArgsConstructor
 @Slf4j
-public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, GetSurveyAiSummaryUseCase {
+public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, GetSurveyAiSummaryUseCase, ProcessSurveyAiSummaryJobUseCase {
 
     private static final int REFRESH_PENDING_COUNT_THRESHOLD = 10;
     private static final double REFRESH_PENDING_RATIO_THRESHOLD = 0.05d;
@@ -58,7 +58,7 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
     private final GenerateSurveyCommentSummaryPort generateSurveyCommentSummaryPort;
     private final GenerateTextEmbeddingPort generateTextEmbeddingPort;
     private final SaveSurveyAiSummaryPort saveSurveyAiSummaryPort;
-    private final ObjectProvider<SurveyAiSummaryService> selfProvider;
+    private final ScheduleSurveyAiSummaryJobPort scheduleSurveyAiSummaryJobPort;
     private final SurveyAiSummaryChangeScorer changeScorer;
 
     @Override
@@ -171,27 +171,35 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
 
         var job = saveSurveyAiSummaryPort.createJob(surveyId, sourceHash, payload.commentCount(), viewerUserId);
         try {
-            selfProvider.getObject().processJob(job.id(), survey, payload, sourceHash, expectedSourceVersion, viewerUserId);
+            scheduleSurveyAiSummaryJobPort.schedule(new ProcessSurveyAiSummaryJobCommand(
+                    job.id(),
+                    survey,
+                    payload,
+                    sourceHash,
+                    expectedSourceVersion,
+                    viewerUserId
+            ));
         } catch (Exception exception) {
             saveSurveyAiSummaryPort.markJobFailed(job.id(), errorMessage(exception), LocalDateTime.now());
         }
         return toView(surveyId, job, null, sourceState);
     }
 
-    @Async("aiTaskExecutor")
-    public CompletableFuture<Void> processJob(Integer jobId,
-                                              Survey survey,
-                                              LoadSurveyAiSummaryPort.SurveyAiSummaryPayload payload,
-                                              String sourceHash,
-                                              Integer expectedSourceVersion,
-                                              Integer viewerUserId) {
+    @Override
+    public void processJob(ProcessSurveyAiSummaryJobCommand command) {
+        Integer jobId = command.jobId();
+        Survey survey = command.survey();
+        LoadSurveyAiSummaryPort.SurveyAiSummaryPayload payload = command.payload();
+        String sourceHash = command.sourceHash();
+        Integer expectedSourceVersion = command.expectedSourceVersion();
+        Integer viewerUserId = command.requestedByUserId();
         try {
             boolean claimed = saveSurveyAiSummaryPort.markJobProcessingIfNoActiveJob(jobId, survey.getId(), LocalDateTime.now());
             if (!claimed) {
                 String message = "Another AI summary job is already queued or processing for surveyId=" + survey.getId();
                 log.warn("Skip AI summary jobId={} for surveyId={}: {}", jobId, survey.getId(), message);
                 saveSurveyAiSummaryPort.markJobFailed(jobId, message, LocalDateTime.now());
-                return CompletableFuture.completedFuture(null);
+                return;
             }
 
             SurveyCommentSummaryResult result = generateSurveyCommentSummaryPort.generateSummary(
@@ -228,7 +236,6 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
         } catch (Exception exception) {
             saveSurveyAiSummaryPort.markJobFailed(jobId, errorMessage(exception), LocalDateTime.now());
         }
-        return CompletableFuture.completedFuture(null);
     }
 
     private LoadSurveyAiSummaryPort.SurveyAiSummarySourceStateRecord loadOrRebuildSourceState(

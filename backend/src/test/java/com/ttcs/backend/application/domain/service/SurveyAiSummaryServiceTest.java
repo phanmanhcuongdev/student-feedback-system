@@ -10,11 +10,11 @@ import com.ttcs.backend.application.port.out.LoadLecturerByUserIdPort;
 import com.ttcs.backend.application.port.out.LoadSurveyAiSummaryPort;
 import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadSurveyPort;
+import com.ttcs.backend.application.port.out.ScheduleSurveyAiSummaryJobPort;
 import com.ttcs.backend.application.port.out.SaveSurveyAiSummaryPort;
 import com.ttcs.backend.application.port.out.SurveyCommentSummaryResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.ObjectProvider;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,13 +39,13 @@ class SurveyAiSummaryServiceTest {
     private final SaveSurveyAiSummaryPort saveSurveyAiSummaryPort = mock(SaveSurveyAiSummaryPort.class);
     private final GenerateSurveyCommentSummaryPort generateSurveyCommentSummaryPort = mock(GenerateSurveyCommentSummaryPort.class);
     private final GenerateTextEmbeddingPort generateTextEmbeddingPort = mock(GenerateTextEmbeddingPort.class);
-    private final ObjectProvider<SurveyAiSummaryService> selfProvider = mock(ObjectProvider.class);
 
     private SurveyAiSummaryService service;
 
     @BeforeEach
     void setUp() {
         AtomicReference<SurveyAiSummaryService> serviceRef = new AtomicReference<>();
+        ScheduleSurveyAiSummaryJobPort scheduleSurveyAiSummaryJobPort = command -> serviceRef.get().processJob(command);
         service = new SurveyAiSummaryService(
                 loadSurveyPort,
                 loadSurveyAssignmentPort,
@@ -54,11 +54,10 @@ class SurveyAiSummaryServiceTest {
                 generateSurveyCommentSummaryPort,
                 generateTextEmbeddingPort,
                 saveSurveyAiSummaryPort,
-                selfProvider,
+                scheduleSurveyAiSummaryJobPort,
                 new SurveyAiSummaryChangeScorer()
         );
         serviceRef.set(service);
-        when(selfProvider.getObject()).thenAnswer(invocation -> serviceRef.get());
     }
 
     @Test

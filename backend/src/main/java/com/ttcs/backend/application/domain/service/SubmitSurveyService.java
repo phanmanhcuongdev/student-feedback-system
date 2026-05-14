@@ -6,7 +6,6 @@ import com.ttcs.backend.application.port.in.command.SubmitSurveyAnswerCommand;
 import com.ttcs.backend.application.port.in.command.SubmitSurveyCommand;
 import com.ttcs.backend.application.port.in.result.SubmitSurveyResult;
 import com.ttcs.backend.application.port.in.result.SubmitSurveyResultCode;
-import com.ttcs.backend.application.port.in.resultview.RecordSurveyAiSummaryChangeUseCase;
 import com.ttcs.backend.application.port.out.*;
 import com.ttcs.backend.application.port.out.ai.SendTranslationTaskPort;
 import com.ttcs.backend.application.port.out.ai.TranslationTaskCommand;
@@ -40,7 +39,7 @@ public class SubmitSurveyService implements SubmitSurveyUseCase {
     private final LoadSurveyRecipientPort loadSurveyRecipientPort;
     private final SaveSurveyRecipientPort saveSurveyRecipientPort;
     private final SendTranslationTaskPort sendTranslationTaskPort;
-    private final RecordSurveyAiSummaryChangeUseCase recordSurveyAiSummaryChangeUseCase;
+    private final ScheduleSurveyAiSummaryChangeTrackingPort scheduleSurveyAiSummaryChangeTrackingPort;
 
     @Override
     public SubmitSurveyResult submitSurvey(SubmitSurveyCommand command) {
@@ -173,9 +172,9 @@ public class SubmitSurveyService implements SubmitSurveyUseCase {
 
         Runnable recordChanges = () -> {
             try {
-                recordSurveyAiSummaryChangeUseCase.recordSubmittedTextComments(responseDetails);
+                scheduleSurveyAiSummaryChangeTrackingPort.scheduleTextCommentTracking(responseDetails);
             } catch (Exception exception) {
-                log.warn("Skip AI summary change tracking because recorder failed: {}", exception.getMessage());
+                log.warn("Skip AI summary change tracking dispatch because scheduler failed: {}", exception.getMessage());
             }
         };
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
