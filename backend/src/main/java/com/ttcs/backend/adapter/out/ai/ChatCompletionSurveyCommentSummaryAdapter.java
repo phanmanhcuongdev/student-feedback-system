@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 public class ChatCompletionSurveyCommentSummaryAdapter implements GenerateSurveyCommentSummaryPort {
 
     private static final int MAX_CHARS_PER_CHUNK = 12000;
-    private static final int MAX_CHARS_PER_COMMENT = 300;
+    private static final int MAX_CHARS_PER_ENTRY = 2500;
     private static final Pattern JSON_BLOCK_PATTERN = Pattern.compile("\\{.*}", Pattern.DOTALL);
     private static final String SYSTEM_PROMPT = """
             You summarize and analyze student feedback.
@@ -103,18 +103,18 @@ public class ChatCompletionSurveyCommentSummaryAdapter implements GenerateSurvey
         List<String> chunks = new ArrayList<>();
         StringBuilder current = new StringBuilder();
         for (String entry : entries) {
-            String truncatedEntry = truncateComment(entry);
-            if (truncatedEntry.isBlank()) {
+            String normalizedEntry = normalizeEntry(entry);
+            if (normalizedEntry.isBlank()) {
                 continue;
             }
-            if (current.length() > 0 && current.length() + truncatedEntry.length() + 2 > MAX_CHARS_PER_CHUNK) {
+            if (current.length() > 0 && current.length() + normalizedEntry.length() + 2 > MAX_CHARS_PER_CHUNK) {
                 chunks.add(current.toString());
                 current = new StringBuilder();
             }
             if (current.length() > 0) {
                 current.append("\n\n");
             }
-            current.append(truncatedEntry);
+            current.append(normalizedEntry);
         }
         if (current.length() > 0) {
             chunks.add(current.toString());
@@ -302,15 +302,16 @@ public class ChatCompletionSurveyCommentSummaryAdapter implements GenerateSurvey
         return value == null || value.isBlank() ? "Khong co tieu de" : value;
     }
 
-    private String truncateComment(String value) {
+    private String normalizeEntry(String value) {
         if (value == null) {
             return "";
         }
         String normalized = value.strip();
-        if (normalized.length() <= MAX_CHARS_PER_COMMENT) {
+        if (normalized.length() <= MAX_CHARS_PER_ENTRY) {
             return normalized;
         }
-        return normalized.substring(0, MAX_CHARS_PER_COMMENT);
+        return normalized.substring(0, MAX_CHARS_PER_ENTRY)
+                + "\n[Entry truncated because it exceeded the per-entry limit]";
     }
 
     private String trimForError(String value) {
