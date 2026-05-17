@@ -44,7 +44,6 @@ import static org.springframework.http.HttpStatus.FORBIDDEN;
 @Slf4j
 public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, GetSurveyAiSummaryUseCase, ProcessSurveyAiSummaryJobUseCase {
 
-    private static final int REFRESH_PENDING_COUNT_THRESHOLD = 10;
     private static final double REFRESH_PENDING_RATIO_THRESHOLD = 0.05d;
     private static final int REFRESH_PENDING_SCORE_THRESHOLD = 15;
     private static final int REFRESH_MAX_SINGLE_SCORE_THRESHOLD = 7;
@@ -522,8 +521,7 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
         double entropyDelta = sourceState.entropyDelta();
         int importantTopicCount = sourceState.importantPendingTopicCount();
 
-        boolean recommended = pendingCount >= REFRESH_PENDING_COUNT_THRESHOLD
-                || pendingRatio >= REFRESH_PENDING_RATIO_THRESHOLD
+        boolean recommended = pendingRatio >= REFRESH_PENDING_RATIO_THRESHOLD
                 || pendingScore >= REFRESH_PENDING_SCORE_THRESHOLD
                 || maxPendingScore >= REFRESH_MAX_SINGLE_SCORE_THRESHOLD
                 || entropyDelta >= REFRESH_ENTROPY_DELTA_THRESHOLD
@@ -542,9 +540,6 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
                                 int importantTopicCount) {
         if (!recommended) {
             return "There are " + pendingCount + " new text feedback item(s), but they are below the refresh thresholds.";
-        }
-        if (pendingCount >= REFRESH_PENDING_COUNT_THRESHOLD) {
-            return "There are " + pendingCount + " new text feedback item(s), meeting the refresh threshold.";
         }
         if (pendingRatio >= REFRESH_PENDING_RATIO_THRESHOLD) {
             return "New text feedback is " + formatPercent(pendingRatio) + " of the summarized source, meeting the refresh threshold.";
