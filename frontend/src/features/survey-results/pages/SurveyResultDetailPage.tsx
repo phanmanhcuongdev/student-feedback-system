@@ -72,6 +72,59 @@ function isProcessingStatus(status: string | null | undefined) {
     return status === "QUEUED" || status === "PROCESSING";
 }
 
+function isAiSummaryStale(summary: SurveyAiSummary) {
+    return summary.isStale ?? summary.stale;
+}
+
+function aiFreshness(summary: SurveyAiSummary, t: (key: string, options?: Record<string, unknown>) => string) {
+    const pendingCount = summary.pendingCommentCount ?? 0;
+    if (!isAiSummaryStale(summary)) {
+        return {
+            tone: "emerald",
+            title: t("surveyResults:surveyResults.detail.ai.freshness.upToDate"),
+            description: t("surveyResults:surveyResults.detail.ai.freshness.upToDateDescription"),
+        };
+    }
+    if (!summary.refreshRecommended) {
+        return {
+            tone: "sky",
+            title: t("surveyResults:surveyResults.detail.ai.freshness.minorChanges"),
+            description: summary.changeReason || t("surveyResults:surveyResults.detail.ai.freshness.minorChangesDescription", { count: pendingCount }),
+        };
+    }
+    return {
+        tone: "amber",
+        title: t("surveyResults:surveyResults.detail.ai.freshness.refreshRecommended"),
+        description: summary.changeReason || t("surveyResults:surveyResults.detail.ai.freshness.refreshRecommendedDescription", { count: pendingCount }),
+    };
+}
+
+function aiFreshnessClasses(tone: string) {
+    switch (tone) {
+        case "emerald":
+            return "border-emerald-200 bg-emerald-50 text-emerald-800";
+        case "sky":
+            return "border-sky-200 bg-sky-50 text-sky-800";
+        default:
+            return "border-amber-200 bg-amber-50 text-amber-800";
+    }
+}
+
+function generateButtonLabel(summary: SurveyAiSummary | null, isGenerating: boolean, t: (key: string) => string) {
+    if (isGenerating) {
+        return t("surveyResults:surveyResults.detail.ai.buttons.submitting");
+    }
+    if (isProcessingStatus(summary?.status)) {
+        return t("surveyResults:surveyResults.detail.ai.buttons.processing");
+    }
+    if (!summary?.summary) {
+        return t("surveyResults:surveyResults.detail.ai.buttons.generate");
+    }
+    return summary.refreshRecommended
+        ? t("surveyResults:surveyResults.detail.ai.buttons.refresh")
+        : t("surveyResults:surveyResults.detail.ai.buttons.check");
+}
+
 function getAudienceLabel(survey: SurveyResultDetail, t: (key: string) => string) {
     if (survey.recipientScope === "DEPARTMENT") {
         return survey.recipientDepartmentName || t("surveyResults:surveyResults.common.department");
@@ -329,7 +382,7 @@ export default function SurveyResultDetailPage() {
                                             disabled={!survey || aiLoading || isGeneratingAiSummary || isProcessingStatus(aiSummary?.status)}
                                             className="inline-flex items-center rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
                                         >
-                                            {isGeneratingAiSummary ? t("surveyResults:surveyResults.detail.ai.buttons.submitting") : isProcessingStatus(aiSummary?.status) ? t("surveyResults:surveyResults.detail.ai.buttons.processing") : aiSummary?.summary ? t("surveyResults:surveyResults.detail.ai.buttons.regenerate") : t("surveyResults:surveyResults.detail.ai.buttons.generate")}
+                                            {generateButtonLabel(aiSummary, isGeneratingAiSummary, t)}
                                         </button>
                                     )}
                                 >
@@ -339,11 +392,13 @@ export default function SurveyResultDetailPage() {
                                         <ErrorState description={aiError} onRetry={() => void fetchAiSummaryStatus()} />
                                     ) : aiSummary ? (
                                         <div className="space-y-5">
+                                            <AiFreshnessPanel summary={aiSummary} t={t} />
+
                                             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                                                 <StatCard label={t("surveyResults:surveyResults.detail.ai.stats.status")} value={getSummaryStatusLabel(aiSummary.status, t)} tone="amber" />
                                                 <StatCard label={t("surveyResults:surveyResults.detail.ai.stats.textComments")} value={aiSummary.commentCount} tone="sky" />
-                                                <StatCard label={t("surveyResults:surveyResults.detail.ai.stats.requested")} value={formatDateTime(aiSummary.requestedAt, i18n.language)} tone="slate" />
-                                                <StatCard label={t("surveyResults:surveyResults.detail.ai.stats.finished")} value={formatDateTime(aiSummary.finishedAt, i18n.language)} tone="emerald" />
+                                                <StatCard label={t("surveyResults:surveyResults.detail.ai.stats.pendingComments")} value={aiSummary.pendingCommentCount} tone={aiSummary.refreshRecommended ? "amber" : "slate"} />
+                                                <StatCard label={t("surveyResults:surveyResults.detail.ai.stats.pendingScore")} value={aiSummary.pendingScoreSum} tone={aiSummary.refreshRecommended ? "amber" : "slate"} />
                                             </div>
 
                                             <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
@@ -371,6 +426,8 @@ export default function SurveyResultDetailPage() {
                                                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{t("surveyResults:surveyResults.detail.ai.jobDetails.title")}</p>
                                                     <div className="mt-4 grid gap-3">
                                                         <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.detail.ai.jobDetails.jobId")}</span><span className="font-medium text-slate-900">{aiSummary.jobId ?? "-"}</span></div>
+                                                        <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.detail.ai.jobDetails.lastChangedAt")}</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.lastChangedAt, i18n.language)}</span></div>
+                                                        <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.detail.ai.jobDetails.lastSummarizedAt")}</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.lastSummarizedAt, i18n.language)}</span></div>
                                                         <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.detail.ai.jobDetails.requestedAt")}</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.requestedAt, i18n.language)}</span></div>
                                                         <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.detail.ai.jobDetails.startedAt")}</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.startedAt, i18n.language)}</span></div>
                                                         <div className="flex items-center justify-between gap-4"><span className="font-semibold text-slate-500">{t("surveyResults:surveyResults.detail.ai.jobDetails.finishedAt")}</span><span className="font-medium text-slate-900">{formatDateTime(aiSummary.finishedAt, i18n.language)}</span></div>
@@ -468,6 +525,24 @@ function SummaryListCard({ title, items, emptyMessage, tone }: { title: string; 
                 </div>
             )}
         </article>
+    );
+}
+
+function AiFreshnessPanel({ summary, t }: { summary: SurveyAiSummary; t: (key: string, options?: Record<string, unknown>) => string }) {
+    const freshness = aiFreshness(summary, t);
+    return (
+        <div className={`rounded-2xl border px-5 py-4 ${aiFreshnessClasses(freshness.tone)}`}>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <p className="text-sm font-bold">{freshness.title}</p>
+                    <p className="mt-1 text-sm leading-6 opacity-90">{freshness.description}</p>
+                </div>
+                <div className="grid min-w-[260px] grid-cols-2 gap-2 text-xs font-semibold">
+                    <span>{t("surveyResults:surveyResults.detail.ai.freshness.pendingCount", { count: summary.pendingCommentCount })}</span>
+                    <span>{t("surveyResults:surveyResults.detail.ai.freshness.pendingScore", { score: summary.pendingScoreSum })}</span>
+                </div>
+            </div>
+        </div>
     );
 }
 

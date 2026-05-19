@@ -7,10 +7,14 @@ import com.ttcs.backend.application.port.out.SurveyCommentSummaryCommand;
 import com.ttcs.backend.application.port.out.SurveyCommentSummaryResult;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestClient;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -22,7 +26,7 @@ import java.util.regex.Pattern;
 public class ChatCompletionSurveyCommentSummaryAdapter implements GenerateSurveyCommentSummaryPort {
 
     private static final int MAX_CHARS_PER_CHUNK = 12000;
-    private static final int MAX_CHARS_PER_COMMENT = 300;
+    private static final int MAX_CHARS_PER_ENTRY = 2500;
     private static final Pattern JSON_BLOCK_PATTERN = Pattern.compile("\\{.*}", Pattern.DOTALL);
     private static final String SYSTEM_PROMPT = """
             You summarize and analyze student feedback.
@@ -35,17 +39,31 @@ public class ChatCompletionSurveyCommentSummaryAdapter implements GenerateSurvey
     private final ObjectMapper objectMapper;
     private final String apiKey;
     private final String model;
+    private final int maxAttempts;
+    private final long retryBackoffMs;
 
     public ChatCompletionSurveyCommentSummaryAdapter(
             RestClient.Builder restClientBuilder,
             @Value("${app.ai.base-url}") String baseUrl,
             @Value("${app.ai.api-key}") String apiKey,
-            @Value("${app.ai.model}") String model
+            @Value("${app.ai.model}") String model,
+            @Value("${app.ai.timeout.connect-ms:5000}") long connectTimeoutMs,
+            @Value("${app.ai.timeout.read-ms:60000}") long readTimeoutMs,
+            @Value("${app.ai.retry.max-attempts:2}") int maxAttempts,
+            @Value("${app.ai.retry.backoff-ms:500}") long retryBackoffMs
     ) {
         this.objectMapper = new ObjectMapper();
         this.apiKey = apiKey;
         this.model = model;
-        this.restClient = restClientBuilder
+        this.maxAttempts = Math.max(1, maxAttempts);
+        this.retryBackoffMs = Math.max(0, retryBackoffMs);
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(Math.max(1, connectTimeoutMs)))
+                .build();
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(Duration.ofMillis(Math.max(1, readTimeoutMs)));
+        this.restClient = restClientBuilder.clone()
+                .requestFactory(requestFactory)
                 .baseUrl(baseUrl)
                 .defaultHeader("Authorization", "Bearer " + apiKey)
                 .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -85,18 +103,18 @@ public class ChatCompletionSurveyCommentSummaryAdapter implements GenerateSurvey
         List<String> chunks = new ArrayList<>();
         StringBuilder current = new StringBuilder();
         for (String entry : entries) {
-            String truncatedEntry = truncateComment(entry);
-            if (truncatedEntry.isBlank()) {
+            String normalizedEntry = normalizeEntry(entry);
+            if (normalizedEntry.isBlank()) {
                 continue;
             }
-            if (current.length() > 0 && current.length() + truncatedEntry.length() + 2 > MAX_CHARS_PER_CHUNK) {
+            if (current.length() > 0 && current.length() + normalizedEntry.length() + 2 > MAX_CHARS_PER_CHUNK) {
                 chunks.add(current.toString());
                 current = new StringBuilder();
             }
             if (current.length() > 0) {
                 current.append("\n\n");
             }
-            current.append(truncatedEntry);
+            current.append(normalizedEntry);
         }
         if (current.length() > 0) {
             chunks.add(current.toString());
@@ -185,37 +203,73 @@ public class ChatCompletionSurveyCommentSummaryAdapter implements GenerateSurvey
     }
 
     private StructuredSummary requestStructuredSummary(String prompt) {
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                return parseStructuredSummary(postPrompt(prompt));
+            } catch (RestClientResponseException exception) {
+                if (shouldRetry(exception) && attempt < maxAttempts) {
+                    waitBeforeRetry();
+                    continue;
+                }
+                throw new IllegalStateException(
+                        "AI provider returned HTTP " + exception.getStatusCode().value() + ": " + trimForError(exception.getResponseBodyAsString()),
+                        exception
+                );
+            } catch (ResourceAccessException exception) {
+                if (attempt < maxAttempts) {
+                    waitBeforeRetry();
+                    continue;
+                }
+                throw new IllegalStateException("AI provider request failed: " + exception.getMessage(), exception);
+            } catch (Exception exception) {
+                throw new IllegalStateException("Unable to parse AI summary response", exception);
+            }
+        }
+        throw new IllegalStateException("AI provider request failed after " + maxAttempts + " attempt(s)");
+    }
+
+    private String postPrompt(String prompt) {
+        return restClient.post()
+                .uri("")
+                .body(Map.of(
+                        "model", model,
+                        "temperature", 0.2,
+                        "messages", List.of(
+                                Map.of("role", "system", "content", SYSTEM_PROMPT),
+                                Map.of("role", "user", "content", prompt)
+                        )
+                ))
+                .retrieve()
+                .body(String.class);
+    }
+
+    private StructuredSummary parseStructuredSummary(String responseBody) throws Exception {
+        JsonNode root = objectMapper.readTree(responseBody);
+        String content = root.path("choices").path(0).path("message").path("content").asText();
+        JsonNode json = objectMapper.readTree(extractJsonContent(content));
+
+        return new StructuredSummary(
+                json.path("summary").asText(""),
+                readArray(json.path("highlights")),
+                readArray(json.path("concerns")),
+                readArray(json.path("actions"))
+        );
+    }
+
+    private boolean shouldRetry(RestClientResponseException exception) {
+        int status = exception.getStatusCode().value();
+        return status == 429 || status >= 500;
+    }
+
+    private void waitBeforeRetry() {
+        if (retryBackoffMs <= 0) {
+            return;
+        }
         try {
-            String responseBody = restClient.post()
-                    .uri("")
-                    .body(Map.of(
-                            "model", model,
-                            "temperature", 0.2,
-                            "messages", List.of(
-                                    Map.of("role", "system", "content", SYSTEM_PROMPT),
-                                    Map.of("role", "user", "content", prompt)
-                            )
-                    ))
-                    .retrieve()
-                    .body(String.class);
-
-            JsonNode root = objectMapper.readTree(responseBody);
-            String content = root.path("choices").path(0).path("message").path("content").asText();
-            JsonNode json = objectMapper.readTree(extractJsonContent(content));
-
-            return new StructuredSummary(
-                    json.path("summary").asText(""),
-                    readArray(json.path("highlights")),
-                    readArray(json.path("concerns")),
-                    readArray(json.path("actions"))
-            );
-        } catch (RestClientResponseException exception) {
-            throw new IllegalStateException(
-                    "AI provider returned HTTP " + exception.getStatusCode().value() + ": " + trimForError(exception.getResponseBodyAsString()),
-                    exception
-            );
-        } catch (Exception exception) {
-            throw new IllegalStateException("Unable to parse AI summary response", exception);
+            Thread.sleep(retryBackoffMs);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting to retry AI provider request", exception);
         }
     }
 
@@ -248,15 +302,16 @@ public class ChatCompletionSurveyCommentSummaryAdapter implements GenerateSurvey
         return value == null || value.isBlank() ? "Khong co tieu de" : value;
     }
 
-    private String truncateComment(String value) {
+    private String normalizeEntry(String value) {
         if (value == null) {
             return "";
         }
         String normalized = value.strip();
-        if (normalized.length() <= MAX_CHARS_PER_COMMENT) {
+        if (normalized.length() <= MAX_CHARS_PER_ENTRY) {
             return normalized;
         }
-        return normalized.substring(0, MAX_CHARS_PER_COMMENT);
+        return normalized.substring(0, MAX_CHARS_PER_ENTRY)
+                + "\n[Entry truncated because it exceeded the per-entry limit]";
     }
 
     private String trimForError(String value) {

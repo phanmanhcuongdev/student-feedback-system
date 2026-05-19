@@ -127,6 +127,8 @@
         "buttons": {
           "generate": "Generate AI summary",
           "regenerate": "Regenerate AI summary",
+          "refresh": "Refresh AI summary",
+          "check": "Check summary freshness",
           "submitting": "Submitting...",
           "processing": "Processing..."
         },
@@ -141,14 +143,31 @@
         "stats": {
           "status": "Status",
           "textComments": "Text comments",
+          "pendingComments": "New comments",
+          "pendingScore": "Pending score",
           "requested": "Requested",
           "finished": "Finished"
+        },
+        "freshness": {
+          "upToDate": "Summary is up to date.",
+          "upToDateDescription": "There are no new text feedback changes after the latest summary.",
+          "minorChanges": "Summary can still be reused.",
+          "minorChangesDescription_one": "There is {{count}} new response, but it is below the refresh threshold.",
+          "minorChangesDescription_other": "There are {{count}} new responses, but they are below the refresh threshold.",
+          "refreshRecommended": "Refresh recommended.",
+          "refreshRecommendedDescription_one": "There is {{count}} important new response. Updating the summary is recommended.",
+          "refreshRecommendedDescription_other": "There are {{count}} important new responses. Updating the summary is recommended.",
+          "pendingCount_one": "{{count}} new comment",
+          "pendingCount_other": "{{count}} new comments",
+          "pendingScore": "Score {{score}}"
         },
         "notRequested": "No AI summary has been generated for this survey yet. The system only analyzes text feedback after you explicitly request it.",
         "processingNotice": "The summary job is processing in the background. This panel refreshes automatically until a result is available.",
         "jobDetails": {
           "title": "Job details",
           "jobId": "Job id",
+          "lastChangedAt": "Last changed",
+          "lastSummarizedAt": "Last summarized",
           "requestedAt": "Requested at",
           "startedAt": "Started at",
           "finishedAt": "Finished at"

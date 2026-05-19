@@ -57,7 +57,18 @@ public class SurveyAiSummaryController {
                 result.errorMessage(),
                 result.requestedAt(),
                 result.startedAt(),
-                result.finishedAt()
+                result.finishedAt(),
+                result.stale(),
+                result.stale(),
+                result.refreshRecommended(),
+                result.pendingCommentCount(),
+                result.pendingScoreSum(),
+                result.maxPendingScore(),
+                result.pendingRatio(),
+                result.entropyDelta(),
+                result.changeReason(),
+                result.lastChangedAt(),
+                result.lastSummarizedAt()
         );
     }
 }

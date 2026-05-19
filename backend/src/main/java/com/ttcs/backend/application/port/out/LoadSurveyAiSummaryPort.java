@@ -15,6 +15,10 @@ public interface LoadSurveyAiSummaryPort {
 
     Optional<SurveyAiSummaryRecord> loadSummaryById(Integer summaryId);
 
+    Optional<SurveyAiSummarySourceStateRecord> loadSourceState(Integer surveyId);
+
+    List<SurveyAiSummaryThemeEmbeddingRecord> loadLatestThemeEmbeddings(Integer surveyId);
+
     SurveyAiSummaryPayload loadSurveySummaryPayload(Integer surveyId);
 
     record SurveyAiSummaryRecord(
@@ -60,5 +64,58 @@ public interface LoadSurveyAiSummaryPort {
             String questionContent,
             String comment
     ) {
+    }
+
+    record SurveyAiSummaryThemeEmbeddingRecord(
+            Integer id,
+            Integer summaryId,
+            Integer surveyId,
+            String themeType,
+            Integer themeIndex,
+            String themeText,
+            List<Double> vector,
+            String modelName,
+            LocalDateTime createdAt
+    ) {
+    }
+
+    record SurveyAiSummarySourceStateRecord(
+            Integer surveyId,
+            Integer currentCommentCount,
+            Integer summarizedCommentCount,
+            Integer pendingCommentCount,
+            Integer pendingScoreSum,
+            Integer maxPendingScore,
+            String topicCountsJson,
+            String pendingTopicCountsJson,
+            Double currentEntropy,
+            Double summarizedEntropy,
+            Integer newImportantPendingTopicCount,
+            Integer sourceVersion,
+            Integer summarizedSourceVersion,
+            LocalDateTime lastChangedAt,
+            LocalDateTime lastSummarizedAt
+    ) {
+        public boolean hasPendingChanges() {
+            return pendingCommentCount != null && pendingCommentCount > 0;
+        }
+
+        public double pendingRatio() {
+            Integer base = summarizedCommentCount == null || summarizedCommentCount <= 0 ? currentCommentCount : summarizedCommentCount;
+            if (base == null || base <= 0 || pendingCommentCount == null) {
+                return 0.0d;
+            }
+            return (double) pendingCommentCount / (double) base;
+        }
+
+        public double entropyDelta() {
+            double current = currentEntropy == null ? 0.0d : currentEntropy;
+            double summarized = summarizedEntropy == null ? 0.0d : summarizedEntropy;
+            return Math.abs(current - summarized);
+        }
+
+        public int importantPendingTopicCount() {
+            return newImportantPendingTopicCount == null ? 0 : newImportantPendingTopicCount;
+        }
     }
 }
