@@ -11,4 +11,15 @@ export type SurveyAiSummary = {
     requestedAt: string | null;
     startedAt: string | null;
     finishedAt: string | null;
+    stale: boolean;
+    isStale?: boolean;
+    refreshRecommended: boolean;
+    pendingCommentCount: number;
+    pendingScoreSum: number;
+    maxPendingScore: number;
+    pendingRatio: number;
+    entropyDelta: number;
+    changeReason: string | null;
+    lastChangedAt: string | null;
+    lastSummarizedAt: string | null;
 };
