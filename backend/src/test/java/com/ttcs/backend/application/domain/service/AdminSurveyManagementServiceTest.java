@@ -577,7 +577,18 @@ class AdminSurveyManagementServiceTest {
 
         @Override
         public int bulkInsertRecipients(Integer surveyId, Integer departmentId) {
-            return 0;
+            int count = 0;
+            for (Student student : state.candidateStudents) {
+                if (student.getStatus() == Status.ACTIVE 
+                    && student.getUser() != null 
+                    && Boolean.TRUE.equals(student.getUser().getVerified())
+                    && (departmentId == null || (student.getDepartment() != null && student.getDepartment().getId().equals(departmentId)))
+                    && state.recipients.stream().noneMatch(item -> item.getSurveyId().equals(surveyId) && item.getStudentId().equals(student.getId()))) {
+                    save(new SurveyRecipient(null, surveyId, student.getId(), LocalDateTime.now(), null, null));
+                    count++;
+                }
+            }
+            return count;
         }
 
         @Override

@@ -111,8 +111,19 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
         if (lecturerDepartmentId == null) {
             throw new ResponseStatusException(FORBIDDEN, "Lecturer department scope is unavailable");
         }
-        if (!isLecturerInScope(surveyId, lecturerDepartmentId)) {
-            throw new ResponseStatusException(FORBIDDEN, "You are not allowed to view results for this survey");
+
+        List<SurveyAssignment> assignments = loadSurveyAssignmentPort.loadBySurveyId(surveyId);
+
+        // Deny access to ALL_STUDENTS surveys
+        if (assignments.stream().anyMatch(a -> a.getSubjectType() == SubjectType.ALL)) {
+            throw new ResponseStatusException(FORBIDDEN, "Cannot view all-students survey results");
+        }
+
+        // Deny access to other departments
+        if (assignments.stream()
+                .filter(a -> a.getSubjectType() == SubjectType.DEPARTMENT)
+                .noneMatch(a -> lecturerDepartmentId.equals(a.getSubjectValue()))) {
+            throw new ResponseStatusException(FORBIDDEN, "Outside department scope");
         }
 
         return toDetailResult(result);
@@ -162,24 +173,6 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
 
         return loadLecturerByUserIdPort.loadByUserId(viewerUserId)
                 .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "Lecturer profile not found"));
-    }
-
-    private boolean isLecturerInScope(Integer surveyId, Integer lecturerDepartmentId) {
-        List<SurveyAssignment> assignments = loadSurveyAssignmentPort.loadBySurveyId(surveyId);
-        return assignments.stream().anyMatch(assignment -> {
-            if (assignment == null) return false;
-            SubjectType subjectType = assignment.getSubjectType();
-            // Surveys about facilities are visible to all lecturers
-            if (subjectType == SubjectType.FACILITY) return true;
-            // Surveys targeting the lecturer's department as subject
-            if (subjectType == SubjectType.DEPARTMENT
-                    && lecturerDepartmentId.equals(assignment.getSubjectValue())) return true;
-            // Surveys where students of the lecturer's department are evaluators
-            if (lecturerDepartmentId.equals(assignment.getEvaluatorValue())) return true;
-            // Surveys for ALL students (evaluator_value is null) are visible to all lecturers
-            if (assignment.getEvaluatorValue() == null) return true;
-            return false;
-        });
     }
 
     private String normalizeLanguage(String value) {
