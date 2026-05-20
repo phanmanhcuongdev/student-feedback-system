@@ -146,13 +146,21 @@ public class CreateSurveyService implements CreateSurveyUseCase {
             evaluatorType = EvaluatorType.CUSTOM;
         }
 
+        SubjectType finalSubjectType = subjectType != null ? subjectType : SubjectType.ALL;
+        Integer finalSubjectValue = subjectValue;
+
+        if (scope == SurveyRecipientScope.DEPARTMENT && (finalSubjectType == SubjectType.ALL || finalSubjectType == SubjectType.DEPARTMENT) && finalSubjectValue == null) {
+            finalSubjectType = SubjectType.DEPARTMENT;
+            finalSubjectValue = departmentId;
+        }
+
         return new SurveyAssignment(
                 null,
                 survey,
                 evaluatorType,
                 evaluatorValue,
-                subjectType != null ? subjectType : SubjectType.ALL,
-                subjectValue,
+                finalSubjectType,
+                finalSubjectValue,
                 subjectName
         );
     }

@@ -661,13 +661,21 @@ public class AdminSurveyManagementService implements
             evaluatorType = EvaluatorType.CUSTOM;
         }
 
+        SubjectType finalSubjectType = subjectType != null ? subjectType : SubjectType.ALL;
+        Integer finalSubjectValue = subjectValue;
+
+        if (scope == SurveyRecipientScope.DEPARTMENT && (finalSubjectType == SubjectType.ALL || finalSubjectType == SubjectType.DEPARTMENT) && finalSubjectValue == null) {
+            finalSubjectType = SubjectType.DEPARTMENT;
+            finalSubjectValue = departmentId;
+        }
+
         return new SurveyAssignment(
                 null,
                 survey,
                 evaluatorType,
                 evaluatorValue,
-                subjectType != null ? subjectType : SubjectType.ALL,
-                subjectValue,
+                finalSubjectType,
+                finalSubjectValue,
                 subjectName
         );
     }
@@ -685,10 +693,13 @@ public class AdminSurveyManagementService implements
     }
 
     private boolean hasPublishableAssignments(List<SurveyAssignment> assignments) {
-        return assignments != null
-                && assignments.stream().anyMatch(assignment ->
+        if (assignments == null || assignments.isEmpty()) {
+            return false;
+        }
+        return assignments.stream().allMatch(assignment ->
                 assignment != null
                         && (assignment.getEvaluatorType() == EvaluatorType.STUDENT || assignment.getEvaluatorType() == EvaluatorType.CUSTOM)
+                        && !(assignment.getSubjectType() == SubjectType.DEPARTMENT && assignment.getSubjectValue() == null)
         );
     }
 
