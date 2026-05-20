@@ -2,6 +2,7 @@ package com.ttcs.backend.application.port.in.command;
 
 import com.ttcs.backend.application.domain.model.SurveyRecipientScope;
 import com.ttcs.backend.application.domain.model.QuestionType;
+import com.ttcs.backend.application.domain.model.SubjectType;
 import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
@@ -16,6 +17,10 @@ public record CreateSurveyCommand(
         List<CreateQuestionCommand> questions,
         SurveyRecipientScope recipientScope,
         @Nullable Integer recipientDepartmentId,
+        @Nullable List<Integer> recipientStudentIds,
+        SubjectType subjectType,
+        @Nullable Integer subjectValue,
+        @Nullable String subjectName,
         @Nullable String targetLang
 ) {
     public CreateSurveyCommand(
@@ -26,8 +31,28 @@ public record CreateSurveyCommand(
             Integer createdBy,
             List<CreateQuestionCommand> questions,
             SurveyRecipientScope recipientScope,
-            @Nullable Integer recipientDepartmentId
+            @Nullable Integer recipientDepartmentId,
+            SubjectType subjectType,
+            @Nullable Integer subjectValue,
+            @Nullable String targetLang
     ) {
-        this(title, description, startDate, endDate, createdBy, questions, recipientScope, recipientDepartmentId, null);
+        this(title, description, startDate, endDate, createdBy, questions, recipientScope, recipientDepartmentId, null, subjectType, subjectValue, null, targetLang);
+    }
+
+    public CreateSurveyCommand(
+            String title,
+            @Nullable String description,
+            @Nullable LocalDateTime startDate,
+            @Nullable LocalDateTime endDate,
+            Integer createdBy,
+            List<CreateQuestionCommand> questions,
+            SurveyRecipientScope recipientScope,
+            @Nullable Integer recipientDepartmentId,
+            SubjectType subjectType,
+            @Nullable Integer subjectValue,
+            @Nullable String subjectName,
+            @Nullable String targetLang
+    ) {
+        this(title, description, startDate, endDate, createdBy, questions, recipientScope, recipientDepartmentId, null, subjectType, subjectValue, subjectName, targetLang);
     }
 }

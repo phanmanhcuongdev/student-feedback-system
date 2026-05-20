@@ -179,5 +179,19 @@ class GetSurveyDetailServiceTest {
         public List<SurveyRecipient> saveAll(List<SurveyRecipient> recipients) {
             return recipients;
         }
+
+        @Override
+        public int bulkInsertRecipients(Integer surveyId, Integer departmentId) {
+            return 0;
+        }
+
+        @Override
+        public int bulkInsertCustomRecipients(Integer surveyId, List<Integer> studentIds) {
+            return 0;
+        }
+
+        @Override
+        public void syncCustomRecipients(Integer surveyId, List<Integer> studentIds) {
+        }
     }
 }

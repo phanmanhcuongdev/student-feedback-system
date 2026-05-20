@@ -429,12 +429,20 @@ public class SurveyAiSummaryService implements GenerateSurveyAiSummaryUseCase, G
 
     private boolean isLecturerInScope(Integer surveyId, Integer lecturerDepartmentId) {
         List<SurveyAssignment> assignments = loadSurveyAssignmentPort.loadBySurveyId(surveyId);
-        return assignments.stream().anyMatch(assignment ->
-                assignment != null
-                        && assignment.getEvaluatorType() == EvaluatorType.STUDENT
-                        && assignment.getSubjectType() == SubjectType.DEPARTMENT
-                        && lecturerDepartmentId.equals(assignment.getSubjectValue())
-        );
+        return assignments.stream().anyMatch(assignment -> {
+            if (assignment == null) return false;
+            SubjectType subjectType = assignment.getSubjectType();
+            // Surveys about facilities are visible to all lecturers
+            if (subjectType == SubjectType.FACILITY) return true;
+            // Surveys targeting the lecturer's department as subject
+            if (subjectType == SubjectType.DEPARTMENT
+                    && lecturerDepartmentId.equals(assignment.getSubjectValue())) return true;
+            // Surveys where students of the lecturer's department are evaluators
+            if (lecturerDepartmentId.equals(assignment.getEvaluatorValue())) return true;
+            // Surveys for ALL students (evaluator_value is null) are visible to all lecturers
+            if (assignment.getEvaluatorValue() == null) return true;
+            return false;
+        });
     }
 
     private LoadSurveyAiSummaryPort.SurveyAiSummaryRecord resolveSummary(Integer surveyId, LoadSurveyAiSummaryPort.SurveyAiSummaryJobRecord latestJob) {

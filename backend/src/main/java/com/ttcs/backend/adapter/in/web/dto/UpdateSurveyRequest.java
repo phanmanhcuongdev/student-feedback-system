@@ -10,6 +10,10 @@ public record UpdateSurveyRequest(
         LocalDateTime endDate,
         List<CreateQuestionRequest> questions,
         String recipientScope,
-        Integer recipientDepartmentId
+        Integer recipientDepartmentId,
+        List<Integer> recipientStudentIds,
+        String subjectType,
+        Integer subjectValue,
+        String subjectName
 ) {
 }

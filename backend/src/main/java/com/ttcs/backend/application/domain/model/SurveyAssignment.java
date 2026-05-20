@@ -12,4 +12,5 @@ public class SurveyAssignment {
     private final Integer evaluatorValue;
     private final SubjectType subjectType;
     private final Integer subjectValue;
+    private final String subjectName;
 }

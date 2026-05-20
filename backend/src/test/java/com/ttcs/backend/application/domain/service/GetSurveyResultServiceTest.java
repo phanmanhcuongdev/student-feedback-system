@@ -290,7 +290,8 @@ class GetSurveyResultServiceTest {
                     EvaluatorType.STUDENT,
                     null,
                     SubjectType.DEPARTMENT,
-                    departmentId
+                    departmentId,
+                    null
             );
         }
 
@@ -301,6 +302,7 @@ class GetSurveyResultServiceTest {
                     EvaluatorType.STUDENT,
                     null,
                     SubjectType.ALL,
+                    null,
                     null
             );
         }
