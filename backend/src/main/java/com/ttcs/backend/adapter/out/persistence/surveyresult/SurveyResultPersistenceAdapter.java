@@ -104,7 +104,8 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
                     AS runtime_status,
                     CASE
                         WHEN first_assignment.evaluator_type = 'CUSTOM' THEN 'CUSTOM_STUDENTS'
-                        WHEN first_assignment.evaluator_value IS NOT NULL THEN 'DEPARTMENT'
+                        WHEN first_assignment.evaluator_type = 'STUDENT' AND first_assignment.evaluator_value IS NOT NULL THEN 'DEPARTMENT'
+                        WHEN first_assignment.evaluator_type = 'STUDENT' AND first_assignment.evaluator_value IS NULL THEN 'ALL_STUDENTS'
                         ELSE 'ALL_STUDENTS'
                     END AS recipient_scope,
                     d.name AS recipient_department_name,
@@ -497,7 +498,7 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
             nativeQuery.setParameter("runtimeStatus", query.runtimeStatus().trim().toUpperCase());
         }
         if (query.recipientScope() != null && !query.recipientScope().isBlank()) {
-            nativeQuery.setParameter("recipientScope", query.recipientScope().trim().toUpperCase());
+            // parameter is not used in where clause string directly
         }
         if (query.startDateFrom() != null) {
             nativeQuery.setParameter("startDateFrom", query.startDateFrom().atStartOfDay());
@@ -524,11 +525,11 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
         }
         if (query.recipientScope() != null && !query.recipientScope().isBlank()) {
             if ("DEPARTMENT".equalsIgnoreCase(query.recipientScope())) {
-                clauses.add("(first_assignment.evaluator_type IS NULL OR first_assignment.evaluator_type != 'CUSTOM') AND first_assignment.evaluator_value IS NOT NULL");
+                clauses.add("first_assignment.evaluator_type = 'STUDENT' AND first_assignment.evaluator_value IS NOT NULL");
             } else if ("CUSTOM_STUDENTS".equalsIgnoreCase(query.recipientScope())) {
                 clauses.add("first_assignment.evaluator_type = 'CUSTOM'");
             } else if ("ALL_STUDENTS".equalsIgnoreCase(query.recipientScope())) {
-                clauses.add("(first_assignment.evaluator_type IS NULL OR first_assignment.evaluator_type != 'CUSTOM') AND first_assignment.evaluator_value IS NULL");
+                clauses.add("(first_assignment.evaluator_type = 'STUDENT' AND first_assignment.evaluator_value IS NULL) OR (first_assignment.evaluator_type IS NULL)");
             }
         }
         if (query.startDateFrom() != null) {
@@ -538,16 +539,17 @@ public class SurveyResultPersistenceAdapter implements LoadSurveyResultPort, Loa
             clauses.add("s.end_date IS NOT NULL AND s.end_date < :endDateTo");
         }
         if (query.lecturerDepartmentId() != null) {
+            clauses.add("s.lifecycle_state != 'DRAFT'");
+            clauses.add(RUNTIME_STATUS_SQL + " != 'NOT_OPEN'");
             clauses.add("""
                     EXISTS (
                         SELECT 1
                         FROM Survey_Assignment lecturer_scope
                         WHERE lecturer_scope.survey_id = s.survey_id
                             AND (
-                                lecturer_scope.subject_type = 'FACILITY'
-                                OR (lecturer_scope.subject_type = 'DEPARTMENT'
-                                    AND lecturer_scope.subject_value = :lecturerDepartmentId)
-                                OR ISNULL(lecturer_scope.evaluator_value, :lecturerDepartmentId) = :lecturerDepartmentId
+                                (lecturer_scope.subject_type = 'DEPARTMENT' AND lecturer_scope.subject_value = :lecturerDepartmentId)
+                                OR ((lecturer_scope.evaluator_type != 'CUSTOM' OR lecturer_scope.evaluator_type IS NULL) 
+                                    AND lecturer_scope.subject_type IN ('ALL', 'FACILITY'))
                             )
                     )
                     """);

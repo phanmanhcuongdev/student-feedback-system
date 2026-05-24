@@ -59,7 +59,8 @@ public class SurveyManagementPersistenceAdapter implements ManageSurveyPort {
                     s.hidden,
                     CASE
                         WHEN sa.evaluator_type = 'CUSTOM' THEN 'CUSTOM_STUDENTS'
-                        WHEN sa.evaluator_value IS NOT NULL THEN 'DEPARTMENT'
+                        WHEN sa.evaluator_type = 'STUDENT' AND sa.evaluator_value IS NOT NULL THEN 'DEPARTMENT'
+                        WHEN sa.evaluator_type = 'STUDENT' AND sa.evaluator_value IS NULL THEN 'ALL_STUDENTS'
                         ELSE 'ALL_STUDENTS'
                     END AS recipient_scope,
                     sa.evaluator_value AS recipient_department_id,
@@ -186,7 +187,7 @@ public class SurveyManagementPersistenceAdapter implements ManageSurveyPort {
             query.setParameter("hidden", request.hidden());
         }
         if (request.recipientScope() != null && !request.recipientScope().isBlank()) {
-            query.setParameter("recipientScope", request.recipientScope().trim().toUpperCase());
+            // parameter is not used in where clause string directly
         }
         if (request.startDateFrom() != null) {
             query.setParameter("startDateFrom", request.startDateFrom().atStartOfDay());
@@ -218,11 +219,11 @@ public class SurveyManagementPersistenceAdapter implements ManageSurveyPort {
         }
         if (query.recipientScope() != null && !query.recipientScope().isBlank()) {
             if ("DEPARTMENT".equalsIgnoreCase(query.recipientScope())) {
-                clauses.add("(sa.evaluator_type IS NULL OR sa.evaluator_type != 'CUSTOM') AND sa.evaluator_value IS NOT NULL");
+                clauses.add("sa.evaluator_type = 'STUDENT' AND sa.evaluator_value IS NOT NULL");
             } else if ("CUSTOM_STUDENTS".equalsIgnoreCase(query.recipientScope())) {
                 clauses.add("sa.evaluator_type = 'CUSTOM'");
             } else if ("ALL_STUDENTS".equalsIgnoreCase(query.recipientScope())) {
-                clauses.add("(sa.evaluator_type IS NULL OR sa.evaluator_type != 'CUSTOM') AND sa.evaluator_value IS NULL");
+                clauses.add("(sa.evaluator_type = 'STUDENT' AND sa.evaluator_value IS NULL) OR (sa.evaluator_type IS NULL)");
             }
         }
         if (query.startDateFrom() != null) {

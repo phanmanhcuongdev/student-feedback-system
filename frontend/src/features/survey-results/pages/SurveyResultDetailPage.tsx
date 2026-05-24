@@ -302,7 +302,7 @@ export default function SurveyResultDetailPage() {
                     title={survey?.title || t("surveyResults:surveyResults.detail.header.title")}
                     description={survey ? t("surveyResults:surveyResults.detail.header.description") : t("surveyResults:surveyResults.detail.header.emptyDescription")}
                     actions={<div className="flex flex-wrap gap-2">
-                        {session?.role === "ADMIN" ? (
+                        {session?.role === "ADMIN" || session?.role === "LECTURER" ? (
                             <>
                                 <button type="button" onClick={() => void handleExport("pdf")} disabled={exportingFormat !== null || !survey} className="inline-flex items-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60">{exportingFormat === "pdf" ? t("surveyResults:surveyResults.detail.buttons.exporting") : t("surveyResults:surveyResults.detail.buttons.exportPdf")}</button>
                                 <button type="button" onClick={() => void handleExport("xlsx")} disabled={exportingFormat !== null || !survey} className="inline-flex items-center rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60">{exportingFormat === "xlsx" ? t("surveyResults:surveyResults.detail.buttons.exporting") : t("surveyResults:surveyResults.detail.buttons.exportXlsx")}</button>

@@ -112,17 +112,22 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
             throw new ResponseStatusException(FORBIDDEN, "Lecturer department scope is unavailable");
         }
 
-        List<SurveyAssignment> assignments = loadSurveyAssignmentPort.loadBySurveyId(surveyId);
-
-        // Deny access to ALL_STUDENTS surveys
-        if (assignments.stream().anyMatch(a -> a.getSubjectType() == SubjectType.ALL)) {
-            throw new ResponseStatusException(FORBIDDEN, "Cannot view all-students survey results");
+        if ("DRAFT".equalsIgnoreCase(result.lifecycleState())) {
+            throw new ResponseStatusException(FORBIDDEN, "Survey is not published yet");
         }
 
-        // Deny access to other departments
-        if (assignments.stream()
-                .filter(a -> a.getSubjectType() == SubjectType.DEPARTMENT)
-                .noneMatch(a -> lecturerDepartmentId.equals(a.getSubjectValue()))) {
+        if ("NOT_OPEN".equalsIgnoreCase(result.runtimeStatus())) {
+            throw new ResponseStatusException(FORBIDDEN, "Survey is not open yet");
+        }
+
+        List<SurveyAssignment> assignments = loadSurveyAssignmentPort.loadBySurveyId(surveyId);
+
+        boolean isAuthorized = assignments.stream().anyMatch(a -> 
+                (a.getSubjectType() == SubjectType.DEPARTMENT && lecturerDepartmentId.equals(a.getSubjectValue())) ||
+                (a.getEvaluatorType() != EvaluatorType.CUSTOM && (a.getSubjectType() == SubjectType.ALL || a.getSubjectType() == SubjectType.FACILITY))
+        );
+
+        if (!isAuthorized) {
             throw new ResponseStatusException(FORBIDDEN, "Outside department scope");
         }
 

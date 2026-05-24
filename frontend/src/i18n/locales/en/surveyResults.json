@@ -3,6 +3,7 @@
     "common": {
       "allStudents": "All students",
       "department": "Department",
+      "customStudents": "Custom students",
       "noDescription": "No survey description provided."
     },
     "list": {
@@ -80,7 +81,8 @@
       "header": {
         "title": "Survey result detail",
         "description": "Review overview metrics, participation, rating distributions, and anonymous text comments in grouped analytics sections.",
-        "emptyDescription": "Review survey analytics."
+        "emptyDescription": "Review survey analytics.",
+        "eyebrowAll": "All departments"
       },
       "buttons": {
         "exportPdf": "Export PDF",
