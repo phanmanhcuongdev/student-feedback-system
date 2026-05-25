@@ -67,7 +67,13 @@ export default function AppHeader({ onOpenNavigation }: AppHeaderProps) {
                             {t("layout:layout.brand.name")}
                         </p>
                         <h1 className="text-lg font-bold tracking-tight text-slate-950">
-                            {t("layout:layout.header.title")}
+                            {session.role === "STUDENT"
+                                ? t("layout:layout.header.studentTitle")
+                                : session.role === "LECTURER"
+                                ? t("layout:layout.header.lecturerTitle")
+                                : session.role === "ADMIN"
+                                ? t("layout:layout.header.adminTitle")
+                                : t("layout:layout.header.title")}
                         </h1>
                     </div>
                 </div>

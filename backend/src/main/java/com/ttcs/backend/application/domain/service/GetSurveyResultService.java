@@ -111,8 +111,24 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
         if (lecturerDepartmentId == null) {
             throw new ResponseStatusException(FORBIDDEN, "Lecturer department scope is unavailable");
         }
-        if (!isLecturerInScope(surveyId, lecturerDepartmentId)) {
-            throw new ResponseStatusException(FORBIDDEN, "You are not allowed to view results for this survey");
+
+        if ("DRAFT".equalsIgnoreCase(result.lifecycleState())) {
+            throw new ResponseStatusException(FORBIDDEN, "Survey is not published yet");
+        }
+
+        if ("NOT_OPEN".equalsIgnoreCase(result.runtimeStatus())) {
+            throw new ResponseStatusException(FORBIDDEN, "Survey is not open yet");
+        }
+
+        List<SurveyAssignment> assignments = loadSurveyAssignmentPort.loadBySurveyId(surveyId);
+
+        boolean isAuthorized = assignments.stream().anyMatch(a -> 
+                (a.getSubjectType() == SubjectType.DEPARTMENT && lecturerDepartmentId.equals(a.getSubjectValue())) ||
+                (a.getEvaluatorType() != EvaluatorType.CUSTOM && (a.getSubjectType() == SubjectType.ALL || a.getSubjectType() == SubjectType.FACILITY))
+        );
+
+        if (!isAuthorized) {
+            throw new ResponseStatusException(FORBIDDEN, "Outside department scope");
         }
 
         return toDetailResult(result);
@@ -162,16 +178,6 @@ public class GetSurveyResultService implements GetSurveyResultListUseCase, GetSu
 
         return loadLecturerByUserIdPort.loadByUserId(viewerUserId)
                 .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "Lecturer profile not found"));
-    }
-
-    private boolean isLecturerInScope(Integer surveyId, Integer lecturerDepartmentId) {
-        List<SurveyAssignment> assignments = loadSurveyAssignmentPort.loadBySurveyId(surveyId);
-        return assignments.stream().anyMatch(assignment ->
-                assignment != null
-                        && assignment.getEvaluatorType() == EvaluatorType.STUDENT
-                        && assignment.getSubjectType() == SubjectType.DEPARTMENT
-                        && lecturerDepartmentId.equals(assignment.getSubjectValue())
-        );
     }
 
     private String normalizeLanguage(String value) {

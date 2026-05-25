@@ -34,6 +34,9 @@ function getAudienceLabel(survey: SurveyResultSummary, t: (key: string) => strin
     if (survey.recipientScope === "DEPARTMENT") {
         return survey.recipientDepartmentName || t("surveyResults:surveyResults.common.department");
     }
+    if (survey.recipientScope === "CUSTOM_STUDENTS") {
+        return t("surveyResults:surveyResults.common.customStudents");
+    }
     return t("surveyResults:surveyResults.common.allStudents");
 }
 
@@ -200,8 +203,8 @@ export default function SurveyResultsPage() {
                         filters={(
                             <>
                                 <SearchInput value={query} onChange={setQuery} placeholder={t("surveyResults:surveyResults.list.filters.search")} />
-                                <SelectFilter label={t("surveyResults:surveyResults.list.filters.lifecycle")} value={lifecycleFilter} onChange={setLifecycleFilter} options={[{ label: t("surveyResults:surveyResults.list.filters.allLifecycle"), value: "ALL" }, { label: t("surveyResults:surveyResults.list.filters.draft"), value: "DRAFT" }, { label: t("surveyResults:surveyResults.list.filters.published"), value: "PUBLISHED" }, { label: t("surveyResults:surveyResults.list.filters.closed"), value: "CLOSED" }, { label: t("surveyResults:surveyResults.list.filters.archived"), value: "ARCHIVED" }]} />
-                                <SelectFilter label={t("surveyResults:surveyResults.list.filters.runtime")} value={runtimeFilter} onChange={setRuntimeFilter} options={[{ label: t("surveyResults:surveyResults.list.filters.allRuntime"), value: "ALL" }, { label: t("surveyResults:surveyResults.list.filters.notOpen"), value: "NOT_OPEN" }, { label: t("surveyResults:surveyResults.list.filters.open"), value: "OPEN" }, { label: t("surveyResults:surveyResults.list.filters.closed"), value: "CLOSED" }]} />
+                                <SelectFilter label={t("surveyResults:surveyResults.list.filters.lifecycle")} value={lifecycleFilter} onChange={setLifecycleFilter} options={[{ label: t("surveyResults:surveyResults.list.filters.allLifecycle"), value: "ALL" }, { label: t("surveyResults:surveyResults.list.filters.published"), value: "PUBLISHED" }, { label: t("surveyResults:surveyResults.list.filters.closed"), value: "CLOSED" }, { label: t("surveyResults:surveyResults.list.filters.archived"), value: "ARCHIVED" }]} />
+                                <SelectFilter label={t("surveyResults:surveyResults.list.filters.runtime")} value={runtimeFilter} onChange={setRuntimeFilter} options={[{ label: t("surveyResults:surveyResults.list.filters.allRuntime"), value: "ALL" }, { label: t("surveyResults:surveyResults.list.filters.open"), value: "OPEN" }, { label: t("surveyResults:surveyResults.list.filters.closed"), value: "CLOSED" }]} />
                                 <SelectFilter label={t("surveyResults:surveyResults.list.filters.audience")} value={audienceFilter} onChange={setAudienceFilter} options={[{ label: t("surveyResults:surveyResults.list.filters.allAudiences"), value: "ALL" }, { label: t("surveyResults:surveyResults.common.allStudents"), value: "ALL_STUDENTS" }, { label: t("surveyResults:surveyResults.common.department"), value: "DEPARTMENT" }]} />
                                 <label className="flex min-w-[170px] items-center gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
                                     <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{t("surveyResults:surveyResults.list.filters.startFrom")}</span>

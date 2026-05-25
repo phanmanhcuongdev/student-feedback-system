@@ -32,8 +32,12 @@ export interface CreateSurveyData {
     startDate: string | null;
     endDate: string | null;
     questions: CreateQuestionData[];
-    recipientScope: "ALL_STUDENTS" | "DEPARTMENT";
+    recipientScope: "ALL_STUDENTS" | "DEPARTMENT" | "CUSTOM_STUDENTS";
     recipientDepartmentId: number | null;
+    recipientStudentIds: number[] | null;
+    subjectType: "LECTURER" | "DEPARTMENT" | "FACILITY" | "COURSE" | "ALL";
+    subjectValue: number | null;
+    subjectName?: string | null;
 }
 
 export interface ManagedSurveySummary {
@@ -45,9 +49,13 @@ export interface ManagedSurveySummary {
     lifecycleState: SurveyLifecycleState;
     runtimeStatus: SurveyRuntimeStatus;
     hidden: boolean;
-    recipientScope: "ALL_STUDENTS" | "DEPARTMENT";
+    recipientScope: "ALL_STUDENTS" | "DEPARTMENT" | "CUSTOM_STUDENTS";
     recipientDepartmentId: number | null;
     recipientDepartmentName: string | null;
+    recipientStudentIds?: number[] | null;
+    subjectType: "LECTURER" | "DEPARTMENT" | "FACILITY" | "COURSE" | "ALL" | null;
+    subjectValue: number | null;
+    subjectName?: string | null;
     responseCount: number;
     targetedCount: number;
     openedCount: number;

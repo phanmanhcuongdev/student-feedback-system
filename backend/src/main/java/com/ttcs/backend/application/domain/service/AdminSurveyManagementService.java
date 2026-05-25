@@ -190,6 +190,9 @@ public class AdminSurveyManagementService implements
                                 item.recipientScope(),
                                 item.recipientDepartmentId(),
                                 item.recipientDepartmentName(),
+                                item.subjectType() == null ? null : item.subjectType().name(),
+                                item.subjectValue(),
+                                item.subjectName(),
                                 item.responseCount(),
                                 item.targetedCount(),
                                 item.openedCount(),
@@ -226,6 +229,36 @@ public class AdminSurveyManagementService implements
         long responseCount = loadSurveyResponsePort.countBySurveyId(surveyId);
         List<SurveyRecipient> recipients = loadSurveyRecipientPort.loadBySurveyId(surveyId);
         ParticipationSummary participation = summarizeParticipation(recipients);
+
+        List<SurveyRecipient> pendingRecipients = recipients.stream()
+                .filter(item -> !item.hasSubmitted())
+                .toList();
+
+        List<Integer> studentIds = pendingRecipients.stream()
+                .map(SurveyRecipient::getStudentId)
+                .toList();
+
+        java.util.Map<Integer, Student> studentsById = loadStudentPort.loadByIds(studentIds).stream()
+                .collect(java.util.stream.Collectors.toMap(Student::getId, java.util.function.Function.identity(), (a, b) -> a));
+
+        List<SurveyManagementRecipientResult> pendingRecipientResults = pendingRecipients.stream()
+                .map(item -> {
+                    Student student = studentsById.get(item.getStudentId());
+                    if (student == null) {
+                        throw new IllegalArgumentException("STUDENT_NOT_FOUND");
+                    }
+                    return new SurveyManagementRecipientResult(
+                            student.getId(),
+                            student.getName(),
+                            student.getStudentCode(),
+                            student.getDepartment() == null ? null : student.getDepartment().getName(),
+                            item.status().name(),
+                            item.getOpenedAt(),
+                            item.getSubmittedAt()
+                    );
+                })
+                .toList();
+
         return new SurveyManagementDetailResult(
                 survey.getId(),
                 survey.getTitle(),
@@ -238,6 +271,9 @@ public class AdminSurveyManagementService implements
                 recipient.scope().name(),
                 recipient.departmentId(),
                 recipient.departmentName(),
+                subjectInfo(surveyId).type().name(),
+                subjectInfo(surveyId).value(),
+                subjectInfo(surveyId).name(),
                 responseCount,
                 participation.targetedCount(),
                 participation.openedCount(),
@@ -246,10 +282,7 @@ public class AdminSurveyManagementService implements
                 loadQuestionPort.loadBySurveyId(surveyId).stream()
                         .map(question -> new SurveyManagementQuestionResult(question.getId(), question.getContent(), question.getType().name()))
                         .toList(),
-                recipients.stream()
-                        .filter(item -> !item.hasSubmitted())
-                        .map(this::toPendingRecipient)
-                        .toList()
+                pendingRecipientResults
         );
     }
 
@@ -281,6 +314,9 @@ public class AdminSurveyManagementService implements
         }
         if (command.recipientScope() == SurveyRecipientScope.DEPARTMENT && command.recipientDepartmentId() == null) {
             return SurveyManagementActionResult.fail("INVALID_INPUT", "Recipient department is required for department scope.");
+        }
+        if (command.recipientScope() == SurveyRecipientScope.CUSTOM_STUDENTS && (command.recipientStudentIds() == null || command.recipientStudentIds().isEmpty())) {
+            return SurveyManagementActionResult.fail("INVALID_INPUT", "Recipient students list is required for custom students scope.");
         }
 
         long responseCount = loadSurveyResponsePort.countBySurveyId(command.surveyId());
@@ -324,8 +360,14 @@ public class AdminSurveyManagementService implements
 
         saveSurveyAssignmentPort.replaceAssignments(
                 command.surveyId(),
-                List.of(toAssignment(updatedSurvey, command.recipientScope(), command.recipientDepartmentId()))
+                List.of(toAssignment(updatedSurvey, command.recipientScope(), command.recipientDepartmentId(), command.subjectType(), command.subjectValue(), command.subjectName()))
         );
+
+        if (command.recipientScope() == SurveyRecipientScope.CUSTOM_STUDENTS) {
+            saveSurveyRecipientPort.syncCustomRecipients(command.surveyId(), command.recipientStudentIds());
+        } else {
+            saveSurveyRecipientPort.syncCustomRecipients(command.surveyId(), List.of());
+        }
 
         return SurveyManagementActionResult.ok("SURVEY_UPDATED", "Survey draft updated successfully.");
     }
@@ -563,6 +605,9 @@ public class AdminSurveyManagementService implements
                 recipient.scope().name(),
                 recipient.departmentId(),
                 recipient.departmentName(),
+                subjectInfo(survey.getId()).type().name(),
+                subjectInfo(survey.getId()).value(),
+                subjectInfo(survey.getId()).name(),
                 loadSurveyResponsePort.countBySurveyId(survey.getId()),
                 participation.targetedCount(),
                 participation.openedCount(),
@@ -578,25 +623,61 @@ public class AdminSurveyManagementService implements
         }
 
         SurveyAssignment assignment = assignments.getFirst();
-        if (assignment.getEvaluatorType() == EvaluatorType.STUDENT && assignment.getSubjectType() == SubjectType.DEPARTMENT) {
-            Integer departmentId = assignment.getSubjectValue();
-            String departmentName = departmentId == null
-                    ? null
-                    : manageSurveyPort.loadDepartments().stream()
-                    .filter(department -> department.getId().equals(departmentId))
-                    .map(department -> department.getName())
-                    .findFirst()
-                    .orElse(null);
+        if (assignment.getEvaluatorType() == EvaluatorType.CUSTOM) {
+            return new RecipientInfo(SurveyRecipientScope.CUSTOM_STUDENTS, null, null);
+        }
+        if (assignment.getEvaluatorValue() != null) {
+            Integer departmentId = assignment.getEvaluatorValue();
+            String departmentName = getDepartmentName(departmentId);
             return new RecipientInfo(SurveyRecipientScope.DEPARTMENT, departmentId, departmentName);
         }
         return new RecipientInfo(SurveyRecipientScope.ALL_STUDENTS, null, null);
     }
 
-    private SurveyAssignment toAssignment(Survey survey, SurveyRecipientScope scope, Integer departmentId) {
-        if (scope == SurveyRecipientScope.DEPARTMENT) {
-            return new SurveyAssignment(null, survey, EvaluatorType.STUDENT, null, SubjectType.DEPARTMENT, departmentId);
+    private String getDepartmentName(Integer departmentId) {
+        return departmentId == null ? null : manageSurveyPort.loadDepartments().stream()
+                .filter(department -> department.getId().equals(departmentId))
+                .map(com.ttcs.backend.application.domain.model.Department::getName)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private SubjectInfo subjectInfo(Integer surveyId) {
+        List<SurveyAssignment> assignments = loadSurveyAssignmentPort.loadBySurveyId(surveyId);
+        if (assignments.isEmpty()) {
+            return new SubjectInfo(SubjectType.ALL, null, null);
         }
-        return new SurveyAssignment(null, survey, EvaluatorType.STUDENT, null, SubjectType.ALL, null);
+        SurveyAssignment assignment = assignments.getFirst();
+        return new SubjectInfo(assignment.getSubjectType(), assignment.getSubjectValue(), assignment.getSubjectName());
+    }
+
+    private SurveyAssignment toAssignment(Survey survey, SurveyRecipientScope scope, Integer departmentId, SubjectType subjectType, Integer subjectValue, String subjectName) {
+        Integer evaluatorValue = null;
+        EvaluatorType evaluatorType = EvaluatorType.STUDENT;
+
+        if (scope == SurveyRecipientScope.DEPARTMENT) {
+            evaluatorValue = departmentId;
+        } else if (scope == SurveyRecipientScope.CUSTOM_STUDENTS) {
+            evaluatorType = EvaluatorType.CUSTOM;
+        }
+
+        SubjectType finalSubjectType = subjectType != null ? subjectType : SubjectType.ALL;
+        Integer finalSubjectValue = subjectValue;
+
+        if (scope == SurveyRecipientScope.DEPARTMENT && (finalSubjectType == SubjectType.ALL || finalSubjectType == SubjectType.DEPARTMENT) && finalSubjectValue == null) {
+            finalSubjectType = SubjectType.DEPARTMENT;
+            finalSubjectValue = departmentId;
+        }
+
+        return new SurveyAssignment(
+                null,
+                survey,
+                evaluatorType,
+                evaluatorValue,
+                finalSubjectType,
+                finalSubjectValue,
+                subjectName
+        );
     }
 
     private boolean hasPublishableSchedule(Survey survey) {
@@ -612,44 +693,26 @@ public class AdminSurveyManagementService implements
     }
 
     private boolean hasPublishableAssignments(List<SurveyAssignment> assignments) {
-        return assignments != null
-                && assignments.stream().anyMatch(assignment ->
+        if (assignments == null || assignments.isEmpty()) {
+            return false;
+        }
+        return assignments.stream().allMatch(assignment ->
                 assignment != null
-                        && assignment.getEvaluatorType() == EvaluatorType.STUDENT
-                        && (assignment.getSubjectType() == SubjectType.ALL
-                        || (assignment.getSubjectType() == SubjectType.DEPARTMENT && assignment.getSubjectValue() != null))
+                        && (assignment.getEvaluatorType() == EvaluatorType.STUDENT || assignment.getEvaluatorType() == EvaluatorType.CUSTOM)
+                        && !(assignment.getSubjectType() == SubjectType.DEPARTMENT && assignment.getSubjectValue() == null)
         );
     }
 
     private void createRecipientsForPublishedSurvey(Integer surveyId, List<SurveyAssignment> assignments) {
-        LocalDateTime assignedAt = LocalDateTime.now();
-        java.util.Set<Integer> existingStudentIds = loadSurveyRecipientPort.loadBySurveyId(surveyId).stream()
-                .map(SurveyRecipient::getStudentId)
-                .collect(java.util.stream.Collectors.toSet());
-        List<Student> students = resolveRecipientCandidates(assignments);
-        saveSurveyRecipientPort.saveAll(students.stream()
-                .filter(student -> !existingStudentIds.contains(student.getId()))
-                .map(student -> new SurveyRecipient(
-                        null,
-                        surveyId,
-                        student.getId(),
-                        assignedAt,
-                        null,
-                        null
-                ))
-                .toList());
-    }
-
-    private List<Student> resolveRecipientCandidates(List<SurveyAssignment> assignments) {
         if (assignments == null || assignments.isEmpty()) {
-            return List.of();
+            return;
         }
-
         SurveyAssignment assignment = assignments.getFirst();
-        if (assignment.getSubjectType() == SubjectType.DEPARTMENT && assignment.getSubjectValue() != null) {
-            return loadSurveyRecipientCandidatePort.loadActiveStudentsByDepartment(assignment.getSubjectValue());
+        if (assignment.getEvaluatorType() == EvaluatorType.CUSTOM) {
+            return;
         }
-        return loadSurveyRecipientCandidatePort.loadActiveStudents();
+        Integer departmentId = assignment.getEvaluatorValue();
+        saveSurveyRecipientPort.bulkInsertRecipients(surveyId, departmentId);
     }
 
     private void createDeadlineReminderForClosingSoonSurvey(Survey survey, List<Integer> recipientUserIds) {
@@ -715,19 +778,6 @@ public class AdminSurveyManagementService implements
         return new ParticipationSummary(targetedCount, openedCount, submittedCount, responseRate);
     }
 
-    private SurveyManagementRecipientResult toPendingRecipient(SurveyRecipient recipient) {
-        Student student = loadStudentPort.loadById(recipient.getStudentId())
-                .orElseThrow(() -> new IllegalArgumentException("STUDENT_NOT_FOUND"));
-        return new SurveyManagementRecipientResult(
-                student.getId(),
-                student.getName(),
-                student.getStudentCode(),
-                student.getDepartment() == null ? null : student.getDepartment().getName(),
-                recipient.status().name(),
-                recipient.getOpenedAt(),
-                recipient.getSubmittedAt()
-        );
-    }
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
@@ -803,5 +853,8 @@ public class AdminSurveyManagementService implements
     }
 
     private record ParticipationSummary(long targetedCount, long openedCount, long submittedCount, double responseRate) {
+    }
+    
+    private record SubjectInfo(SubjectType type, Integer value, String name) {
     }
 }

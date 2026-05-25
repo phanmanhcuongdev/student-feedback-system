@@ -68,7 +68,11 @@ class AdminSurveyManagementServiceTest {
                 LocalDateTime.now().plusDays(5),
                 List.of(new UpdateSurveyQuestionCommand("Updated question", "TEXT")),
                 SurveyRecipientScope.DEPARTMENT,
-                2
+                2,
+                com.ttcs.backend.application.domain.model.SubjectType.ALL,
+                null,
+                null,
+                null
         ));
 
         assertTrue(result.success());
@@ -91,6 +95,10 @@ class AdminSurveyManagementServiceTest {
                 state.survey.getEndDate(),
                 List.of(new UpdateSurveyQuestionCommand("Updated question", "TEXT")),
                 SurveyRecipientScope.ALL_STUDENTS,
+                null,
+                com.ttcs.backend.application.domain.model.SubjectType.ALL,
+                null,
+                null,
                 null
         ));
 
@@ -192,7 +200,7 @@ class AdminSurveyManagementServiceTest {
     void shouldRejectPublishWhenDepartmentAssignmentHasNoDepartmentId() {
         InMemorySurveyState state = new InMemorySurveyState(0, SurveyLifecycleState.DRAFT);
         state.assignments = new ArrayList<>(List.of(
-                new SurveyAssignment(1, state.survey, EvaluatorType.STUDENT, null, SubjectType.DEPARTMENT, null)
+                new SurveyAssignment(1, state.survey, EvaluatorType.STUDENT, null, SubjectType.DEPARTMENT, null, null)
         ));
         AdminSurveyManagementService service = service(state);
 
@@ -216,6 +224,10 @@ class AdminSurveyManagementServiceTest {
                 LocalDateTime.now().plusDays(5),
                 List.of(new UpdateSurveyQuestionCommand("Updated question", "TEXT")),
                 SurveyRecipientScope.DEPARTMENT,
+                null,
+                com.ttcs.backend.application.domain.model.SubjectType.ALL,
+                null,
+                null,
                 null
         ));
 
@@ -374,7 +386,7 @@ class AdminSurveyManagementServiceTest {
                     lifecycleState
             );
             this.assignments = new ArrayList<>(List.of(
-                    new SurveyAssignment(1, survey, EvaluatorType.STUDENT, null, SubjectType.ALL, null)
+                    new SurveyAssignment(1, survey, EvaluatorType.STUDENT, null, SubjectType.ALL, null, null)
             ));
         }
     }
@@ -562,6 +574,45 @@ class AdminSurveyManagementServiceTest {
             recipients.forEach(this::save);
             return recipients;
         }
+
+        @Override
+        public int bulkInsertRecipients(Integer surveyId, Integer departmentId) {
+            int count = 0;
+            for (Student student : state.candidateStudents) {
+                if (student.getStatus() == Status.ACTIVE 
+                    && student.getUser() != null 
+                    && Boolean.TRUE.equals(student.getUser().getVerified())
+                    && (departmentId == null || (student.getDepartment() != null && student.getDepartment().getId().equals(departmentId)))
+                    && state.recipients.stream().noneMatch(item -> item.getSurveyId().equals(surveyId) && item.getStudentId().equals(student.getId()))) {
+                    save(new SurveyRecipient(null, surveyId, student.getId(), LocalDateTime.now(), null, null));
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        @Override
+        public int bulkInsertCustomRecipients(Integer surveyId, List<Integer> studentIds) {
+            if (studentIds == null) return 0;
+            int count = 0;
+            for (Integer studentId : studentIds) {
+                if (state.recipients.stream().noneMatch(item -> item.getSurveyId().equals(surveyId) && item.getStudentId().equals(studentId))) {
+                    save(new SurveyRecipient(null, surveyId, studentId, LocalDateTime.now(), null, null));
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        @Override
+        public void syncCustomRecipients(Integer surveyId, List<Integer> studentIds) {
+            if (studentIds == null || studentIds.isEmpty()) {
+                state.recipients.removeIf(item -> item.getSurveyId().equals(surveyId));
+                return;
+            }
+            state.recipients.removeIf(item -> item.getSurveyId().equals(surveyId) && !studentIds.contains(item.getStudentId()));
+            bulkInsertCustomRecipients(surveyId, studentIds);
+        }
     }
 
     private static final class CandidatePort implements LoadSurveyRecipientCandidatePort {
@@ -680,6 +731,9 @@ class AdminSurveyManagementServiceTest {
                             state.survey.status().name(),
                             state.survey.isHidden(),
                             "ALL_STUDENTS",
+                            null,
+                            null,
+                            SubjectType.ALL,
                             null,
                             null,
                             state.responseCount,

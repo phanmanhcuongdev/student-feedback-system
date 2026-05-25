@@ -1,9 +1,17 @@
 package com.ttcs.backend.application.domain.service;
 
 import com.ttcs.backend.application.domain.exception.SurveyNotFoundException;
+import com.ttcs.backend.application.domain.model.Department;
+import com.ttcs.backend.application.domain.model.EvaluatorType;
+import com.ttcs.backend.application.domain.model.Lecturer;
 import com.ttcs.backend.application.domain.model.Role;
+import com.ttcs.backend.application.domain.model.SubjectType;
+import com.ttcs.backend.application.domain.model.SurveyAssignment;
+import com.ttcs.backend.application.domain.model.User;
 import com.ttcs.backend.application.port.in.resultview.ExportedReport;
 import com.ttcs.backend.application.port.out.EnterpriseSurveyReport;
+import com.ttcs.backend.application.port.out.LoadLecturerByUserIdPort;
+import com.ttcs.backend.application.port.out.LoadSurveyAssignmentPort;
 import com.ttcs.backend.application.port.out.LoadSurveyReportPort;
 import com.ttcs.backend.application.port.out.OrganizationBranding;
 import com.ttcs.backend.application.port.out.ReportFilterCriteria;
@@ -29,7 +37,12 @@ class SurveyReportExportServiceTest {
     @Test
     void shouldLoadReportAndDelegateRenderingForAdmin() {
         TrackingSurveyReportRenderer renderer = new TrackingSurveyReportRenderer();
-        SurveyReportExportService service = new SurveyReportExportService((surveyId, generatedByUserId) -> Optional.of(report(surveyId)), renderer);
+        SurveyReportExportService service = new SurveyReportExportService(
+                (surveyId, generatedByUserId) -> Optional.of(report(surveyId)),
+                renderer,
+                surveyId -> List.of(),
+                userId -> Optional.empty()
+        );
 
         ExportedReport result = service.exportSurveyReport(12, 99, Role.ADMIN, "pdf");
 
@@ -43,10 +56,36 @@ class SurveyReportExportServiceTest {
     }
 
     @Test
-    void shouldRejectNonAdminExport() {
+    void shouldRejectNonAdminOrLecturerExport() {
         TrackingSurveyReportPort port = new TrackingSurveyReportPort(Optional.of(report(12)));
         TrackingSurveyReportRenderer renderer = new TrackingSurveyReportRenderer();
-        SurveyReportExportService service = new SurveyReportExportService(port, renderer);
+        SurveyReportExportService service = new SurveyReportExportService(
+                port,
+                renderer,
+                surveyId -> List.of(),
+                userId -> Optional.empty()
+        );
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> service.exportSurveyReport(12, 10, Role.STUDENT, "pdf")
+        );
+
+        assertEquals(403, exception.getStatusCode().value());
+        assertEquals("Only admins and lecturers can export survey reports", exception.getReason());
+        assertEquals(0, port.loadCount);
+        assertEquals(0, renderer.renderCount);
+    }
+
+    @Test
+    void shouldRejectLecturerExportWhenLecturerProfileNotFound() {
+        TrackingSurveyReportRenderer renderer = new TrackingSurveyReportRenderer();
+        SurveyReportExportService service = new SurveyReportExportService(
+                (surveyId, generatedByUserId) -> Optional.of(report(surveyId)),
+                renderer,
+                surveyId -> List.of(),
+                userId -> Optional.empty() // Not found
+        );
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
@@ -54,15 +93,102 @@ class SurveyReportExportServiceTest {
         );
 
         assertEquals(403, exception.getStatusCode().value());
-        assertEquals("Only admins can export survey reports", exception.getReason());
-        assertEquals(0, port.loadCount);
-        assertEquals(0, renderer.renderCount);
+        assertEquals("Lecturer profile not found", exception.getReason());
+    }
+
+    @Test
+    void shouldAllowLecturerExportWhenSurveyIsAllStudents() {
+        TrackingSurveyReportRenderer renderer = new TrackingSurveyReportRenderer();
+        LoadLecturerByUserIdPort lecturerPort = userId -> Optional.of(new Lecturer(1, null, "John", "L01", new Department(5, "IT")));
+        LoadSurveyAssignmentPort assignmentPort = surveyId -> List.of(
+                new SurveyAssignment(1, null, EvaluatorType.DEPARTMENT, 5, SubjectType.ALL, null, null)
+        );
+
+        SurveyReportExportService service = new SurveyReportExportService(
+                (surveyId, generatedByUserId) -> Optional.of(report(surveyId)),
+                renderer,
+                assignmentPort,
+                lecturerPort
+        );
+
+        ExportedReport result = service.exportSurveyReport(12, 10, Role.LECTURER, "pdf");
+        assertEquals("Course_Feedback_20260201.pdf", result.filename());
+        assertEquals(1, renderer.renderCount);
+    }
+
+    @Test
+    void shouldRejectLecturerExportWhenSurveyIsOutsideDepartment() {
+        TrackingSurveyReportRenderer renderer = new TrackingSurveyReportRenderer();
+        LoadLecturerByUserIdPort lecturerPort = userId -> Optional.of(new Lecturer(1, null, "John", "L01", new Department(5, "IT")));
+        LoadSurveyAssignmentPort assignmentPort = surveyId -> List.of(
+                new SurveyAssignment(1, null, EvaluatorType.DEPARTMENT, 6, SubjectType.DEPARTMENT, 6, "Math") // Dept 6, not 5
+        );
+
+        SurveyReportExportService service = new SurveyReportExportService(
+                (surveyId, generatedByUserId) -> Optional.of(report(surveyId)),
+                renderer,
+                assignmentPort,
+                lecturerPort
+        );
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> service.exportSurveyReport(12, 10, Role.LECTURER, "pdf")
+        );
+
+        assertEquals(403, exception.getStatusCode().value());
+        assertEquals("Outside department scope", exception.getReason());
+    }
+
+    @Test
+    void shouldAllowLecturerExportForDepartmentSurvey() {
+        TrackingSurveyReportRenderer renderer = new TrackingSurveyReportRenderer();
+        LoadLecturerByUserIdPort lecturerPort = userId -> Optional.of(new Lecturer(1, null, "John", "L01", new Department(5, "IT")));
+        LoadSurveyAssignmentPort assignmentPort = surveyId -> List.of(
+                new SurveyAssignment(1, null, EvaluatorType.DEPARTMENT, 5, SubjectType.DEPARTMENT, 5, "IT") // Matches dept 5
+        );
+
+        SurveyReportExportService service = new SurveyReportExportService(
+                (surveyId, generatedByUserId) -> Optional.of(report(surveyId)),
+                renderer,
+                assignmentPort,
+                lecturerPort
+        );
+
+        ExportedReport result = service.exportSurveyReport(12, 10, Role.LECTURER, "pdf");
+        assertEquals("Course_Feedback_20260201.pdf", result.filename());
+        assertEquals(1, renderer.renderCount);
+    }
+
+    @Test
+    void shouldAllowLecturerExportForFacilitySurvey() {
+        TrackingSurveyReportRenderer renderer = new TrackingSurveyReportRenderer();
+        LoadLecturerByUserIdPort lecturerPort = userId -> Optional.of(new Lecturer(1, null, "John", "L01", new Department(5, "IT")));
+        LoadSurveyAssignmentPort assignmentPort = surveyId -> List.of(
+                new SurveyAssignment(1, null, EvaluatorType.DEPARTMENT, 5, SubjectType.FACILITY, null, null) // Not ALL, Not DEPARTMENT
+        );
+
+        SurveyReportExportService service = new SurveyReportExportService(
+                (surveyId, generatedByUserId) -> Optional.of(report(surveyId)),
+                renderer,
+                assignmentPort,
+                lecturerPort
+        );
+
+        ExportedReport result = service.exportSurveyReport(12, 10, Role.LECTURER, "pdf");
+        assertEquals("Course_Feedback_20260201.pdf", result.filename());
+        assertEquals(1, renderer.renderCount);
     }
 
     @Test
     void shouldReturnNotFoundWhenSurveyReportDoesNotExist() {
         TrackingSurveyReportRenderer renderer = new TrackingSurveyReportRenderer();
-        SurveyReportExportService service = new SurveyReportExportService((surveyId, generatedByUserId) -> Optional.empty(), renderer);
+        SurveyReportExportService service = new SurveyReportExportService(
+                (surveyId, generatedByUserId) -> Optional.empty(),
+                renderer,
+                surveyId -> List.of(),
+                userId -> Optional.empty()
+        );
 
         assertThrows(SurveyNotFoundException.class, () -> service.exportSurveyReport(404, 99, Role.ADMIN, "pdf"));
         assertEquals(0, renderer.renderCount);

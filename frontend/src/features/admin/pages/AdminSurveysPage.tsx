@@ -50,6 +50,9 @@ function getAudienceLabel(survey: ManagedSurveySummary, t: (key: string, options
     if (survey.recipientScope === "DEPARTMENT") {
         return survey.recipientDepartmentName || (survey.recipientDepartmentId ? t("admin:admin.surveys.list.departmentWithId", { id: survey.recipientDepartmentId }) : t("admin:admin.surveys.list.departmentAudience"));
     }
+    if (survey.recipientScope === "CUSTOM_STUDENTS") {
+        return t("admin:admin.surveys.form.audience.customStudents");
+    }
 
     return t("admin:admin.surveys.form.audience.allStudents");
 }
@@ -317,7 +320,7 @@ export default function AdminSurveysPage() {
                                 <SelectFilter label={t("admin:admin.surveys.list.table.lifecycle")} value={lifecycleFilter} onChange={setLifecycleFilter} options={[{ label: t("admin:admin.surveys.list.filters.allLifecycle"), value: "ALL" }, { label: t("admin:admin.surveys.list.filters.draft"), value: "DRAFT" }, { label: t("admin:admin.surveys.list.filters.published"), value: "PUBLISHED" }, { label: t("admin:admin.surveys.list.filters.closed"), value: "CLOSED" }, { label: t("admin:admin.surveys.list.filters.archived"), value: "ARCHIVED" }]} />
                                 <SelectFilter label={t("admin:admin.surveys.list.table.runtime")} value={runtimeFilter} onChange={setRuntimeFilter} options={[{ label: t("admin:admin.surveys.list.filters.allRuntime"), value: "ALL" }, { label: t("admin:admin.surveys.list.filters.notOpen"), value: "NOT_OPEN" }, { label: t("admin:admin.surveys.list.filters.open"), value: "OPEN" }, { label: t("admin:admin.surveys.list.filters.closed"), value: "CLOSED" }]} />
                                 <SelectFilter label={t("admin:admin.surveys.list.table.visibility")} value={visibilityFilter} onChange={setVisibilityFilter} options={[{ label: t("admin:admin.surveys.list.filters.allVisibility"), value: "ALL" }, { label: t("admin:admin.surveys.list.filters.visible"), value: "VISIBLE" }, { label: t("admin:admin.surveys.list.filters.hidden"), value: "HIDDEN" }]} />
-                                <SelectFilter label={t("admin:admin.surveys.list.table.audience")} value={scopeFilter} onChange={setScopeFilter} options={[{ label: t("admin:admin.surveys.list.filters.allAudiences"), value: "ALL" }, { label: t("admin:admin.surveys.form.audience.allStudents"), value: "ALL_STUDENTS" }, { label: t("admin:admin.surveys.form.fields.department"), value: "DEPARTMENT" }]} />
+                                <SelectFilter label={t("admin:admin.surveys.list.table.audience")} value={scopeFilter} onChange={setScopeFilter} options={[{ label: t("admin:admin.surveys.list.filters.allAudiences"), value: "ALL" }, { label: t("admin:admin.surveys.form.audience.allStudents"), value: "ALL_STUDENTS" }, { label: t("admin:admin.surveys.form.fields.department"), value: "DEPARTMENT" }, { label: t("admin:admin.surveys.form.audience.customStudents"), value: "CUSTOM_STUDENTS" }]} />
                                 <label className="flex min-w-[170px] items-center gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
                                     <span className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{t("admin:admin.surveys.list.filters.startFrom")}</span>
                                     <input type="date" value={startDateFrom} onChange={(event) => setStartDateFrom(event.target.value)} className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none" />

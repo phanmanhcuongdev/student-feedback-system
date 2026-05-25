@@ -6,6 +6,9 @@
     },
     "header": {
       "title": "Xác minh sinh viên và phản hồi khảo sát",
+      "studentTitle": "Cổng thông tin sinh viên",
+      "lecturerTitle": "Không gian giảng viên",
+      "adminTitle": "Quản trị hệ thống",
       "accountMenu": {
         "viewAccount": "Xem tài khoản",
         "logout": "Đăng xuất"
