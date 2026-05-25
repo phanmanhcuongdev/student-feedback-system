@@ -187,7 +187,7 @@ export default function CreateSurveyPage() {
             setRecipientDepartmentId(survey.recipientDepartmentId != null ? String(survey.recipientDepartmentId) : "");
 
             if (survey.pendingRecipients) {
-                const initialMap: Record<number, any> = {};
+                const initialMap: Record<number, { id: number; name: string; code: string; departmentName?: string | null }> = {};
                 survey.pendingRecipients.forEach((r) => {
                     initialMap[r.studentId] = {
                         id: r.studentId,
