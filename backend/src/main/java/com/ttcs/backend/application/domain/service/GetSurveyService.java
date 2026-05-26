@@ -37,7 +37,14 @@ public class GetSurveyService implements GetSurveyUseCase {
         Student student = loadStudentByIdPort.loadByUserId(studentUserId)
                 .orElseThrow(() -> new SurveyNotFoundException(surveyId));
         SurveyRecipient recipient = loadSurveyRecipientPort.loadBySurveyIdAndStudentId(surveyId, student.getId()).orElse(null);
-        if (!survey.isPublished() || survey.isHidden() || isExpired(survey) || survey.status() == SurveyStatus.CLOSED || recipient == null) {
+        if (recipient == null) {
+            throw new SurveyNotFoundException(surveyId);
+        }
+        boolean isClosedOrExpired = isExpired(survey) || survey.status() == SurveyStatus.CLOSED;
+        if (!survey.isPublished() || survey.isHidden() || (isClosedOrExpired && !recipient.hasSubmitted())) {
+            throw new SurveyNotFoundException(surveyId);
+        }
+        if (!survey.isOpen() && !isClosedOrExpired && !recipient.hasSubmitted()) {
             throw new SurveyNotFoundException(surveyId);
         }
         markOpenedIfNecessary(recipient);

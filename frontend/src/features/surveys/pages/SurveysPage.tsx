@@ -26,8 +26,8 @@ export default function SurveysPage() {
                 setLoading(true);
                 setError("");
                 const response = await getAllSurveys({
-                    status: filter === "PENDING" || filter === "COMPLETED" ? undefined : filter,
-                    submitted: filter === "COMPLETED",
+                    status: filter === "PENDING" ? "OPEN" : filter === "COMPLETED" ? undefined : filter,
+                    submitted: filter === "COMPLETED" ? true : false,
                     page,
                     size: 12,
                     sortBy: "endDate",

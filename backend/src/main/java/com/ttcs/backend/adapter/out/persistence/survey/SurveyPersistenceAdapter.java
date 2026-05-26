@@ -112,24 +112,25 @@ public class SurveyPersistenceAdapter implements LoadSurveyPort, com.ttcs.backen
 
     private void applyStudentSurveyQueryParameters(Query query, LoadStudentSurveysQuery request) {
         query.setParameter("studentId", request.studentId());
-        if (request.status() != null && !request.status().isBlank()) {
-            query.setParameter("status", request.status().trim().toUpperCase());
-        }
-        if (request.submitted() != null) {
-            query.setParameter("submitted", request.submitted() ? 1 : 0);
-        }
     }
 
     private String buildStudentSurveyWhereClause(LoadStudentSurveysQuery query, String currentTimeSql) {
         StringBuilder where = new StringBuilder(
                 """
                  WHERE sr.student_id = :studentId
-                   AND s.lifecycle_state = 'PUBLISHED'
                    AND s.hidden = 0
-                   AND (s.end_date IS NULL OR s.end_date > %s)
                 """
-                        .formatted(currentTimeSql)
         );
+        if (Boolean.TRUE.equals(query.submitted())) {
+            where.append(" AND s.lifecycle_state != 'DRAFT'");
+            where.append(" AND CASE WHEN sr.submitted_at IS NOT NULL THEN 1 ELSE 0 END = 1");
+        } else {
+            where.append(" AND s.lifecycle_state = 'PUBLISHED'");
+            where.append(" AND (s.end_date IS NULL OR s.end_date > ").append(currentTimeSql).append(")");
+            if (Boolean.FALSE.equals(query.submitted())) {
+                where.append(" AND CASE WHEN sr.submitted_at IS NOT NULL THEN 1 ELSE 0 END = 0");
+            }
+        }
         if (query.status() != null && !query.status().isBlank() && !"ALL".equalsIgnoreCase(query.status())) {
             String normalizedStatus = query.status().trim().toUpperCase();
             switch (normalizedStatus) {
@@ -140,9 +141,7 @@ public class SurveyPersistenceAdapter implements LoadSurveyPort, com.ttcs.backen
                 }
             }
         }
-        if (query.submitted() != null) {
-            where.append(" AND CASE WHEN sr.submitted_at IS NOT NULL THEN 1 ELSE 0 END = :submitted");
-        }
+
         return where.toString();
     }
 
