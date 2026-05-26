@@ -6,6 +6,7 @@ public record LoadFeedbackQuery(
         String keyword,
         String status,
         LocalDate createdDate,
+        Integer departmentId,
         int page,
         int size,
         String sortBy,

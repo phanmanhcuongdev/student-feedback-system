@@ -52,7 +52,8 @@ class StudentFeedbackServiceTest {
                 userId -> Optional.of(admin()),
                 feedbackPort,
                 responsePort,
-                translationTaskPort
+                translationTaskPort,
+                userId -> Optional.empty()
         );
 
         CreateFeedbackResult result = service.createFeedback(
@@ -84,7 +85,8 @@ class StudentFeedbackServiceTest {
                 userId -> Optional.of(admin()),
                 feedbackPort,
                 responsePort,
-                new RecordingTranslationTaskPort()
+                new RecordingTranslationTaskPort(),
+                userId -> Optional.empty()
         );
 
         CreateFeedbackResult result = service.createFeedback(
@@ -113,7 +115,8 @@ class StudentFeedbackServiceTest {
                 userId -> Optional.of(admin()),
                 feedbackPort,
                 responsePort,
-                new RecordingTranslationTaskPort()
+                new RecordingTranslationTaskPort(),
+                userId -> Optional.empty()
         );
 
         List<StudentFeedbackResult> result = service.getStudentFeedback(
@@ -142,7 +145,8 @@ class StudentFeedbackServiceTest {
                 userId -> Optional.of(admin()),
                 feedbackPort,
                 responsePort,
-                new RecordingTranslationTaskPort()
+                new RecordingTranslationTaskPort(),
+                userId -> Optional.empty()
         );
 
         RespondToFeedbackResult result = service.respond(
@@ -168,7 +172,8 @@ class StudentFeedbackServiceTest {
                 userId -> Optional.of(student.getUser()),
                 feedbackPort,
                 responsePort,
-                new RecordingTranslationTaskPort()
+                new RecordingTranslationTaskPort(),
+                userId -> Optional.empty()
         );
 
         RespondToFeedbackResult result = service.respond(
