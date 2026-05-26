@@ -4,12 +4,10 @@ on:
   push:
     branches:
       - main
-      - feature/integrate-trivy
       - develop  # Thêm nhánh develop vào đây
   pull_request:
     branches:
       - main
-      - feature/integrate-trivy
       - develop  # Thêm nhánh develop vào đây
 
 jobs:
