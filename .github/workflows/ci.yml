@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+      - feature/integrate-trivy
       - develop  # Thêm nhánh develop vào đây
   pull_request:
     branches:
       - main
+      - feature/integrate-trivy
       - develop  # Thêm nhánh develop vào đây
 
 jobs:
@@ -51,6 +53,16 @@ jobs:
       - name: Frontend build
         working-directory: frontend
         run: npm run build
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
 
   docker:
     name: Build and Push Docker Images
@@ -105,6 +117,24 @@ jobs:
             BUILD_ARGS="$BUILD_ARGS -t $tag"
           done
           docker build $BUILD_ARGS ./frontend
+
+      - name: Trivy backend image scan
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
+          scanners: vuln,secret
+          severity: CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Trivy frontend image scan
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
+          scanners: vuln,secret
+          severity: CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
 
       - name: Push backend image
         if: github.event_name == 'push'
