@@ -270,18 +270,23 @@ Student là người dùng chính tham gia khảo sát và gửi phản hồi. C
 
 ### 1.10 Use Case Diagram
 
-![TODO: Use Case Diagram tổng quát](assets/use-case-overview.png)
+![Use Case Diagram tổng quát](diagrams/png/use-case-overview.png)
 
-> [Hình 1.1: TODO - Use Case Diagram tổng quát cho Admin, Lecturer, Student]
+> [Hình 1.1: Use Case Diagram tổng quát của Student Feedback System]
 
-Use Case Diagram tổng quát cần thể hiện ít nhất ba actor chính: Admin, Lecturer và Student. Ngoài ra có thể bổ sung actor phụ là System/Scheduler để thể hiện các luồng tự động như gửi reminder, xử lý notification hoặc AI summary job.
+Use Case Diagram tổng quát mô tả các chức năng nghiệp vụ cốt lõi của hệ thống từ góc nhìn các tác nhân bên ngoài. Sơ đồ không trình bày chi tiết API endpoint, bảng cơ sở dữ liệu, hạ tầng triển khai hay các adapter kỹ thuật, mà tập trung trả lời câu hỏi: hệ thống phục vụ những ai và mỗi nhóm người dùng thực hiện những mục tiêu nghiệp vụ nào.
 
-Các use case chính nên đưa vào sơ đồ:
+Trong phạm vi repository hiện tại, các actor chính gồm:
 
-- Student: đăng ký, xác minh email, upload giấy tờ, xem khảo sát được giao, nộp khảo sát, gửi feedback, xem notification.
-- Lecturer: đăng nhập, xem dashboard, xem kết quả khảo sát trong phạm vi phân quyền, phản hồi feedback, xem AI summary nếu được phép.
-- Admin: quản lý user, duyệt sinh viên, quản lý khảo sát, quản lý question bank, quản lý survey template, xem analytics, xem audit log, xuất báo cáo, generate AI summary.
-- System/Scheduler: gửi notification/reminder nếu được cấu hình, xử lý job AI summary và các tác vụ nền liên quan đến dịch nội dung qua RabbitMQ.
+- Guest: người dùng chưa đăng nhập, có thể truy cập các luồng xác thực như đăng nhập, đăng ký, xác minh tài khoản hoặc khôi phục mật khẩu.
+- Student: sinh viên sử dụng hệ thống để hoàn tất onboarding, tham gia khảo sát được giao, gửi/xem feedback và nhận thông báo.
+- Lecturer: giảng viên sử dụng hệ thống để xem kết quả khảo sát trong phạm vi được phân quyền, xem báo cáo/tóm tắt và phản hồi feedback.
+- Admin: người quản trị/phòng giáo vụ quản lý người dùng, duyệt sinh viên, quản lý vòng đời khảo sát, ngân hàng câu hỏi, template khảo sát, audit log và kết quả thống kê.
+- System/Scheduler: thành phần tự động của hệ thống, chịu trách nhiệm hỗ trợ gửi reminder và notification theo lịch hoặc theo sự kiện.
+
+Các use case trong sơ đồ được chia thành ba nhóm chức năng. Nhóm **Account & Student** bao gồm xác thực và quản lý tài khoản, onboarding sinh viên, tham gia khảo sát, gửi/xem feedback và nhận thông báo. Nhóm **Administration** bao gồm quản lý người dùng và duyệt sinh viên, quản lý vòng đời khảo sát, quản lý question bank/survey template và xem audit log. Nhóm **Results & Communication** bao gồm xem kết quả, thống kê, báo cáo, AI summary, quản lý/phản hồi feedback và notification/reminder.
+
+Sơ đồ được rút gọn có chủ đích để phù hợp với báo cáo học thuật: các chức năng nội bộ như ghi audit log, tạo snapshot người nhận khi publish survey, lưu tài liệu qua MinIO, gửi email qua Resend, xử lý RabbitMQ hoặc gọi AI/embedding service đã được xác nhận trong phần kiến trúc và triển khai, nhưng không được tách thành use case riêng trên sơ đồ tổng quát để tránh làm hình quá rối. Cách trình bày này giúp giảng viên nhìn nhanh được phạm vi nghiệp vụ chính của hệ thống, đồng thời vẫn nhất quán với source code backend, frontend và migration đã phân tích.
 
 ### 1.11 Đặc tả Use Case chính
 
@@ -384,29 +389,29 @@ Các actor trên được phản ánh trong code qua các nhóm controller như 
 
 ### 2.3 Activity Diagram
 
-![TODO: Activity Diagram - Quy trình onboarding sinh viên](assets/activity-student-onboarding.png)
+![Activity Diagram - Quy trình onboarding sinh viên](diagrams/png/activity-student-onboarding.png)
 
-> [Hình 2.1: TODO - Activity Diagram quy trình onboarding sinh viên]
+> [Hình 2.1: Activity Diagram quy trình onboarding sinh viên]
 
-Quy trình onboarding sinh viên bắt đầu khi sinh viên đăng ký tài khoản. Backend tạo tài khoản student và gửi email xác minh thông qua Resend. Sau khi sinh viên xác minh email, hệ thống cho phép upload giấy tờ định danh. Tài liệu được lưu qua adapter lưu trữ, trong repository hiện tại có `MinioStudentDocumentStorageAdapter`. Admin sau đó xem danh sách sinh viên pending, kiểm tra tài liệu và approve hoặc reject. Nếu approve, sinh viên chuyển sang trạng thái `ACTIVE` và có thể tham gia khảo sát. Nếu reject, sinh viên xem lý do từ chối và có thể upload lại tài liệu.
+Quy trình onboarding sinh viên bắt đầu khi sinh viên đăng ký tài khoản. Backend tạo tài khoản student, khởi tạo trạng thái onboarding và gửi email xác minh. Sau khi sinh viên xác minh email, hệ thống cho phép đăng nhập để xem trạng thái onboarding và upload giấy tờ định danh. Tài liệu được lưu qua adapter lưu trữ, trong repository hiện tại có `MinioStudentDocumentStorageAdapter`. Admin sau đó xem danh sách sinh viên pending, kiểm tra hồ sơ/tài liệu và approve hoặc reject. Nếu approve, sinh viên chuyển sang trạng thái `ACTIVE`, hệ thống ghi audit log và tạo notification để sinh viên có thể truy cập các chức năng nội bộ. Nếu reject, sinh viên nhận lý do từ chối, upload lại tài liệu đã chỉnh sửa và hồ sơ quay lại hàng chờ xét duyệt.
 
-![TODO: Activity Diagram - Quy trình tạo và publish khảo sát](assets/activity-survey-publish.png)
+![Activity Diagram - Quy trình tạo và publish khảo sát](diagrams/png/activity-survey-publish.png)
 
-> [Hình 2.2: TODO - Activity Diagram quy trình tạo và publish khảo sát]
+> [Hình 2.2: Activity Diagram quy trình tạo và publish khảo sát]
 
 Quy trình tạo khảo sát bắt đầu từ Admin. Admin nhập thông tin khảo sát, cấu hình thời gian, thêm câu hỏi trực tiếp hoặc từ question bank/template, đồng thời xác định phạm vi người nhận. Backend lưu khảo sát ở trạng thái `DRAFT`. Khi Admin publish, backend kiểm tra điều kiện hợp lệ như trạng thái hiện tại, thời gian, câu hỏi và assignment. Nếu hợp lệ, hệ thống chuyển survey sang trạng thái phát hành, tạo snapshot người nhận trong `Survey_Recipient`, ghi nhận audit log và tạo notification cho nhóm sinh viên được giao khảo sát.
 
-![TODO: Activity Diagram - Quy trình sinh viên nộp khảo sát](assets/activity-submit-survey.png)
+![Activity Diagram - Quy trình sinh viên nộp khảo sát](diagrams/png/activity-submit-survey.png)
 
-> [Hình 2.3: TODO - Activity Diagram quy trình sinh viên nộp khảo sát]
+> [Hình 2.3: Activity Diagram quy trình sinh viên nộp khảo sát]
 
 Quy trình nộp khảo sát bắt đầu khi Student mở danh sách khảo sát. Backend chỉ trả về các khảo sát mà student nằm trong danh sách recipient, survey đã publish, không hidden, chưa đóng và còn trong thời hạn. Khi student mở chi tiết, hệ thống ghi nhận trạng thái đã mở nếu cần. Student nhập câu trả lời rating hoặc text rồi submit. Backend kiểm tra quyền tham gia, trạng thái survey, điều kiện chưa nộp trước đó và tính hợp lệ của câu trả lời. Nếu hợp lệ, hệ thống tạo `Survey_Response`, lưu `Response_Detail`, cập nhật `Survey_Recipient.submitted_at` và kích hoạt các tác vụ liên quan như dịch nội dung text hoặc cập nhật trạng thái AI summary.
 
 ### 2.4 Sequence Diagram
 
-![TODO: Sequence Diagram - Đăng nhập bằng JWT](assets/sequence-login-jwt.png)
+![Sequence Diagram - Đăng nhập bằng JWT](diagrams/png/sequence-login-jwt.png)
 
-> [Hình 2.4: TODO - Sequence Diagram đăng nhập bằng JWT]
+> [Hình 2.4: Sequence Diagram đăng nhập bằng JWT]
 
 Các thành phần tham gia gồm:
 
@@ -419,9 +424,9 @@ Các thành phần tham gia gồm:
 
 Luồng chính: frontend gửi email/password, controller chuyển request vào use case service, service kiểm tra user và mật khẩu, xác định role/trạng thái, sinh JWT bằng adapter bảo mật và trả response cho frontend. Frontend lưu session để dùng cho các API nội bộ.
 
-![TODO: Sequence Diagram - Nộp khảo sát](assets/sequence-submit-survey.png)
+![Sequence Diagram - Nộp khảo sát](diagrams/png/sequence-submit-survey.png)
 
-> [Hình 2.5: TODO - Sequence Diagram nộp khảo sát]
+> [Hình 2.5: Sequence Diagram nộp khảo sát]
 
 Các thành phần tham gia gồm:
 
@@ -434,9 +439,9 @@ Các thành phần tham gia gồm:
 
 Luồng chính: student submit câu trả lời từ frontend, controller nhận request, use case service kiểm tra quyền và trạng thái survey, lưu response, cập nhật recipient, sau đó phát sinh tác vụ bất đồng bộ nếu cần. Kết quả trả về cho frontend cho biết nộp thành công hoặc lỗi nghiệp vụ.
 
-![TODO: Sequence Diagram - Generate AI Summary](assets/sequence-ai-summary.png)
+![Sequence Diagram - Generate AI Summary](diagrams/png/sequence-ai-summary.png)
 
-> [Hình 2.6: TODO - Sequence Diagram generate AI summary]
+> [Hình 2.6: Sequence Diagram generate AI summary]
 
 Các thành phần tham gia gồm:
 
@@ -449,9 +454,9 @@ Các thành phần tham gia gồm:
 
 Luồng chính: Admin hoặc Lecturer có quyền yêu cầu xem hoặc generate AI summary. Backend kiểm tra quyền truy cập survey, thu thập dữ liệu comment, gọi adapter AI để tạo bản tóm tắt và có thể dùng embedding để nhóm/chấm mức tương đồng nội dung. Kết quả summary được lưu vào database để tái sử dụng và theo dõi trạng thái stale/refresh khi dữ liệu nguồn thay đổi.
 
-![TODO: Sequence Diagram - Realtime Notification](assets/sequence-notification.png)
+![Sequence Diagram - Realtime Notification](diagrams/png/sequence-notification.png)
 
-> [Hình 2.7: TODO - Sequence Diagram realtime notification]
+> [Hình 2.7: Sequence Diagram realtime notification]
 
 Các thành phần tham gia gồm:
 
@@ -466,9 +471,9 @@ Luồng chính: khi một nghiệp vụ tạo notification, service lưu notific
 
 ### 2.5 Mô hình domain ở mức khái niệm
 
-![TODO: Class Diagram / Domain Model tổng quát](assets/domain-model-overview.png)
+![Domain Model tổng quát](diagrams/png/domain-model-overview.png)
 
-> [Hình 2.8: TODO - Class Diagram hoặc Domain Model tổng quát theo cụm nghiệp vụ]
+> [Hình 2.8: Domain Model tổng quát theo cụm nghiệp vụ]
 
 Ở mức khái niệm, domain của hệ thống có thể chia thành các cụm sau:
 
@@ -1812,12 +1817,15 @@ Monitoring stack đã được triển khai trên Vostro Hub với Prometheus, G
 
 ### 10.6 Tổng hợp danh sách hình cần bổ sung
 
-- [ ] Use Case Diagram.
-- [ ] Activity Diagram onboarding.
-- [ ] Activity Diagram publish survey.
-- [ ] Activity Diagram submit survey.
-- [ ] Sequence Diagram login.
-- [ ] Sequence Diagram submit survey.
+- [x] Use Case Diagram.
+- [x] Activity Diagram onboarding.
+- [x] Activity Diagram publish survey.
+- [x] Activity Diagram submit survey.
+- [x] Sequence Diagram login.
+- [x] Sequence Diagram submit survey.
+- [x] Sequence Diagram AI summary.
+- [x] Sequence Diagram realtime notification.
+- [x] Domain Model tổng quát.
 - [ ] ERD tổng thể.
 - [ ] System Architecture Diagram.
 - [ ] Network Topology.
@@ -2028,14 +2036,14 @@ Các migration hiện có:
 
 ## Phụ lục D. Danh sách hình ảnh cần bổ sung
 
-- [ ] Use Case Diagram tổng quát.
-- [ ] Activity Diagram onboarding sinh viên.
-- [ ] Activity Diagram tạo và publish khảo sát.
-- [ ] Activity Diagram sinh viên nộp khảo sát.
-- [ ] Sequence Diagram đăng nhập JWT.
-- [ ] Sequence Diagram nộp khảo sát.
-- [ ] Sequence Diagram AI summary.
-- [ ] Sequence Diagram realtime notification.
+- [x] Use Case Diagram tổng quát.
+- [x] Activity Diagram onboarding sinh viên.
+- [x] Activity Diagram tạo và publish khảo sát.
+- [x] Activity Diagram sinh viên nộp khảo sát.
+- [x] Sequence Diagram đăng nhập JWT.
+- [x] Sequence Diagram nộp khảo sát.
+- [x] Sequence Diagram AI summary.
+- [x] Sequence Diagram realtime notification.
 - [ ] ERD tổng thể và ERD theo domain.
 - [ ] System Architecture Diagram.
 - [ ] Backend Hexagonal Architecture Diagram.
@@ -2087,15 +2095,15 @@ Các thông tin hạ tầng đã được cung cấp và sử dụng trong báo 
 
 | Tên ảnh | File path đề xuất | Mục trong báo cáo | Nội dung cần thể hiện | Mức ưu tiên |
 |---|---|---|---|---|
-| Use Case Diagram tổng quát | `assets/use-case-overview.png` | 1.10 | Actor Admin, Lecturer, Student, System/Scheduler và các use case chính. | Bắt buộc |
-| Activity Diagram onboarding sinh viên | `assets/activity-student-onboarding.png` | 2.3 | Đăng ký, verify email, upload giấy tờ, Admin approve/reject, notification. | Nên có |
-| Activity Diagram tạo và publish khảo sát | `assets/activity-survey-publish.png` | 2.3 | Admin tạo draft, thêm câu hỏi/assignment, publish, tạo `Survey_Recipient`. | Nên có |
-| Activity Diagram sinh viên nộp khảo sát | `assets/activity-submit-survey.png` | 2.3 | Student xem survey, mở chi tiết, nhập câu trả lời, submit, lưu response/detail. | Nên có |
-| Sequence Diagram đăng nhập JWT | `assets/sequence-login-jwt.png` | 2.4 | Frontend, AuthController, AuthUseCaseService, JwtTokenService, User repository/database. | Nên có |
-| Sequence Diagram nộp khảo sát | `assets/sequence-submit-survey.png` | 2.4 | Frontend, SurveyController, SubmitSurveyService, repository/adapter, database, RabbitMQ nếu có text. | Nên có |
-| Sequence Diagram generate AI summary | `assets/sequence-ai-summary.png` | 2.4 | Frontend, SurveyAiSummaryController, service, persistence, AI provider, embedding service. | Nên có |
-| Sequence Diagram realtime notification | `assets/sequence-notification.png` | 2.4 | NotificationService, database, WebSocket/STOMP adapter, frontend notification provider. | Có thì tốt |
-| Domain Model tổng quát | `assets/domain-model-overview.png` | 2.5 | Các cụm User & Identity, Survey, Response, Feedback, Notification, Audit, AI Summary. | Có thì tốt |
+| Use Case Diagram tổng quát (đã bổ sung) | `diagrams/png/use-case-overview.png` | 1.10 | Actor Guest, Student, Lecturer, Admin, System/Scheduler và các use case chính theo nhóm Account & Student, Administration, Results & Communication. | Bắt buộc |
+| Activity Diagram onboarding sinh viên (đã bổ sung) | `diagrams/png/activity-student-onboarding.png` | 2.3 | Đăng ký, verify email, upload giấy tờ, Admin approve/reject, audit log, notification và luồng upload lại khi bị reject. | Nên có |
+| Activity Diagram tạo và publish khảo sát (đã bổ sung) | `diagrams/png/activity-survey-publish.png` | 2.3 | Admin tạo draft, thêm câu hỏi/assignment, publish, tạo `Survey_Recipient`, audit log và notification. | Nên có |
+| Activity Diagram sinh viên nộp khảo sát (đã bổ sung) | `diagrams/png/activity-submit-survey.png` | 2.3 | Student xem survey, mở chi tiết, nhập câu trả lời, submit, lưu response/detail và dispatch translation task nếu có text. | Nên có |
+| Sequence Diagram đăng nhập JWT (đã bổ sung) | `diagrams/png/sequence-login-jwt.png` | 2.4 | Frontend, AuthController, AuthUseCaseService, JwtTokenService, persistence adapter và SQL Server. | Nên có |
+| Sequence Diagram nộp khảo sát (đã bổ sung) | `diagrams/png/sequence-submit-survey.png` | 2.4 | Frontend, SurveyController, SubmitSurveyService, persistence adapter, SQL Server, RabbitMQ nếu có text. | Nên có |
+| Sequence Diagram generate AI summary (đã bổ sung) | `diagrams/png/sequence-ai-summary.png` | 2.4 | Frontend, SurveyAiSummaryController, service, persistence, AI provider, embedding service. | Nên có |
+| Sequence Diagram realtime notification (đã bổ sung) | `diagrams/png/sequence-notification.png` | 2.4 | NotificationService, persistence adapter, SQL Server, WebSocket/STOMP adapter, frontend notification provider. | Có thì tốt |
+| Domain Model tổng quát (đã bổ sung) | `diagrams/png/domain-model-overview.png` | 2.5 | Các cụm User & Identity, Survey, Response, Feedback, Notification/Audit, Report & AI Summary. | Có thì tốt |
 
 ## Kiến trúc ứng dụng
 

@@ -1,0 +1,51 @@
+' Created from repository source on 2026-05-27.
+' Source checked: Flyway migrations under backend/src/main/resources/db/migration
+' and JPA entities in adapter/out/persistence.
+' Scope: conceptual domain overview, not a full ERD.
+
+@startuml
+title Domain Model Overview
+
+left to right direction
+skinparam shadowing false
+skinparam linetype polyline
+skinparam rectangle {
+    BackgroundColor #E8F7FA
+    BorderColor DarkSlateGray
+    FontSize 12
+}
+skinparam ArrowColor #333333
+
+rectangle "User & Identity\n----\nUser\nAdmin / Lecturer / Student\nDepartment\nStudentToken\nPasswordResetToken" as Identity
+
+rectangle "Survey & Question\n----\nSurvey\nQuestion\nQuestionBank\nSurveyTemplate\nSurveyAssignment\nSurveyRecipient" as Survey
+
+rectangle "Survey Response\n----\nSurveyResponse\nResponseDetail\nSubmitted recipient state" as Response
+
+rectangle "Feedback\n----\nFeedback\nFeedbackResponse\nStudent-to-staff discussion" as Feedback
+
+rectangle "Notification & Audit\n----\nNotification\nNotificationUser\nAuditLog" as NotifyAudit
+
+rectangle "Report & AI Summary\n----\nSurveyAiSummary\nSummaryJob\nSourceState\nPendingChange\nThemeEmbedding" as AiReport
+
+Identity --> Survey : admin creates\nstudent receives
+Survey --> Response : collects answers
+Identity --> Response : student submits
+Identity --> Feedback : student/staff use
+Survey --> NotifyAudit : publish/reminder events
+Identity --> NotifyAudit : recipients and audit actor
+Response --> AiReport : source comments
+Survey --> AiReport : summary scope
+Feedback --> NotifyAudit : response notification
+
+note bottom of Survey
+Recipient snapshot is generated when a survey is published.
+This keeps assigned students stable after publication.
+end note
+
+note bottom of AiReport
+AI summary and embedding data are modeled separately
+to support refresh and incremental analysis.
+end note
+
+@enduml

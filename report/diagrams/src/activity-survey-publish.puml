@@ -1,0 +1,54 @@
+' Created from repository source on 2026-05-27.
+' Source checked: AdminSurveyController, CreateSurveyService,
+' AdminSurveyManagementService, survey/question/assignment/recipient persistence,
+' notification and audit persistence.
+
+@startuml
+title Activity Diagram - Create and Publish Survey
+
+skinparam shadowing false
+skinparam linetype polyline
+skinparam ArrowColor #333333
+skinparam activity {
+    BackgroundColor #E8F7FA
+    BorderColor DarkSlateGray
+    FontSize 12
+}
+skinparam diamond {
+    BackgroundColor #FFF7E6
+    BorderColor DarkSlateGray
+    FontSize 12
+}
+
+start
+:[Admin] Open survey management;
+:[Admin] Create draft survey;
+:[Backend] Validate title, schedule and recipient scope;
+
+if (Survey input valid?) then (yes)
+    :[Backend] Save survey as DRAFT;
+    :[Admin] Add questions or use question bank/template;
+    :[Backend] Save questions and assignments;
+    :[Admin] Review draft survey;
+    :[Admin] Publish survey;
+    :[Backend] Validate publish rules;
+
+    if (Draft can be published?) then (yes)
+        :[Backend] Change survey status to PUBLISHED;
+        :[Backend] Generate recipient snapshot;
+        :[Backend] Create survey notifications;
+        :[Backend] Record audit log;
+        :[Student] Survey appears in assigned list;
+        stop
+    else (no)
+        :[Backend] Return business validation error;
+        :[Admin] Fix draft configuration;
+        detach
+    endif
+else (no)
+    :[Backend] Return validation errors;
+    :[Admin] Correct survey information;
+    stop
+endif
+
+@enduml

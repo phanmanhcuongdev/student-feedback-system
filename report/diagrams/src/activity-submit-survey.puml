@@ -1,0 +1,55 @@
+' Created from repository source on 2026-05-27.
+' Source checked: SurveyController, SubmitSurveyService,
+' survey/question/recipient/response/detail persistence, translation messaging.
+
+@startuml
+title Activity Diagram - Submit Survey Response
+
+skinparam shadowing false
+skinparam linetype polyline
+skinparam ArrowColor #333333
+skinparam activity {
+    BackgroundColor #E8F7FA
+    BorderColor DarkSlateGray
+    FontSize 12
+}
+skinparam diamond {
+    BackgroundColor #FFF7E6
+    BorderColor DarkSlateGray
+    FontSize 12
+}
+
+start
+:[Student] Open assigned surveys;
+:[Backend] Filter visible and active surveys;
+:[Student] Open survey detail;
+:[Backend] Load survey, questions and submission state;
+
+if (Student can submit?) then (yes)
+    :[Student] Fill rating/text answers;
+    :[Student] Submit survey response;
+    :[Backend] Validate survey status and deadline;
+    :[Backend] Validate one-submission rule;
+    :[Backend] Validate answer values;
+
+    if (Submission valid?) then (yes)
+        :[Backend] Create Survey_Response;
+        :[Backend] Save Response_Detail records;
+        :[Backend] Mark recipient as submitted;
+        if (Text answers need async processing?) then (yes)
+            :[Backend] Dispatch translation task;
+        endif
+        :[Student] See submission success;
+        stop
+    else (no)
+        :[Backend] Return validation/business error;
+        :[Student] Correct answers or stop;
+        stop
+    endif
+else (no)
+    :[Backend] Return forbidden or unavailable survey;
+    :[Student] Cannot submit survey;
+    stop
+endif
+
+@enduml

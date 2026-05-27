@@ -1,0 +1,109 @@
+' Refactored from repository source on 2026-05-27.
+' Checked source groups:
+' - backend adapter/in/web controllers
+' - backend application/domain/service and application/port/in use cases
+' - backend adapter/in/security and adapter/in/messaging
+' - backend adapter/out integrations: Resend, MinIO, RabbitMQ, AI, embedding, export
+' - backend db migrations for audit, notification, survey recipient, AI summary
+' - frontend App.tsx routes, api layer, auth and notification features
+' Scope note:
+' - This is an overview use case diagram for the report. It intentionally excludes
+'   API endpoints, database tables, CI/CD, Docker, monitoring, and infrastructure.
+' - Internal implementation actions such as audit logging, recipient snapshot,
+'   email sending, MinIO storage, RabbitMQ translation, and AI/embedding calls are
+'   backed by the codebase but are not drawn as separate use cases here to keep
+'   the diagram readable for academic review.
+' - For deeper documentation, split this into Admin Use Cases, Student Use Cases,
+'   and Survey Flow Use Cases.
+
+@startuml
+left to right direction
+
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam shadowing false
+skinparam linetype polyline
+skinparam nodesep 45
+skinparam ranksep 55
+
+skinparam actor {
+    BackgroundColor White
+    BorderColor DarkSlateGray
+    FontSize 13
+}
+
+skinparam rectangle {
+    BorderColor DarkSlateGray
+    BackgroundColor White
+}
+
+skinparam usecase {
+    BackgroundColor #E8F7FA
+    BorderColor DarkSlateGray
+    ArrowColor #333333
+    FontSize 12
+}
+
+' ==========================================
+' Actors
+' ==========================================
+actor "Guest" as Guest
+actor "Student" as Student
+actor "Admin" as Admin
+actor "Lecturer" as Lecturer
+actor "System /\nScheduler" as System
+
+' ==========================================
+' System Boundary
+' ==========================================
+rectangle "Student Feedback System" {
+
+    package "Account & Student" as P1 {
+        usecase "Authenticate and\nManage Account" as UC_Auth
+        usecase "Complete Student\nOnboarding" as UC_Onboarding
+        usecase "Participate in\nAssigned Surveys" as UC_ParticipateSurvey
+        usecase "Send / View\nFeedback" as UC_StudentFeedback
+    }
+
+    package "Administration" as P2 {
+        usecase "Manage Users and\nStudent Approval" as UC_UserApproval
+        usecase "Manage Survey\nLifecycle" as UC_SurveyLifecycle
+        usecase "Manage Question Bank\nand Survey Templates" as UC_QuestionTemplate
+        usecase "View Audit Log" as UC_AuditLog
+    }
+
+    package "Results & Communication" as P3 {
+        usecase "View Results, Statistics,\nReports and AI Summary" as UC_ResultsReport
+        usecase "Manage / Respond\nto Feedback" as UC_StaffFeedback
+        usecase "View Notifications and\nReceive Reminders" as UC_Notifications
+    }
+}
+
+' ==========================================
+' Main actor-use case associations
+' ==========================================
+Guest -[#666666]- UC_Auth
+
+Student -[#2E7D32]- UC_Auth
+Student -[#2E7D32]- UC_Onboarding
+Student -[#2E7D32]- UC_ParticipateSurvey
+Student -[#2E7D32]- UC_StudentFeedback
+Student -[#2E7D32]- UC_Notifications
+
+Lecturer -[#6A1B9A]- UC_Auth
+Lecturer -[#6A1B9A]- UC_ResultsReport
+Lecturer -[#6A1B9A]- UC_StaffFeedback
+Lecturer -[#6A1B9A]- UC_Notifications
+
+Admin -[#1565C0]- UC_Auth
+UC_UserApproval -[#1565C0]- Admin
+UC_SurveyLifecycle -[#1565C0]- Admin
+UC_QuestionTemplate -[#1565C0]- Admin
+UC_AuditLog -[#1565C0]- Admin
+UC_ResultsReport -[#1565C0]- Admin
+UC_StaffFeedback -[#1565C0]- Admin
+UC_Notifications -[#1565C0]- Admin
+
+System -[#EF6C00]- UC_Notifications
+
+@enduml

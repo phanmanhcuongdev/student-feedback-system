@@ -1,0 +1,75 @@
+' Created from repository source on 2026-05-27.
+' Checked source:
+' - AuthController: register-student, verify-email, upload-docs, onboarding-status, login
+' - AdminStudentController: pending students, approve, reject, document access
+' - AuthUseCaseService and AdminStudentApprovalService
+' - Student document storage adapter backed by MinIO
+' - Notification and Audit_Log persistence/migration
+' Scope:
+' - This activity diagram describes the student onboarding business flow.
+' - It intentionally excludes endpoint paths and database table details from the drawing.
+
+@startuml
+title Activity Diagram - Student Onboarding
+
+skinparam shadowing false
+skinparam linetype polyline
+skinparam ArrowColor #333333
+
+skinparam activity {
+    BackgroundColor #E8F7FA
+    BorderColor DarkSlateGray
+    FontSize 12
+}
+
+skinparam diamond {
+    BackgroundColor #FFF7E6
+    BorderColor DarkSlateGray
+    FontSize 12
+}
+
+start
+
+:[Student] Register student account;
+:[Backend] Create user and student profile;
+:[Backend] Send email verification request;
+:[Student] Open verification link;
+:[Backend] Verify email token;
+
+if (Email verified?) then (yes)
+    :[Student] Login;
+    :[Student] Open onboarding status;
+    :[Backend] Return required document state;
+    :[Student] Upload student card / ID documents;
+    :[Storage Adapter] Store documents in object storage;
+    :[Backend] Mark student profile as pending review;
+    :[Admin] View pending student list;
+    :[Admin] Review profile and uploaded documents;
+
+    if (Documents valid?) then (approve)
+        :[Admin] Approve student;
+        :[Backend] Set student status to ACTIVE;
+        :[Backend] Record audit log;
+        :[Backend] Create approval notification;
+        :[Student] Receive approval notification;
+        :[Student] Access student features;
+        stop
+    else (reject)
+        :[Admin] Reject student with reason;
+        :[Backend] Set student status to REJECTED;
+        :[Backend] Record audit log;
+        :[Backend] Create rejection notification;
+        :[Student] View rejection reason;
+        :[Student] Upload corrected documents;
+        :[Storage Adapter] Store replacement documents;
+        :[Backend] Return profile to pending review;
+        :[Admin] Review updated documents;
+        detach
+    endif
+else (no)
+    :[Student] See verification failure;
+    :[Student] Retry with a valid verification link;
+    stop
+endif
+
+@enduml

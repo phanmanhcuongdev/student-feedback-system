@@ -1,0 +1,49 @@
+' Created from repository source on 2026-05-27.
+' Source checked: LoginPage/authApi, AuthController, AuthUseCaseService,
+' AuthPersistenceAdapter/UserRepository/StudentRepository, JwtTokenService,
+' frontend auth storage and axios interceptor.
+
+@startuml
+title Sequence Diagram - JWT Login
+hide footbox
+
+skinparam shadowing false
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor SlateGray
+    ParticipantBorderColor DarkSlateGray
+    ParticipantBackgroundColor #E8F7FA
+}
+
+actor User
+participant "React SPA\nLogin Page" as FE
+participant "AuthController" as C
+participant "AuthUseCaseService" as S
+participant "User/Student\nPersistence Adapter" as P
+database "SQL Server" as DB
+participant "JwtTokenService" as JWT
+collections "localStorage\nstudent-feedback.auth-session" as LS
+
+User -> FE: Enter email and password
+FE -> C: Submit login request
+C -> S: login(command)
+S -> P: find user by email
+P -> DB: Query User and role profile
+DB --> P: User/Student data
+P --> S: Account data
+S -> S: Check password, verify flag and status
+
+alt valid credentials
+    S -> JWT: generate access token
+    JWT --> S: JWT Bearer token
+    S --> C: Login response with role/status/token
+    C --> FE: 200 OK
+    FE -> LS: Store auth session
+    FE -> FE: Redirect by role/status
+else invalid or inactive account
+    S --> C: Business error
+    C --> FE: Error response
+    FE --> User: Show login error
+end
+
+@enduml

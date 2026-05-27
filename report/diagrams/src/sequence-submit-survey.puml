@@ -1,0 +1,50 @@
+' Created from repository source on 2026-05-27.
+' Source checked: SurveyDetailPage/useSubmitSurvey, SurveyController,
+' SubmitSurveyService, persistence adapters, RabbitMQ translation adapter.
+
+@startuml
+title Sequence Diagram - Submit Survey Response
+hide footbox
+
+skinparam shadowing false
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor SlateGray
+    ParticipantBorderColor DarkSlateGray
+    ParticipantBackgroundColor #E8F7FA
+}
+
+actor Student
+participant "React SPA\nSurvey Detail" as FE
+participant "SurveyController" as C
+participant "SubmitSurveyService" as S
+participant "Survey Persistence\nAdapter" as P
+database "SQL Server" as DB
+queue "RabbitMQ\nTranslation Queue" as MQ
+
+Student -> FE: Fill answers and submit
+FE -> C: Submit survey response
+C -> S: submitSurvey(command, studentId)
+S -> P: Load survey, questions and recipient
+P -> DB: Query Survey, Question, Survey_Recipient
+DB --> P: Survey data
+P --> S: Domain data
+S -> S: Validate status, deadline, recipient and answers
+
+alt valid submission
+    S -> P: Save response and details
+    P -> DB: Insert Survey_Response and Response_Detail
+    P -> DB: Update Survey_Recipient submitted_at
+    opt text answers require translation
+        S -> MQ: Dispatch translation task
+    end
+    S --> C: Submission accepted
+    C --> FE: 200 OK
+    FE --> Student: Show success state
+else invalid submission
+    S --> C: Business or validation error
+    C --> FE: Error response
+    FE --> Student: Show error message
+end
+
+@enduml

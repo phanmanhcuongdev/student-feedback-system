@@ -1,0 +1,51 @@
+' Created from repository source on 2026-05-27.
+' Source checked: SurveyAiSummaryController, SurveyAiSummaryService,
+' SurveyAiSummaryChangeService, AI summary persistence, chat completion adapter,
+' local text embedding adapter.
+
+@startuml
+title Sequence Diagram - Generate AI Summary
+hide footbox
+
+skinparam shadowing false
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor SlateGray
+    ParticipantBorderColor DarkSlateGray
+    ParticipantBackgroundColor #E8F7FA
+}
+
+actor "Admin / Lecturer" as Staff
+participant "React SPA\nSurvey Results" as FE
+participant "SurveyAiSummaryController" as C
+participant "SurveyAiSummaryService" as S
+participant "Summary Persistence\nAdapter" as P
+database "SQL Server" as DB
+participant "AI Provider\nGemini-compatible" as AI
+participant "Embedding Service" as EMB
+
+Staff -> FE: Request AI summary
+FE -> C: Generate or get summary
+C -> S: generateSummary(surveyId, user)
+S -> S: Check survey access scope
+S -> P: Load responses and summary state
+P -> DB: Query comments, summary job and source state
+DB --> P: Source data
+P --> S: Comments and existing state
+
+alt generation needed
+    S -> AI: Summarize survey comments
+    AI --> S: Summary, themes and insights
+    opt theme embedding enabled
+        S -> EMB: Embed theme text
+        EMB --> S: Vector embeddings
+    end
+    S -> P: Persist summary, job and source state
+    P -> DB: Upsert AI summary records
+end
+
+S --> C: Summary result
+C --> FE: Summary response
+FE --> Staff: Display AI summary
+
+@enduml

@@ -1,0 +1,42 @@
+' Created from repository source on 2026-05-27.
+' Source checked: NotificationController, NotificationService,
+' NotificationPersistenceAdapter, WebSocketNotificationAdapter,
+' frontend NotificationProvider/notificationApi/STOMP SockJS.
+
+@startuml
+title Sequence Diagram - Realtime Notification
+hide footbox
+
+skinparam shadowing false
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor SlateGray
+    ParticipantBorderColor DarkSlateGray
+    ParticipantBackgroundColor #E8F7FA
+}
+
+participant "Business Service\n(Survey/Approval/etc.)" as Biz
+participant "NotificationService" as S
+participant "Notification\nPersistence Adapter" as P
+database "SQL Server" as DB
+participant "WebSocket/STOMP\nAdapter" as WS
+participant "React SPA\nNotificationProvider" as FE
+actor User
+
+FE -> WS: Subscribe to user notification topic
+Biz -> S: Create notification event
+S -> P: Save notification and recipients
+P -> DB: Insert Notification and Notification_User
+DB --> P: Saved notification
+P --> S: Notification payload
+S -> WS: Push realtime notification
+WS --> FE: STOMP message
+FE --> User: Update bell/unread count
+
+User -> FE: Mark notification as read
+FE -> S: Mark read request via API
+S -> P: Update read state
+P -> DB: Update Notification_User
+S --> FE: Updated unread count
+
+@enduml

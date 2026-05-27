@@ -100,3 +100,6 @@ reports/
 *.pid.lock
 *.out
 *.err
+
+# Local tooling downloaded for report diagram rendering
+tools/
