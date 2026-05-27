@@ -1048,9 +1048,9 @@ Thiết kế hạ tầng của hệ thống dựa trên các nguyên tắc sau:
 
 ### 6.3 Kiến trúc mạng tổng thể
 
-![TODO: Network Topology tổng thể](assets/network-topology.png)
+![Network Topology tổng thể](diagrams/png/network-topology.png)
 
-> [Hình 6.1: TODO - Network Topology tổng thể gồm Internet, VPS nginx-proxy, Tailnet, Proxmox, VyOS, VLAN và monitoring node]
+> [Hình 6.1: Network Topology tổng thể gồm Internet, VPS nginx-proxy, Tailnet, Proxmox, VyOS, VLAN và monitoring node]
 
 Kiến trúc mạng tổng thể có thể mô tả theo các lớp:
 
@@ -1070,9 +1070,9 @@ Ngoài ra, sysadmin device có Tailnet IP `100.64.0.1`, tag `sysadmin`, dùng đ
 
 ### 6.4 Public access flow
 
-![TODO: Public Access Flow](assets/public-access-flow.png)
+![Public Access Flow](diagrams/png/public-access-flow.png)
 
-> [Hình 6.2: TODO - Public Access Flow từ người dùng Internet đến frontend/backend production]
+> [Hình 6.2: Public Access Flow từ người dùng Internet đến frontend/backend production]
 
 Luồng truy cập công khai của người dùng:
 
@@ -1098,9 +1098,9 @@ Lợi ích của thiết kế này:
 
 ### 6.5 Management access flow
 
-![TODO: Management Access Flow qua Tailnet](assets/management-access-flow.png)
+![Management Access Flow qua Tailnet](diagrams/png/management-access-flow.png)
 
-> [Hình 6.3: TODO - Management Access Flow qua Headscale/Tailscale Tailnet]
+> [Hình 6.3: Management Access Flow qua Headscale/Tailscale Tailnet]
 
 Luồng quản trị hệ thống:
 
@@ -1173,7 +1173,7 @@ Giới hạn và việc cần bổ sung:
 - **Cần tài liệu hóa đầy đủ firewall rule/ACL:** đặc biệt là rule giữa VLAN, rule Tailnet ACL và rule trên VPS nginx-proxy.
 - **Cần backup cấu hình VyOS/Headscale/Nginx:** các cấu hình này là hạ tầng trọng yếu, cần có bản sao lưu và quy trình phục hồi.
 - **Cần kiểm tra định kỳ public exposure:** nên định kỳ scan external exposure để bảo đảm DB/RabbitMQ/MinIO/SSH không bị public ngoài ý muốn.
-- **Cần bổ sung diagram và bằng chứng ảnh:** các sơ đồ network topology, public access flow, management flow, ảnh cấu hình hoặc log CrowdSec/fail2ban nên được bổ sung vào báo cáo.
+- **Cần tiếp tục bổ sung một số bằng chứng vận hành:** các sơ đồ network topology, public access flow và management flow đã được bổ sung; ảnh cấu hình hoặc log CrowdSec/fail2ban nên được bổ sung thêm nếu có bằng chứng triển khai thực tế.
 
 Chương 6 đã trình bày cách hệ thống được đặt vào một kiến trúc mạng có phân tách, có reverse proxy, có VPN quản trị và có các lớp hardening hạ tầng. Chương 7 sẽ tiếp tục mô tả monitoring và observability, tức cách theo dõi trạng thái hệ thống sau khi đã được triển khai trong mô hình mạng trên.
 
@@ -1787,21 +1787,21 @@ Trong phạm vi repository, Docker Compose hiện định nghĩa frontend và ba
 
 Hạ tầng triển khai được thiết kế theo hướng giảm bề mặt tấn công: public chỉ mở 80/443 qua Nginx, SSH quản trị đi qua Tailnet, DB/RabbitMQ/MinIO không public, Headscale/Tailscale hỗ trợ management plane, fail2ban và CrowdSec hỗ trợ bảo vệ ở tầng host/gateway.
 
-![TODO: Proxmox Overview](assets/demo-proxmox.png)
+![Proxmox Overview](diagrams/png/demo-proxmox.png)
 
-> [Hình 10.17: TODO - Proxmox Overview, thể hiện node/VM/container liên quan hệ thống]
+> [Hình 10.17: Proxmox Overview, thể hiện node/VM/container liên quan hệ thống]
 
-![TODO: Headscale Nodes](assets/demo-headscale-nodes.png)
+![Headscale Nodes](diagrams/png/demo-headscale-nodes.png)
 
-> [Hình 10.18: TODO - Headscale Nodes, thể hiện Tailnet nodes và tags]
+> [Hình 10.18: Headscale Nodes, thể hiện Tailnet nodes và tags]
 
-![TODO: CrowdSec Decisions](assets/demo-crowdsec-decisions.png)
+![CrowdSec Decisions](diagrams/png/demo-crowdsec-decisions.png)
 
-> [Hình 10.19: TODO - CrowdSec Decisions, thể hiện quyết định ban IP hoặc phát hiện probing]
+> [Hình 10.19: CrowdSec Decisions, thể hiện quyết định ban IP hoặc phát hiện probing]
 
-![TODO: Public Ports Check](assets/demo-public-ports.png)
+![Public Ports Check](diagrams/png/demo-public-ports.png)
 
-> [Hình 10.20: TODO - Public Ports Check, thể hiện chỉ 80/443 public và không public SSH/DB/RabbitMQ/MinIO]
+> [Hình 10.20: Public Ports Check, thể hiện chỉ 80/443 public và không public SSH/DB/RabbitMQ/MinIO]
 
 ### 10.5 Kết quả monitoring
 
@@ -1836,13 +1836,13 @@ Monitoring stack đã được triển khai trên Vostro Hub với Prometheus, G
 - [x] Domain Model tổng quát.
 - [ ] ERD tổng thể.
 - [x] System Architecture Diagram.
-- [ ] Network Topology.
+- [x] Network Topology.
 - [ ] Monitoring Plane.
 - [ ] Security Layers.
 - [x] GitHub Actions.
 - [ ] Trivy scan.
 - [ ] ZAP scan.
-- [ ] CrowdSec ban IP.
+- [x] CrowdSec ban IP.
 - [ ] UI screenshots.
 - [x] Portainer/Docker stack screenshots.
 - [ ] Proxmox/Headscale screenshots.
@@ -2058,19 +2058,19 @@ Các migration hiện có:
 - [x] Backend Hexagonal Architecture Diagram.
 - [x] Frontend Architecture Diagram.
 - [x] Containerization Diagram.
-- [ ] Network Topology.
-- [ ] Public Access Flow.
-- [ ] Management Access Flow.
+- [x] Network Topology.
+- [x] Public Access Flow.
+- [x] Management Access Flow.
 - [ ] Monitoring Plane Overview.
 - [ ] Security Layers Diagram.
 - [ ] JWT Authentication Flow.
 - [x] GitHub Actions pipeline.
 - [ ] Trivy scan passed.
 - [ ] OWASP ZAP scan.
-- [ ] CrowdSec ban IP.
+- [x] CrowdSec ban IP.
 - [ ] UI screenshots.
 - [x] Portainer/Docker stack screenshots.
-- [ ] Proxmox/Headscale screenshots.
+- [x] Proxmox/Headscale screenshots.
 - [ ] Prometheus/Grafana/Loki screenshots.
 
 ## Phụ lục E. Ghi chú triển khai hạ tầng
@@ -2151,12 +2151,12 @@ Các thông tin hạ tầng đã được cung cấp và sử dụng trong báo 
 
 | Tên ảnh | File path đề xuất | Mục trong báo cáo | Nội dung cần thể hiện | Mức ưu tiên |
 |---|---|---|---|---|
-| Network Topology tổng thể | `assets/network-topology.png` | 6.3 | Internet, VPS nginx-proxy, Tailnet, Proxmox, VyOS, VLAN 10/20/99, monitoring node. | Bắt buộc |
-| Public Access Flow | `assets/public-access-flow.png` | 6.4 | User -> domain -> VPS Nginx -> Tailnet/internal route -> frontend/backend. | Nên có |
-| Management Access Flow qua Tailnet | `assets/management-access-flow.png` | 6.5 | Sysadmin device -> Headscale/Tailscale -> Proxmox/VyOS/VPS/monitoring qua Tailnet. | Nên có |
-| Proxmox Overview | `assets/demo-proxmox.png` | 10.4 | Proxmox node/VM/container liên quan hệ thống. | Nên có |
-| Headscale Nodes | `assets/demo-headscale-nodes.png` | 10.4 | Tailnet nodes, Tailnet IP, tags như `nginx-proxy`, `monitoring`, `hypervisor`, `core-router`. | Nên có |
-| Public Ports Check | `assets/demo-public-ports.png` | 10.4 | Chỉ public 80/443; SSH/DB/RabbitMQ/MinIO không public. | Có thì tốt |
+| Network Topology tổng thể (đã bổ sung) | `diagrams/png/network-topology.png` | 6.3 | Internet, VPS nginx-proxy, Tailnet, Proxmox, VyOS, VLAN 10/20/99, monitoring node. | Bắt buộc |
+| Public Access Flow (đã bổ sung) | `diagrams/png/public-access-flow.png` | 6.4 | User -> domain -> VPS Nginx -> Tailnet/internal route -> frontend/backend. | Nên có |
+| Management Access Flow qua Tailnet (đã bổ sung) | `diagrams/png/management-access-flow.png` | 6.5 | Sysadmin device -> Headscale/Tailscale -> Proxmox/VyOS/VPS/monitoring qua Tailnet. | Nên có |
+| Proxmox Overview (đã bổ sung) | `diagrams/png/demo-proxmox.png` | 10.4 | Proxmox node/VM/container liên quan hệ thống. | Nên có |
+| Headscale Nodes (đã bổ sung) | `diagrams/png/demo-headscale-nodes.png` | 10.4 | Tailnet nodes, Tailnet IP, tags như `nginx-proxy`, `monitoring`, `hypervisor`, `core-router`. | Nên có |
+| Public Ports Check (đã bổ sung) | `diagrams/png/demo-public-ports.png` | 10.4 | Chỉ public 80/443; SSH/DB/RabbitMQ/MinIO không public. | Có thì tốt |
 
 ## Monitoring
 
@@ -2184,7 +2184,7 @@ Các thông tin hạ tầng đã được cung cấp và sử dụng trong báo 
 | OWASP ZAP Scan Evidence | `assets/zap-scan.png` | 8.9 | ZAP scan trong môi trường kiểm soát. | Nên có |
 | CrowdSec Decision Ban IP | `assets/crowdsec-ban-ip.png` | 8.9 | CrowdSec decision ban IP khi phát hiện probing/scan. | Nên có |
 | API Testing Evidence | `assets/api-testing.png` | 9.4 | Postman/Swagger test public/authenticated/admin/lecturer endpoints. | Có thì tốt |
-| CrowdSec Decisions demo | `assets/demo-crowdsec-decisions.png` | 10.4 | CrowdSec decisions hoặc bằng chứng phát hiện probing. | Nên có |
+| CrowdSec Decisions demo (đã bổ sung) | `diagrams/png/demo-crowdsec-decisions.png` | 10.4 | CrowdSec decisions hoặc bằng chứng phát hiện probing. | Nên có |
 
 ## Demo UI
 
