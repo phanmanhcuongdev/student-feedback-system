@@ -1,0 +1,84 @@
+' Created from repository source and deployment information on 2026-05-27.
+' Source checked: backend/frontend Dockerfile, docker-compose.yml, frontend nginx.conf,
+' Spring Boot backend modules, embedding-service, config and integration adapters.
+' Scope: application/system architecture overview, not a pure microservice diagram.
+
+@startuml
+title System Architecture Diagram - Student Feedback System
+
+left to right direction
+skinparam shadowing false
+skinparam linetype polyline
+skinparam packageStyle rectangle
+skinparam rectangle {
+    BackgroundColor #E8F7FA
+    BorderColor DarkSlateGray
+    FontSize 12
+}
+skinparam database {
+    BackgroundColor #F2F7FF
+    BorderColor DarkSlateGray
+}
+skinparam queue {
+    BackgroundColor #FFF7E6
+    BorderColor DarkSlateGray
+}
+skinparam cloud {
+    BackgroundColor #F8FBFD
+    BorderColor SlateGray
+}
+skinparam ArrowColor #333333
+
+actor "User Browser\nAdmin / Lecturer / Student" as Browser
+
+rectangle "Public Entry" {
+    rectangle "Nginx / Reverse Proxy\nSPA static files\n/api proxy" as Nginx
+}
+
+rectangle "Presentation Layer" {
+    rectangle "React SPA\nTypeScript + Vite\nReact Router + Axios" as SPA
+}
+
+rectangle "Application Layer" {
+    rectangle "Spring Boot Backend\nJava 21\nWebMVC + Security\nWebSocket/STOMP" as Backend
+}
+
+rectangle "Application Core" {
+    rectangle "Use Case Services\nDomain Model\nInput / Output Ports" as Core
+}
+
+rectangle "Persistence Layer" {
+    database "Microsoft SQL Server\nJPA/Hibernate\nFlyway migrations" as SQL
+}
+
+rectangle "Integration Layer" {
+    queue "RabbitMQ\nTranslation tasks" as MQ
+    rectangle "MinIO\nStudent documents" as MinIO
+    cloud "Resend\nEmail verification\nReset password" as Resend
+    cloud "AI Provider\nGemini-compatible\nAI summary" as AI
+    rectangle "Embedding Service\nFastAPI\nmultilingual-e5-small" as Embed
+    rectangle "Eclipse BIRT\nPDF/XLSX export" as BIRT
+}
+
+Browser --> Nginx : HTTPS
+Nginx --> SPA : serve SPA
+SPA --> Nginx : API calls
+Nginx --> Backend : /api
+SPA <--> Backend : STOMP/WebSocket\nif proxied
+
+Backend --> Core : controller calls\ninput ports
+Core --> SQL : persistence ports
+Core --> MQ : async translation
+Core --> MinIO : document storage
+Core --> Resend : email
+Core --> AI : text summary
+Core --> Embed : embeddings
+Core --> BIRT : report rendering
+
+note bottom of Backend
+Backend chính là ứng dụng Spring Boot modular theo
+Ports and Adapters. Các thành phần RabbitMQ, MinIO,
+AI provider và embedding-service là thành phần phụ trợ.
+end note
+
+@enduml

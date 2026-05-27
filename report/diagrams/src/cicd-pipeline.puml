@@ -1,0 +1,60 @@
+' Created from repository source on 2026-05-27.
+' Source checked: .github/workflows/ci.yml.
+' Scope: CI/CD quality gate, image build, scan and push to GHCR.
+' Note: workflow does not include automatic deployment to server.
+
+@startuml
+title CI/CD Pipeline Diagram - GitHub Actions
+
+skinparam shadowing false
+skinparam linetype polyline
+skinparam ArrowColor #333333
+skinparam activity {
+    BackgroundColor #E8F7FA
+    BorderColor DarkSlateGray
+    FontSize 12
+}
+skinparam diamond {
+    BackgroundColor #FFF7E6
+    BorderColor DarkSlateGray
+}
+
+start
+:[Trigger]\npush / pull_request\nmain, develop;
+
+partition "Quality Gate job" {
+    :Checkout source;
+    :Setup Java 21\nSetup Node.js 22;
+    :Backend tests\nbackend ./mvnw test;
+    :Frontend install\nnpm ci;
+    :Frontend lint\nnpm run lint;
+    :Frontend build\nnpm run build;
+    :Trivy filesystem scan\nvuln, secret, misconfig\nseverity CRITICAL fails pipeline;
+}
+
+if (Quality passed?) then (yes)
+    partition "Docker job\nneeds: quality" {
+        :Checkout source;
+        :Login GHCR\nGITHUB_TOKEN;
+        :Set image tags\nlatest/dev/branch + SHA;
+        :Build backend image\n./backend Dockerfile;
+        :Build frontend image\n./frontend Dockerfile;
+        :Trivy backend image scan\nseverity CRITICAL fails pipeline;
+        :Trivy frontend image scan\nseverity CRITICAL fails pipeline;
+
+        if (Event is push?) then (yes)
+            :Push backend image to GHCR;
+            :Push frontend image to GHCR;
+        else (pull_request)
+            :Skip image push;
+        endif
+    }
+    :GHCR contains backend/frontend image tags;
+    :No automatic server deployment step\nis defined in this workflow;
+    stop
+else (no)
+    :Pipeline fails before image build/push;
+    stop
+endif
+
+@enduml

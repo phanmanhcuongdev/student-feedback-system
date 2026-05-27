@@ -1,0 +1,52 @@
+' Created from repository source on 2026-05-27.
+' Source checked: backend/Dockerfile, frontend/Dockerfile,
+' frontend/nginx.conf and docker-compose.yml.
+' Scope: containerization/runtime packaging in repository.
+
+@startuml
+title Containerization Diagram
+
+top to bottom direction
+skinparam shadowing false
+skinparam linetype polyline
+skinparam packageStyle rectangle
+skinparam rectangle {
+    BackgroundColor #E8F7FA
+    BorderColor DarkSlateGray
+    FontSize 12
+}
+skinparam cloud {
+    BackgroundColor #F8FBFD
+    BorderColor SlateGray
+}
+skinparam database {
+    BackgroundColor #F2F7FF
+    BorderColor DarkSlateGray
+}
+skinparam ArrowColor #333333
+
+cloud "GHCR\nbackend image\nfrontend image" as GHCR
+actor "User Browser" as Browser
+
+rectangle "docker-compose.yml\napp-network: bridge" as Compose {
+    rectangle "frontend container\nNginx 1.27 Alpine\nports 80:80\n----\nserves React SPA dist\ntry_files -> index.html\nproxy /api -> backend:8080" as Frontend
+
+    rectangle "backend container\nEclipse Temurin 21 JRE\nports 8080:8080\n----\nSpring Boot app.jar\nruntime config: stack.env" as Backend
+}
+
+database "External SQL Server\nnot defined in repo compose" as SQL
+cloud "External services\nRabbitMQ / MinIO / Resend\nAI provider / embedding-service\nnot defined in repo compose" as External
+
+GHCR --> Compose : images pulled by compose
+Browser --> Frontend : HTTP :80
+Frontend --> Backend : /api proxy\nDocker DNS: backend:8080
+Backend --> SQL : JDBC
+Backend --> External : adapters
+
+note bottom
+Compose trong repository đóng gói frontend/backend.
+SQL Server, RabbitMQ, MinIO, AI provider và monitoring
+nằm ngoài compose này hoặc thuộc stack/hạ tầng riêng.
+end note
+
+@enduml

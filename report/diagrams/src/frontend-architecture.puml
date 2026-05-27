@@ -1,0 +1,66 @@
+' Created from repository source on 2026-05-27.
+' Source checked: frontend/src/App.tsx, main.tsx, api layer, auth and notification features.
+' Scope: React SPA feature-based frontend architecture overview.
+
+@startuml
+title Frontend Architecture Diagram
+
+left to right direction
+skinparam shadowing false
+skinparam linetype polyline
+skinparam packageStyle rectangle
+skinparam rectangle {
+    BackgroundColor #E8F7FA
+    BorderColor DarkSlateGray
+    FontSize 12
+}
+skinparam package {
+    BackgroundColor #F8FBFD
+    BorderColor SlateGray
+    FontStyle bold
+}
+skinparam database {
+    BackgroundColor #FFF7E6
+    BorderColor DarkSlateGray
+}
+skinparam ArrowColor #333333
+
+actor "User" as User
+
+rectangle "main.tsx\nReact entrypoint" as Main
+
+package "React SPA" {
+    rectangle "App.tsx\nReact Router DOM\nPublic / Protected / Role routes" as App
+
+    rectangle "Providers\n----\nAuthProvider\nNotificationProvider" as Providers
+
+    rectangle "Route Guards\n----\nPublicOnlyRoute\nProtectedRoute\nAdminRoute\nRoleRoute" as Guards
+
+    rectangle "Feature Modules\nfrontend/src/features\n----\nauth, dashboard, account\nadmin, surveys, survey-results\nfeedback, notifications" as Features
+
+    rectangle "API Layer\nfrontend/src/api\n----\nDomain API clients\nAxios interceptor\nBearer token\n401 session clear" as Api
+
+    rectangle "UI Foundation\n----\nTailwind CSS 4\ni18next / react-i18next" as Ui
+}
+
+database "localStorage\nstudent-feedback.auth-session" as LocalStorage
+cloud "Spring Boot Backend\nREST API + WebSocket/STOMP" as Backend
+
+User --> App : navigate/use UI
+Main --> App : render
+App --> Providers : wrap app state
+App --> Guards : protect routes
+Guards --> Features : route to pages
+Features --> Api : call backend APIs
+Api --> Backend : REST /api
+Providers <--> Backend : STOMP/SockJS\nnotifications
+Providers --> LocalStorage : read/write session
+Api --> LocalStorage : attach JWT token
+App ..> Ui : style / i18n
+
+note bottom of LocalStorage
+Session hiện lưu trong localStorage.
+Điểm này tiện cho SPA nhưng cần hardening XSS/CSP.
+end note
+
+@enduml

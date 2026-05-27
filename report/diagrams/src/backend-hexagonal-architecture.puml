@@ -1,0 +1,76 @@
+' Created from repository source on 2026-05-27.
+' Source checked: backend/src/main/java/com/ttcs/backend package structure.
+' Scope: backend Ports and Adapters / Hexagonal Architecture.
+
+@startuml
+title Backend Hexagonal Architecture
+
+left to right direction
+skinparam shadowing false
+skinparam linetype polyline
+skinparam packageStyle rectangle
+skinparam rectangle {
+    BackgroundColor #E8F7FA
+    BorderColor DarkSlateGray
+    FontSize 12
+}
+skinparam package {
+    BackgroundColor #F8FBFD
+    BorderColor SlateGray
+    FontStyle bold
+}
+skinparam ArrowColor #333333
+
+package "Inbound Adapters\nadapter.in" as Inbound {
+    rectangle "Web Controllers\nREST API\nDTO / Validation\nException mapping" as Web
+    rectangle "Security Entry\nJWT Filter\nAuthentication EntryPoint" as SecurityIn
+    rectangle "Messaging Listener\nTranslation result listener" as MsgIn
+}
+
+package "Application Core" as CorePkg {
+    rectangle "Input Ports\napplication.port.in\nUse case contracts" as InPorts
+    rectangle "Use Case Services\napplication.domain.service\nBusiness rules" as Services
+    rectangle "Domain Models\napplication.domain.model\nUser, Survey, Feedback,\nNotification, AI Summary" as Models
+    rectangle "Output Ports\napplication.port.out\nPersistence / Integration contracts" as OutPorts
+}
+
+package "Outbound Adapters\nadapter.out" as Outbound {
+    rectangle "Persistence Adapter\nJPA Entity / Repository / Mapper\nSQL Server" as Persistence
+    rectangle "Security Adapter\nJwtTokenService" as SecurityOut
+    rectangle "Messaging Adapter\nRabbitMQ + WebSocket" as MsgOut
+    rectangle "AI / Embedding Adapter\nChat completion\nLocal embedding service" as AiOut
+    rectangle "Storage / Email Adapter\nMinIO + Resend" as StorageEmail
+    rectangle "Export Adapter\nEclipse BIRT\nPDF / XLSX" as ExportOut
+}
+
+package "Configuration & Infrastructure" as Infra {
+    rectangle "config\nSecurity, RabbitMQ, MinIO,\nAI, Jackson, PasswordEncoder" as Config
+    rectangle "infrastructure\nWebSocket/STOMP\nScheduling" as InfraComp
+    rectangle "common\nShared annotations" as Common
+}
+
+Web --> InPorts
+SecurityIn --> InPorts
+MsgIn --> InPorts
+InPorts --> Services
+Services --> Models
+Services --> OutPorts
+OutPorts --> Persistence
+OutPorts --> SecurityOut
+OutPorts --> MsgOut
+OutPorts --> AiOut
+OutPorts --> StorageEmail
+OutPorts --> ExportOut
+
+Config ..> Inbound
+Config ..> Outbound
+InfraComp ..> MsgOut
+Common ..> Inbound
+Common ..> Outbound
+
+note bottom of CorePkg
+Application core không phụ thuộc trực tiếp vào
+REST controller, JPA repository hay provider bên ngoài.
+end note
+
+@enduml
