@@ -1,0 +1,113 @@
+erDiagram
+    Survey_AI_Summary }o--|| Survey : summarizes
+    Survey_AI_Summary_Job }o--|| Survey : requested_for
+    Survey_AI_Summary_Job }o--|| Survey_AI_Summary : produces
+    Survey_AI_Source_State }o--|| Survey : tracks
+    Survey_AI_Pending_Change }o--|| Survey : belongs_to
+    Survey_AI_Pending_Change }o--|| Response_Detail : source_comment
+    Survey_AI_Pending_Change }o--|| Question : source_question
+    Survey_AI_Summary_Theme_Embedding }o--|| Survey_AI_Summary : embeds
+    Survey_AI_Summary_Theme_Embedding }o--|| Survey : belongs_to
+
+    Survey {
+        INT survey_id
+        VARCHAR title
+        VARCHAR lifecycle_state
+        DATETIME start_date
+        DATETIME end_date
+    }
+
+    Question {
+        INT question_id
+        INT survey_id
+        TEXT content
+        VARCHAR type
+    }
+
+    Response_Detail {
+        INT id
+        INT response_id
+        INT question_id
+        INT rating
+        TEXT comment
+        TEXT comment_vi
+        TEXT comment_en
+        VARCHAR source_lang
+        BOOLEAN is_auto_translated
+        VARCHAR model_info
+    }
+
+    Survey_AI_Summary {
+        INT summary_id
+        INT survey_id
+        VARCHAR source_hash
+        VARCHAR model_name
+        INT comment_count
+        TEXT summary_text
+        TEXT highlights_json
+        TEXT concerns_json
+        TEXT actions_json
+        INT created_by_user_id
+        DATETIME created_at
+    }
+
+    Survey_AI_Summary_Job {
+        INT job_id
+        INT survey_id
+        VARCHAR source_hash
+        INT comment_count
+        VARCHAR status
+        INT requested_by_user_id
+        INT summary_id
+        DATETIME created_at
+        DATETIME started_at
+        DATETIME finished_at
+        TEXT error_message
+    }
+
+    Survey_AI_Source_State {
+        INT survey_id
+        INT current_comment_count
+        INT summarized_comment_count
+        INT pending_comment_count
+        INT pending_score_sum
+        INT max_pending_score
+        TEXT topic_counts_json
+        TEXT pending_topic_counts_json
+        DOUBLE current_entropy
+        DOUBLE summarized_entropy
+        INT source_version
+        INT summarized_source_version
+        DATETIME last_changed_at
+        DATETIME last_summarized_at
+    }
+
+    Survey_AI_Pending_Change {
+        INT change_id
+        INT survey_id
+        INT response_detail_id
+        INT question_id
+        INT comment_length
+        VARCHAR topic
+        INT keyword_score
+        INT sentiment_score
+        INT suggestion_score
+        INT entropy_impact_score
+        INT novelty_score
+        INT total_score
+        INT source_version
+        BOOLEAN processed
+        DATETIME created_at
+    }
+
+    Survey_AI_Summary_Theme_Embedding {
+        INT embedding_id
+        INT summary_id
+        INT survey_id
+        VARCHAR theme_type
+        INT theme_index
+        VARCHAR theme_text
+        TEXT embedding_json
+        VARCHAR model_name
+        DATETIME created_at
+    }

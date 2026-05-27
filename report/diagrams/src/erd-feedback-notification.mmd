@@ -1,0 +1,87 @@
+erDiagram
+    Feedback }o--|| Student : created_by
+    Feedback_Response }o--|| Feedback : responds_to
+    Feedback_Response }o--|| User : responder
+    Audit_Log }o--|| User : actor
+    Notification }o--|| Survey : related_survey
+    Notification }o--|| User : created_by
+    Notification_User }o--|| Notification : delivery
+    Notification_User }o--|| User : recipient
+
+    User {
+        INT user_id
+        VARCHAR email
+        VARCHAR role
+        BOOLEAN verify
+    }
+
+    Student {
+        INT user_id
+        VARCHAR name
+        VARCHAR student_code
+        VARCHAR status
+    }
+
+    Survey {
+        INT survey_id
+        VARCHAR title
+        VARCHAR lifecycle_state
+        BOOLEAN hidden
+    }
+
+    Feedback {
+        INT feedback_id
+        INT student_id
+        VARCHAR title
+        TEXT content
+        TEXT content_original
+        TEXT content_translated
+        TEXT content_vi
+        TEXT content_en
+        VARCHAR source_lang
+        VARCHAR target_lang
+        BOOLEAN is_auto_translated
+        VARCHAR model_info
+        DATETIME created_at
+    }
+
+    Feedback_Response {
+        INT response_id
+        INT feedback_id
+        INT responder_user_id
+        TEXT content
+        DATETIME created_at
+    }
+
+    Audit_Log {
+        INT audit_id
+        INT actor_user_id
+        VARCHAR action_type
+        VARCHAR target_type
+        INT target_id
+        VARCHAR summary
+        TEXT details
+        VARCHAR old_state
+        VARCHAR new_state
+        DATETIME created_at
+    }
+
+    Notification {
+        INT noti_id
+        TEXT content
+        VARCHAR type
+        VARCHAR title
+        INT survey_id
+        VARCHAR action_label
+        INT created_by_user_id
+        TEXT metadata
+        DATETIME created_at
+    }
+
+    Notification_User {
+        INT id
+        INT noti_id
+        INT user_id
+        DATETIME delivered_at
+        DATETIME read_at
+    }

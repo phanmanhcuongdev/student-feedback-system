@@ -1,0 +1,67 @@
+erDiagram
+    Admin }o--|| User : account
+    Lecturer }o--|| User : account
+    Lecturer }o--|| Department : belongs_to
+    Student }o--|| User : account
+    Student }o--|| Department : belongs_to
+    Student }o--|| User : reviewed_by
+    student_token }o--|| Student : verifies
+    Password_Reset_Token }o--|| User : resets
+
+    User {
+        INT user_id
+        VARCHAR email
+        VARCHAR pass_word
+        VARCHAR role
+        BOOLEAN verify
+    }
+
+    Department {
+        INT dept_id
+        VARCHAR name
+    }
+
+    Admin {
+        INT user_id
+        VARCHAR name
+    }
+
+    Lecturer {
+        INT user_id
+        VARCHAR name
+        VARCHAR lecturer_code
+        INT dept_id
+    }
+
+    Student {
+        INT user_id
+        VARCHAR name
+        VARCHAR student_code
+        INT dept_id
+        VARCHAR status
+        VARCHAR student_card_img
+        VARCHAR national_id_img
+        VARCHAR review_reason
+        TEXT review_notes
+        INT reviewed_by_user_id
+        DATETIME reviewed_at
+        INT resubmission_count
+    }
+
+    student_token {
+        INT id
+        INT student_id
+        TEXT token
+        DATETIME expired_at
+        DATETIME created_at
+        INT delete_flg
+    }
+
+    Password_Reset_Token {
+        INT id
+        INT user_id
+        VARCHAR token_hash
+        DATETIME expired_at
+        DATETIME created_at
+        DATETIME used_at
+    }

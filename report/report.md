@@ -1,4 +1,4 @@
-# HỆ THỐNG KHẢO SÁT Ý KIẾN SINH VIÊN
+﻿# HỆ THỐNG KHẢO SÁT Ý KIẾN SINH VIÊN
 
 **Báo cáo đồ án môn học**
 
@@ -25,7 +25,7 @@ Nhóm thực hiện xin gửi lời cảm ơn đến cô Nguyễn Thị Thanh Th
 
 Đề tài không chỉ tập trung vào việc xây dựng các chức năng khảo sát/phản hồi, mà còn hướng đến cách tổ chức hệ thống có khả năng triển khai thực tế: backend được thiết kế theo Ports and Adapters / Hexagonal Architecture, frontend là SPA theo cấu trúc feature-based, cơ sở dữ liệu được quản lý bằng Flyway migration, pipeline CI/CD có kiểm thử, build image và security scan. Bên cạnh đó, hệ thống còn được đặt trong bối cảnh hạ tầng vận hành có reverse proxy, VPN management, monitoring và các biện pháp hardening bảo mật.
 
-Do giới hạn về thời gian và phạm vi đồ án, báo cáo vẫn còn một số nội dung cần tiếp tục hoàn thiện, đặc biệt là sơ đồ ERD chi tiết và kết quả kiểm thử mở rộng. Nhóm kính mong nhận được góp ý của cô để hoàn thiện hệ thống và báo cáo tốt hơn.
+Do giới hạn về thời gian và phạm vi đồ án, báo cáo vẫn còn một số nội dung cần tiếp tục hoàn thiện, đặc biệt là kết quả kiểm thử mở rộng và chuẩn hóa phụ lục triển khai. Nhóm kính mong nhận được góp ý của cô để hoàn thiện hệ thống và báo cáo tốt hơn.
 
 ---
 
@@ -95,26 +95,26 @@ Các chương cuối trình bày kết quả thực hiện, hạn chế, hướn
 
 - [LỜI CẢM ƠN](#lời-cảm-ơn)
 - [MỞ ĐẦU](#mở-đầu)
-  - [1. Lý do chọn đề tài](#1-lý-do-chọn-đề-tài)
-  - [2. Mục tiêu đề tài](#2-mục-tiêu-đề-tài)
-  - [3. Đối tượng và phạm vi nghiên cứu](#3-đối-tượng-và-phạm-vi-nghiên-cứu)
-  - [4. Phương pháp thực hiện](#4-phương-pháp-thực-hiện)
-  - [5. Cấu trúc báo cáo](#5-cấu-trúc-báo-cáo)
+    - [1. Lý do chọn đề tài](#1-lý-do-chọn-đề-tài)
+    - [2. Mục tiêu đề tài](#2-mục-tiêu-đề-tài)
+    - [3. Đối tượng và phạm vi nghiên cứu](#3-đối-tượng-và-phạm-vi-nghiên-cứu)
+    - [4. Phương pháp thực hiện](#4-phương-pháp-thực-hiện)
+    - [5. Cấu trúc báo cáo](#5-cấu-trúc-báo-cáo)
 - [PHẦN 1. THU THẬP VÀ PHÂN TÍCH YÊU CẦU](#phần-1-thu-thập-và-phân-tích-yêu-cầu)
-  - [Chương 1. Khảo sát và phân tích yêu cầu hệ thống](#chương-1-khảo-sát-và-phân-tích-yêu-cầu-hệ-thống)
+    - [Chương 1. Khảo sát và phân tích yêu cầu hệ thống](#chương-1-khảo-sát-và-phân-tích-yêu-cầu-hệ-thống)
 - [PHẦN 2. PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG](#phần-2-phân-tích-và-thiết-kế-hệ-thống)
-  - [Chương 2. Phân tích nghiệp vụ và mô hình hệ thống](#chương-2-phân-tích-nghiệp-vụ-và-mô-hình-hệ-thống)
-  - [Chương 3. Thiết kế kiến trúc ứng dụng](#chương-3-thiết-kế-kiến-trúc-ứng-dụng)
-  - [Chương 4. Thiết kế cơ sở dữ liệu và mô hình miền](#chương-4-thiết-kế-cơ-sở-dữ-liệu-và-mô-hình-miền)
+    - [Chương 2. Phân tích nghiệp vụ và mô hình hệ thống](#chương-2-phân-tích-nghiệp-vụ-và-mô-hình-hệ-thống)
+    - [Chương 3. Thiết kế kiến trúc ứng dụng](#chương-3-thiết-kế-kiến-trúc-ứng-dụng)
+    - [Chương 4. Thiết kế cơ sở dữ liệu và mô hình miền](#chương-4-thiết-kế-cơ-sở-dữ-liệu-và-mô-hình-miền)
 - [PHẦN 3. TRIỂN KHAI, HẠ TẦNG VÀ VẬN HÀNH](#phần-3-triển-khai-hạ-tầng-và-vận-hành)
-  - [Chương 5. Công nghệ sử dụng và triển khai ứng dụng](#chương-5-công-nghệ-sử-dụng-và-triển-khai-ứng-dụng)
-  - [Chương 6. Thiết kế hạ tầng triển khai và kiến trúc mạng](#chương-6-thiết-kế-hạ-tầng-triển-khai-và-kiến-trúc-mạng)
-  - [Chương 7. Giám sát và quan sát hệ thống](#chương-7-giám-sát-và-quan-sát-hệ-thống)
+    - [Chương 5. Công nghệ sử dụng và triển khai ứng dụng](#chương-5-công-nghệ-sử-dụng-và-triển-khai-ứng-dụng)
+    - [Chương 6. Thiết kế hạ tầng triển khai và kiến trúc mạng](#chương-6-thiết-kế-hạ-tầng-triển-khai-và-kiến-trúc-mạng)
+    - [Chương 7. Giám sát và quan sát hệ thống](#chương-7-giám-sát-và-quan-sát-hệ-thống)
 - [PHẦN 4. BẢO MẬT, KIỂM THỬ VÀ ĐÁNH GIÁ](#phần-4-bảo-mật-kiểm-thử-và-đánh-giá)
-  - [Chương 8. Bảo mật hệ thống](#chương-8-bảo-mật-hệ-thống)
-  - [Chương 9. Kiểm thử hệ thống](#chương-9-kiểm-thử-hệ-thống)
-  - [Chương 10. Kết quả thực hiện và demo](#chương-10-kết-quả-thực-hiện-và-demo)
-  - [Chương 11. Đánh giá, hạn chế và hướng phát triển](#chương-11-đánh-giá-hạn-chế-và-hướng-phát-triển)
+    - [Chương 8. Bảo mật hệ thống](#chương-8-bảo-mật-hệ-thống)
+    - [Chương 9. Kiểm thử hệ thống](#chương-9-kiểm-thử-hệ-thống)
+    - [Chương 10. Kết quả thực hiện và demo](#chương-10-kết-quả-thực-hiện-và-demo)
+    - [Chương 11. Đánh giá, hạn chế và hướng phát triển](#chương-11-đánh-giá-hạn-chế-và-hướng-phát-triển)
 - [KẾT LUẬN](#kết-luận)
 - [TÀI LIỆU THAM KHẢO](#tài-liệu-tham-khảo)
 - [PHỤ LỤC](#phụ-lục)
@@ -821,9 +821,9 @@ Ngoài các bảng trên, migration còn bổ sung nhiều cột và index phụ
 
 ### 4.5 ERD
 
-![TODO: ERD tổng thể hệ thống](assets/diagrams/erd-overview.png)
+![ERD tổng thể hệ thống](assets/diagrams/erd-overview.png)
 
-> [Hình 4.1: TODO - ERD tổng thể hệ thống student-feedback-system]
+> [Hình 4.1: ERD tổng thể hệ thống student-feedback-system]
 
 Do số lượng bảng tương đối lớn và trải rộng qua nhiều domain, nếu vẽ toàn bộ ERD trong một hình có thể khó đọc. Khi đưa vào báo cáo, nên chia ERD thành các sơ đồ nhỏ theo cụm nghiệp vụ:
 
@@ -832,21 +832,21 @@ Do số lượng bảng tương đối lớn và trải rộng qua nhiều domai
 - **ERD Feedback/Notification domain:** `Feedback`, `Feedback_Response`, `Notification`, `Notification_User`, `Audit_Log` nếu muốn gom các bảng vận hành/nghiệp vụ phụ.
 - **ERD AI Summary domain:** `Survey_AI_Summary`, `Survey_AI_Summary_Job`, `Survey_AI_Source_State`, `Survey_AI_Pending_Change`, `Survey_AI_Summary_Theme_Embedding` và liên kết tới `Survey`, `Response_Detail`, `Question`.
 
-![TODO: ERD User/Auth domain](assets/diagrams/erd-user-auth.png)
+![ERD User/Auth domain](assets/diagrams/erd-user-auth.png)
 
-> [Hình 4.2: TODO - ERD User/Auth domain gồm User, Admin, Lecturer, Student, Department và token]
+> [Hình 4.2: ERD User/Auth domain gồm User, Admin, Lecturer, Student, Department và token]
 
-![TODO: ERD Survey domain](assets/diagrams/erd-survey-domain.png)
+![ERD Survey domain](assets/diagrams/erd-survey-domain.png)
 
-> [Hình 4.3: TODO - ERD Survey domain gồm Survey, Question, Assignment, Recipient, Response và Template]
+> [Hình 4.3: ERD Survey domain gồm Survey, Question, Assignment, Recipient, Response và Template]
 
-![TODO: ERD Feedback/Notification domain](assets/diagrams/erd-feedback-notification.png)
+![ERD Feedback/Notification domain](assets/diagrams/erd-feedback-notification.png)
 
-> [Hình 4.4: TODO - ERD Feedback/Notification domain gồm Feedback, Feedback_Response, Notification, Notification_User và Audit_Log]
+> [Hình 4.4: ERD Feedback/Notification domain gồm Feedback, Feedback_Response, Notification, Notification_User và Audit_Log]
 
-![TODO: ERD AI Summary domain](assets/diagrams/erd-ai-summary.png)
+![ERD AI Summary domain](assets/diagrams/erd-ai-summary.png)
 
-> [Hình 4.5: TODO - ERD AI Summary domain gồm Summary, Job, Source State, Pending Change và Theme Embedding]
+> [Hình 4.5: ERD AI Summary domain gồm Summary, Job, Source State, Pending Change và Theme Embedding]
 
 ### 4.6 Nhận xét thiết kế dữ liệu
 
@@ -1888,9 +1888,9 @@ Monitoring stack đã được triển khai trên Vostro Hub với Prometheus, G
 
 ### 10.6 Tổng hợp danh sách hình cần bổ sung
 
-- [ ] ERD tổng thể.
+- [x] ERD tổng thể và ERD theo domain.
 
-Các hình ảnh demo UI, triển khai, monitoring, network và security đã được bổ sung vào báo cáo. Phần còn thiếu hiện tại là ERD/database do không thuộc nhóm ảnh demo ứng dụng đã cung cấp. Chương 11 sẽ đánh giá mức độ đạt được, nêu hạn chế còn tồn tại và đề xuất hướng phát triển tiếp theo cho hệ thống.
+Các hình ảnh demo UI, triển khai, monitoring, network, security và ERD/database đã được bổ sung vào báo cáo. Chương 11 sẽ đánh giá mức độ đạt được, nêu hạn chế còn tồn tại và đề xuất hướng phát triển tiếp theo cho hệ thống.
 
 ## Chương 11. Đánh giá, hạn chế và hướng phát triển
 
@@ -2158,7 +2158,7 @@ Thiết kế này bổ sung rõ phần microservice cho hệ thống: backend Sp
 
 ## Phụ lục E. Danh sách hình ảnh cần bổ sung
 
-- [ ] ERD tổng thể và ERD theo domain.
+- [x] ERD tổng thể và ERD theo domain.
 
 ## Phụ lục F. Ghi chú triển khai hạ tầng
 
@@ -2198,7 +2198,7 @@ Tự đánh giá kết quả thực hiện:
 - Nhóm đã hoàn thành các luồng nghiệp vụ cốt lõi gồm đăng ký/xác minh sinh viên, duyệt hồ sơ, quản lý khảo sát, tham gia khảo sát, xem kết quả, feedback, notification, export PDF/XLSX và AI summary.
 - Mã nguồn có tổ chức rõ theo backend, frontend, migration, CI/CD và tài liệu; backend áp dụng Ports and Adapters nên thuận lợi cho bảo trì.
 - Hệ thống đã có căn cứ triển khai thực tế qua Docker, GitHub Actions, GHCR, reverse proxy, Portainer và monitoring.
-- Một số hạn chế còn tồn tại là ERD chi tiết chưa hoàn thiện trong báo cáo, chưa có CD tự động lên production, frontend còn thiếu test tự động và cần tăng coverage kiểm thử backend/integration.
+- Một số hạn chế còn tồn tại là chưa có CD tự động lên production, frontend còn thiếu test tự động và cần tăng coverage kiểm thử backend/integration.
 
 ---
 

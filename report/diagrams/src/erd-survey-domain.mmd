@@ -1,0 +1,144 @@
+erDiagram
+    Survey }o--|| Admin : created_by
+    Survey_Template }o--|| Department : scoped_to
+    Survey_Template_Question }o--|| Survey_Template : belongs_to
+    Survey_Template_Question }o--|| Question_Bank : reuses
+    Question }o--|| Survey : belongs_to
+    Question }o--|| Question_Bank : from_bank
+    Survey_Assignment }o--|| Survey : configures
+    Survey_Recipient }o--|| Survey : targets
+    Survey_Recipient }o--|| Student : assigned_to
+    Survey_Response }o--|| Student : submitted_by
+    Survey_Response }o--|| Survey : for_survey
+    Survey_Response }o--|| Lecturer : about
+    Response_Detail }o--|| Survey_Response : belongs_to
+    Response_Detail }o--|| Question : answers
+
+    Admin {
+        INT user_id
+        VARCHAR name
+    }
+
+    Department {
+        INT dept_id
+        VARCHAR name
+    }
+
+    Student {
+        INT user_id
+        VARCHAR name
+        VARCHAR student_code
+        INT dept_id
+        VARCHAR status
+    }
+
+    Lecturer {
+        INT user_id
+        VARCHAR name
+        VARCHAR lecturer_code
+        INT dept_id
+    }
+
+    Survey {
+        INT survey_id
+        VARCHAR title
+        TEXT title_vi
+        TEXT title_en
+        TEXT description
+        TEXT description_vi
+        TEXT description_en
+        VARCHAR source_lang
+        BOOLEAN is_auto_translated
+        VARCHAR model_info
+        DATETIME start_date
+        DATETIME end_date
+        VARCHAR lifecycle_state
+        BOOLEAN hidden
+        INT created_by
+    }
+
+    Question_Bank {
+        INT question_bank_id
+        TEXT content
+        VARCHAR type
+        VARCHAR category
+        BOOLEAN active
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    Survey_Template {
+        INT template_id
+        VARCHAR name
+        TEXT description
+        VARCHAR suggested_title
+        TEXT suggested_survey_description
+        VARCHAR recipient_scope
+        INT recipient_department_id
+        BOOLEAN active
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    Survey_Template_Question {
+        INT template_question_id
+        INT template_id
+        INT question_bank_id
+        TEXT content
+        VARCHAR type
+        INT display_order
+    }
+
+    Question {
+        INT question_id
+        INT survey_id
+        INT question_bank_id
+        TEXT content
+        TEXT content_translated
+        TEXT content_vi
+        TEXT content_en
+        VARCHAR source_lang
+        VARCHAR target_lang
+        BOOLEAN is_auto_translated
+        VARCHAR model_info
+        VARCHAR type
+    }
+
+    Survey_Assignment {
+        INT id
+        INT survey_id
+        VARCHAR evaluator_type
+        INT evaluator_value
+        VARCHAR subject_type
+        INT subject_value
+    }
+
+    Survey_Recipient {
+        INT recipient_id
+        INT survey_id
+        INT student_id
+        DATETIME assigned_at
+        DATETIME opened_at
+        DATETIME submitted_at
+    }
+
+    Survey_Response {
+        INT response_id
+        INT student_id
+        INT survey_id
+        INT lecturer_id
+        DATETIME submitted_at
+    }
+
+    Response_Detail {
+        INT id
+        INT response_id
+        INT question_id
+        INT rating
+        TEXT comment
+        TEXT comment_vi
+        TEXT comment_en
+        VARCHAR source_lang
+        BOOLEAN is_auto_translated
+        VARCHAR model_info
+    }

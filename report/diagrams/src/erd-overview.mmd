@@ -1,0 +1,334 @@
+erDiagram
+    Admin }o--|| User : references
+    Lecturer }o--|| User : references
+    Lecturer }o--|| Department : references
+    Student }o--|| User : references
+    Student }o--|| Department : references
+    Student }o--|| User : reviewed_by
+    student_token }o--|| Student : references
+    Password_Reset_Token }o--|| User : references
+    Survey }o--|| Admin : references
+    Survey_Template }o--|| Department : references
+    Survey_Template_Question }o--|| Survey_Template : references
+    Survey_Template_Question }o--|| Question_Bank : references
+    Question }o--|| Survey : references
+    Question }o--|| Question_Bank : references
+    Survey_Assignment }o--|| Survey : references
+    Survey_Recipient }o--|| Survey : references
+    Survey_Recipient }o--|| Student : references
+    Survey_Response }o--|| Student : references
+    Survey_Response }o--|| Survey : references
+    Survey_Response }o--|| Lecturer : references
+    Response_Detail }o--|| Survey_Response : references
+    Response_Detail }o--|| Question : references
+    Feedback }o--|| Student : references
+    Feedback_Response }o--|| Feedback : references
+    Feedback_Response }o--|| User : references
+    Audit_Log }o--|| User : references
+    Notification }o--|| Survey : references
+    Notification }o--|| User : references
+    Notification_User }o--|| Notification : references
+    Notification_User }o--|| User : references
+    Survey_AI_Summary }o--|| Survey : references
+    Survey_AI_Summary_Job }o--|| Survey : references
+    Survey_AI_Summary_Job }o--|| Survey_AI_Summary : references
+    Survey_AI_Source_State }o--|| Survey : references
+    Survey_AI_Pending_Change }o--|| Survey : references
+    Survey_AI_Pending_Change }o--|| Response_Detail : references
+    Survey_AI_Pending_Change }o--|| Question : references
+    Survey_AI_Summary_Theme_Embedding }o--|| Survey_AI_Summary : references
+    Survey_AI_Summary_Theme_Embedding }o--|| Survey : references
+
+    User {
+        INT user_id
+        VARCHAR email
+        VARCHAR pass_word
+        VARCHAR role
+        BOOLEAN verify
+    }
+
+    Department {
+        INT dept_id
+        VARCHAR name
+    }
+
+    Admin {
+        INT user_id
+        VARCHAR name
+    }
+
+    Lecturer {
+        INT user_id
+        VARCHAR name
+        VARCHAR lecturer_code
+        INT dept_id
+    }
+
+    Student {
+        INT user_id
+        VARCHAR name
+        VARCHAR student_code
+        INT dept_id
+        VARCHAR status
+        VARCHAR student_card_img
+        VARCHAR national_id_img
+        VARCHAR review_reason
+        TEXT review_notes
+        INT reviewed_by_user_id
+        DATETIME reviewed_at
+        INT resubmission_count
+    }
+
+    student_token {
+        INT id
+        INT student_id
+        TEXT token
+        DATETIME expired_at
+        DATETIME created_at
+        INT delete_flg
+    }
+
+    Password_Reset_Token {
+        INT id
+        INT user_id
+        VARCHAR token_hash
+        DATETIME expired_at
+        DATETIME created_at
+        DATETIME used_at
+    }
+
+    Survey {
+        INT survey_id
+        VARCHAR title
+        TEXT title_vi
+        TEXT title_en
+        TEXT description
+        TEXT description_vi
+        TEXT description_en
+        VARCHAR source_lang
+        BOOLEAN is_auto_translated
+        VARCHAR model_info
+        DATETIME start_date
+        DATETIME end_date
+        VARCHAR lifecycle_state
+        BOOLEAN hidden
+        INT created_by
+    }
+
+    Question_Bank {
+        INT question_bank_id
+        TEXT content
+        VARCHAR type
+        VARCHAR category
+        BOOLEAN active
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    Survey_Template {
+        INT template_id
+        VARCHAR name
+        TEXT description
+        VARCHAR suggested_title
+        TEXT suggested_survey_description
+        VARCHAR recipient_scope
+        INT recipient_department_id
+        BOOLEAN active
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    Survey_Template_Question {
+        INT template_question_id
+        INT template_id
+        INT question_bank_id
+        TEXT content
+        VARCHAR type
+        INT display_order
+    }
+
+    Question {
+        INT question_id
+        INT survey_id
+        INT question_bank_id
+        TEXT content
+        TEXT content_translated
+        TEXT content_vi
+        TEXT content_en
+        VARCHAR source_lang
+        VARCHAR target_lang
+        BOOLEAN is_auto_translated
+        VARCHAR model_info
+        VARCHAR type
+    }
+
+    Survey_Assignment {
+        INT id
+        INT survey_id
+        VARCHAR evaluator_type
+        INT evaluator_value
+        VARCHAR subject_type
+        INT subject_value
+    }
+
+    Survey_Recipient {
+        INT recipient_id
+        INT survey_id
+        INT student_id
+        DATETIME assigned_at
+        DATETIME opened_at
+        DATETIME submitted_at
+    }
+
+    Survey_Response {
+        INT response_id
+        INT student_id
+        INT survey_id
+        INT lecturer_id
+        DATETIME submitted_at
+    }
+
+    Response_Detail {
+        INT id
+        INT response_id
+        INT question_id
+        INT rating
+        TEXT comment
+        TEXT comment_vi
+        TEXT comment_en
+        VARCHAR source_lang
+        BOOLEAN is_auto_translated
+        VARCHAR model_info
+    }
+
+    Feedback {
+        INT feedback_id
+        INT student_id
+        VARCHAR title
+        TEXT content
+        TEXT content_original
+        TEXT content_translated
+        TEXT content_vi
+        TEXT content_en
+        VARCHAR source_lang
+        VARCHAR target_lang
+        BOOLEAN is_auto_translated
+        VARCHAR model_info
+        DATETIME created_at
+    }
+
+    Feedback_Response {
+        INT response_id
+        INT feedback_id
+        INT responder_user_id
+        TEXT content
+        DATETIME created_at
+    }
+
+    Audit_Log {
+        INT audit_id
+        INT actor_user_id
+        VARCHAR action_type
+        VARCHAR target_type
+        INT target_id
+        VARCHAR summary
+        TEXT details
+        VARCHAR old_state
+        VARCHAR new_state
+        DATETIME created_at
+    }
+
+    Notification {
+        INT noti_id
+        TEXT content
+        VARCHAR type
+        VARCHAR title
+        INT survey_id
+        VARCHAR action_label
+        INT created_by_user_id
+        TEXT metadata
+        DATETIME created_at
+    }
+
+    Notification_User {
+        INT id
+        INT noti_id
+        INT user_id
+        DATETIME delivered_at
+        DATETIME read_at
+    }
+
+    Survey_AI_Summary {
+        INT summary_id
+        INT survey_id
+        VARCHAR source_hash
+        VARCHAR model_name
+        INT comment_count
+        TEXT summary_text
+        TEXT highlights_json
+        TEXT concerns_json
+        TEXT actions_json
+        INT created_by_user_id
+        DATETIME created_at
+    }
+
+    Survey_AI_Summary_Job {
+        INT job_id
+        INT survey_id
+        VARCHAR source_hash
+        INT comment_count
+        VARCHAR status
+        INT requested_by_user_id
+        INT summary_id
+        DATETIME created_at
+        DATETIME started_at
+        DATETIME finished_at
+        TEXT error_message
+    }
+
+    Survey_AI_Source_State {
+        INT survey_id
+        INT current_comment_count
+        INT summarized_comment_count
+        INT pending_comment_count
+        INT pending_score_sum
+        INT max_pending_score
+        TEXT topic_counts_json
+        TEXT pending_topic_counts_json
+        DOUBLE current_entropy
+        DOUBLE summarized_entropy
+        INT source_version
+        INT summarized_source_version
+        DATETIME last_changed_at
+        DATETIME last_summarized_at
+    }
+
+    Survey_AI_Pending_Change {
+        INT change_id
+        INT survey_id
+        INT response_detail_id
+        INT question_id
+        INT comment_length
+        VARCHAR topic
+        INT keyword_score
+        INT sentiment_score
+        INT suggestion_score
+        INT entropy_impact_score
+        INT novelty_score
+        INT total_score
+        INT source_version
+        BOOLEAN processed
+        DATETIME created_at
+    }
+
+    Survey_AI_Summary_Theme_Embedding {
+        INT embedding_id
+        INT summary_id
+        INT survey_id
+        VARCHAR theme_type
+        INT theme_index
+        VARCHAR theme_text
+        TEXT embedding_json
+        VARCHAR model_name
+        DATETIME created_at
+    }
