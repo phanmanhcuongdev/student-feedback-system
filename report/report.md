@@ -93,31 +93,7 @@ Các chương cuối trình bày kết quả thực hiện, hạn chế, hướn
 
 # MỤC LỤC
 
-- [LỜI CẢM ƠN](#lời-cảm-ơn)
-- [MỞ ĐẦU](#mở-đầu)
-    - [1. Lý do chọn đề tài](#1-lý-do-chọn-đề-tài)
-    - [2. Mục tiêu đề tài](#2-mục-tiêu-đề-tài)
-    - [3. Đối tượng và phạm vi nghiên cứu](#3-đối-tượng-và-phạm-vi-nghiên-cứu)
-    - [4. Phương pháp thực hiện](#4-phương-pháp-thực-hiện)
-    - [5. Cấu trúc báo cáo](#5-cấu-trúc-báo-cáo)
-- [PHẦN 1. THU THẬP VÀ PHÂN TÍCH YÊU CẦU](#phần-1-thu-thập-và-phân-tích-yêu-cầu)
-    - [Chương 1. Khảo sát và phân tích yêu cầu hệ thống](#chương-1-khảo-sát-và-phân-tích-yêu-cầu-hệ-thống)
-- [PHẦN 2. PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG](#phần-2-phân-tích-và-thiết-kế-hệ-thống)
-    - [Chương 2. Phân tích nghiệp vụ và mô hình hệ thống](#chương-2-phân-tích-nghiệp-vụ-và-mô-hình-hệ-thống)
-    - [Chương 3. Thiết kế kiến trúc ứng dụng](#chương-3-thiết-kế-kiến-trúc-ứng-dụng)
-    - [Chương 4. Thiết kế cơ sở dữ liệu và mô hình miền](#chương-4-thiết-kế-cơ-sở-dữ-liệu-và-mô-hình-miền)
-- [PHẦN 3. TRIỂN KHAI, HẠ TẦNG VÀ VẬN HÀNH](#phần-3-triển-khai-hạ-tầng-và-vận-hành)
-    - [Chương 5. Công nghệ sử dụng và triển khai ứng dụng](#chương-5-công-nghệ-sử-dụng-và-triển-khai-ứng-dụng)
-    - [Chương 6. Thiết kế hạ tầng triển khai và kiến trúc mạng](#chương-6-thiết-kế-hạ-tầng-triển-khai-và-kiến-trúc-mạng)
-    - [Chương 7. Giám sát và quan sát hệ thống](#chương-7-giám-sát-và-quan-sát-hệ-thống)
-- [PHẦN 4. BẢO MẬT, KIỂM THỬ VÀ ĐÁNH GIÁ](#phần-4-bảo-mật-kiểm-thử-và-đánh-giá)
-    - [Chương 8. Bảo mật hệ thống](#chương-8-bảo-mật-hệ-thống)
-    - [Chương 9. Kiểm thử hệ thống](#chương-9-kiểm-thử-hệ-thống)
-    - [Chương 10. Kết quả thực hiện và demo](#chương-10-kết-quả-thực-hiện-và-demo)
-    - [Chương 11. Đánh giá, hạn chế và hướng phát triển](#chương-11-đánh-giá-hạn-chế-và-hướng-phát-triển)
-- [KẾT LUẬN](#kết-luận)
-- [TÀI LIỆU THAM KHẢO](#tài-liệu-tham-khảo)
-- [PHỤ LỤC](#phụ-lục)
+> [PLACEHOLDER: Chèn mục lục tự động trong file Word sau khi chuyển từ Markdown sang DOCX.]
 
 ---
 
@@ -2183,15 +2159,7 @@ Các thông tin hạ tầng chính được sử dụng trong báo cáo:
 - fail2ban trên Ubuntu 24 LTS.
 - CrowdSec trên gateway/VPS.
 
-## Phụ lục G. Phân công công việc và tự đánh giá
-
-Phần phân công dưới đây được tổng hợp theo các mảng công việc chính của dự án và cần được nhóm rà soát lần cuối trước khi nộp bản chính thức.
-
-| Thành viên | Mã sinh viên | Nội dung phụ trách chính |
-|---|---|---|
-| Phan Mạnh Cường | B23DCCN115 | Backend Spring Boot, kiến trúc Ports and Adapters, database migration, RabbitMQ translation integration, AI/Gemini-compatible summary, MinIO/Resend integration, Docker/CI/CD và hạ tầng triển khai. |
-| Nguyễn Hữu Tâm | B23DCCN736 | Frontend React/TypeScript, giao diện theo vai trò, luồng xác thực/onboarding, màn hình khảo sát, feedback, notification và phối hợp kiểm thử chức năng. |
-| Đỗ Xuân Sang | B23DCCN709 | Phân tích yêu cầu, use case, tài liệu SRS, thiết kế dữ liệu, tổng hợp báo cáo, chuẩn bị hình ảnh demo và kiểm tra luồng nghiệp vụ. |
+## Phụ lục G. Tự đánh giá
 
 Tự đánh giá kết quả thực hiện:
 
@@ -2199,17 +2167,3 @@ Tự đánh giá kết quả thực hiện:
 - Mã nguồn có tổ chức rõ theo backend, frontend, migration, CI/CD và tài liệu; backend áp dụng Ports and Adapters nên thuận lợi cho bảo trì.
 - Hệ thống đã có căn cứ triển khai thực tế qua Docker, GitHub Actions, GHCR, reverse proxy, Portainer và monitoring.
 - Một số hạn chế còn tồn tại là chưa có CD tự động lên production, frontend còn thiếu test tự động và cần tăng coverage kiểm thử backend/integration.
-
----
-
-# CHECKLIST HÌNH ẢNH VÀ SƠ ĐỒ CẦN BỔ SUNG
-
-## Database
-
-| Tên ảnh | File path đề xuất | Mục trong báo cáo | Nội dung cần thể hiện | Mức ưu tiên |
-|---|---|---|---|---|
-| ERD tổng thể hệ thống | `assets/diagrams/erd-overview.png` | 4.5 | Toàn bộ bảng chính hoặc các cụm chính và quan hệ trọng tâm. | Bắt buộc |
-| ERD User/Auth domain | `assets/diagrams/erd-user-auth.png` | 4.5 | `User`, `Admin`, `Lecturer`, `Student`, `Department`, `student_token`, `Password_Reset_Token`. | Bắt buộc nếu ERD tổng thể quá lớn |
-| ERD Survey domain | `assets/diagrams/erd-survey-domain.png` | 4.5 | `Survey`, `Question`, `Question_Bank`, `Survey_Assignment`, `Survey_Recipient`, `Survey_Response`, `Response_Detail`, template. | Bắt buộc nếu ERD tổng thể quá lớn |
-| ERD Feedback/Notification domain | `assets/diagrams/erd-feedback-notification.png` | 4.5 | `Feedback`, `Feedback_Response`, `Notification`, `Notification_User`, `Audit_Log`. | Nên có |
-| ERD AI Summary domain | `assets/diagrams/erd-ai-summary.png` | 4.5 | `Survey_AI_Summary`, job, source state, pending change, theme embedding và liên kết tới survey/response. | Nên có |
