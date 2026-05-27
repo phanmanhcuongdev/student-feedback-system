@@ -1,0 +1,57 @@
+' Created from repository source on 2026-05-27.
+' Source checked: frontend authApi/authStorage/axios interceptor,
+' AuthController, AuthUseCaseService, JwtTokenService, JwtAuthenticationFilter,
+' SecurityConfig and persistence adapters.
+
+@startuml
+title JWT Authentication Flow
+hide footbox
+
+skinparam shadowing false
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor SlateGray
+    ParticipantBorderColor DarkSlateGray
+    ParticipantBackgroundColor #E8F7FA
+}
+
+actor User
+participant "React SPA\nLogin + API layer" as FE
+participant "AuthController" as AuthC
+participant "AuthUseCaseService" as AuthS
+database "User Persistence\nSQL Server" as DB
+participant "JwtTokenService" as JwtService
+collections "Browser Session\nlocalStorage\nstudent-feedback.auth-session" as Session
+participant "JwtAuthenticationFilter" as JwtFilter
+participant "SecurityContext\nProtected Controller" as Secured
+
+User -> FE: Submit email/password
+FE -> AuthC: Login request
+AuthC -> AuthS: login(command)
+AuthS -> DB: Load user, role profile and student status
+DB --> AuthS: Account data
+AuthS -> AuthS: Verify password, email flag,\nrole and account/student status
+AuthS -> JwtService: Generate JWT
+JwtService --> AuthS: Access token
+AuthS --> AuthC: Login response\nuserId, role, status, token
+AuthC --> FE: 200 OK
+FE -> Session: Store auth session
+
+== Authenticated API request ==
+
+User -> FE: Open protected feature
+FE -> Session: Read JWT
+Session --> FE: JWT
+FE -> JwtFilter: Authorization: Bearer JWT
+JwtFilter -> JwtService: Parse and validate token
+JwtService --> JwtFilter: Subject, role, validity
+JwtFilter -> Secured: Set Authentication\nand continue request
+Secured --> FE: Protected response
+
+alt token invalid or expired
+    JwtFilter --> FE: 401 Unauthorized
+    FE -> Session: Clear session
+    FE --> User: Redirect to login
+end
+
+@enduml

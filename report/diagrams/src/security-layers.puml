@@ -1,0 +1,84 @@
+' Created from repository source and provided deployment/security evidence on 2026-05-27.
+' Source checked: SecurityConfig, JwtAuthenticationFilter, JwtTokenService,
+' frontend route guards/auth storage/axios interceptor, GitHub Actions Trivy scan,
+' deployment notes for Nginx, Tailnet, fail2ban, CrowdSec and monitoring.
+
+@startuml
+title Security Layers Diagram
+
+top to bottom direction
+skinparam shadowing false
+skinparam linetype polyline
+skinparam rectangle {
+    BackgroundColor #E8F7FA
+    BorderColor DarkSlateGray
+    FontSize 12
+}
+skinparam package {
+    BackgroundColor #F8FBFD
+    BorderColor SlateGray
+    FontStyle bold
+}
+skinparam ArrowColor #333333
+
+rectangle "User / Browser" as User
+
+package "Frontend Access Control" {
+    rectangle "React Route Guards\nProtectedRoute\nAdminRoute\nRoleRoute\nPublicOnlyRoute" as RouteGuards
+    rectangle "Auth Storage\nlocalStorage\nstudent-feedback.auth-session" as AuthStorage
+    rectangle "Axios Interceptor\nAuthorization: Bearer\n401 clear session" as Axios
+}
+
+package "Application Security" {
+    rectangle "Spring Security\nstateless session\nJWT Bearer Token" as SpringSec
+    rectangle "JwtAuthenticationFilter\nparse / validate token\nset SecurityContext" as JwtFilter
+    rectangle "RBAC\nADMIN / LECTURER / STUDENT\n/api/admin/**, results, feedback staff" as RBAC
+    rectangle "Service-level checks\nstudent ACTIVE + verified\nlecturer result scope\nfeedback/notification ownership" as ServiceChecks
+}
+
+package "CI/CD Security Gate" {
+    rectangle "GitHub Actions\nbackend test\nfrontend lint/build" as Quality
+    rectangle "Trivy filesystem scan\nCRITICAL fails pipeline" as FsScan
+    rectangle "Docker image scan\nbackend/frontend\nCRITICAL fails pipeline" as ImageScan
+}
+
+package "Infrastructure Hardening" {
+    rectangle "Nginx reverse proxy\npublic 80/443 only\nHTTP -> HTTPS\nTLS" as Nginx
+    rectangle "Headscale/Tailscale\nVPN Mesh\nSSH via Tailnet" as Tailnet
+    rectangle "DB / RabbitMQ / MinIO\nnot public" as PrivateServices
+    rectangle "fail2ban + CrowdSec\nprobing/bruteforce response" as CrowdSec
+}
+
+package "Monitoring / Security Response" {
+    rectangle "Prometheus + Grafana\nmetrics and dashboards" as Metrics
+    rectangle "Loki\nlog observation" as Logs
+    rectangle "Telegram alerts / decisions\noperator notification" as Alerts
+}
+
+User --> RouteGuards
+RouteGuards --> AuthStorage
+RouteGuards --> Axios
+Axios --> SpringSec
+SpringSec --> JwtFilter
+JwtFilter --> RBAC
+RBAC --> ServiceChecks
+
+Quality --> FsScan
+FsScan --> ImageScan
+ImageScan --> Nginx : deployable image\nonly after passing gates
+
+Nginx --> SpringSec : reverse proxy to backend
+Tailnet --> Nginx : admin access path
+Tailnet --> PrivateServices
+CrowdSec --> Nginx : protect public ingress
+
+Metrics --> Alerts
+Logs --> Alerts
+CrowdSec --> Alerts
+
+note bottom of AuthStorage
+JWT hiện lưu ở localStorage.
+Cần giảm rủi ro XSS bằng CSP, sanitize và security headers.
+end note
+
+@enduml
