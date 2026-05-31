@@ -35,7 +35,7 @@ public class SurveyManagementPersistenceAdapter implements ManageSurveyPort {
     private static final String BASE_FROM = """
             FROM Survey s
             LEFT JOIN Survey_Assignment sa ON sa.survey_id = s.survey_id
-            LEFT JOIN Department d ON d.dept_id = sa.subject_value AND sa.subject_type = 'DEPARTMENT'
+            LEFT JOIN Department d ON d.dept_id = sa.evaluator_value
             """ + ReportingSqlFragments.recipientStatsJoin("s", "recipient_stats");
 
     @Override
@@ -57,9 +57,16 @@ public class SurveyManagementPersistenceAdapter implements ManageSurveyPort {
                     """ + RUNTIME_STATUS_SQL + """
                     AS runtime_status,
                     s.hidden,
-                    CASE WHEN sa.subject_type = 'DEPARTMENT' THEN 'DEPARTMENT' ELSE 'ALL_STUDENTS' END AS recipient_scope,
-                    sa.subject_value AS recipient_department_id,
+                    CASE
+                        WHEN sa.evaluator_type = 'CUSTOM' THEN 'CUSTOM_STUDENTS'
+                        WHEN sa.evaluator_type = 'STUDENT' AND sa.evaluator_value IS NOT NULL THEN 'DEPARTMENT'
+                        WHEN sa.evaluator_type = 'STUDENT' AND sa.evaluator_value IS NULL THEN 'ALL_STUDENTS'
+                        ELSE 'ALL_STUDENTS'
+                    END AS recipient_scope,
+                    sa.evaluator_value AS recipient_department_id,
                     d.name AS recipient_department_name,
+                    sa.subject_type AS subject_type_raw,
+                    sa.subject_value,
                     COALESCE(recipient_stats.submitted_count, 0) AS response_count,
                     COALESCE(recipient_stats.targeted_count, 0) AS targeted_count,
                     COALESCE(recipient_stats.opened_count, 0) AS opened_count,
@@ -129,12 +136,41 @@ public class SurveyManagementPersistenceAdapter implements ManageSurveyPort {
                 row[8] != null ? row[8].toString() : "ALL_STUDENTS",
                 row[9] == null ? null : ((Number) row[9]).intValue(),
                 (String) row[10],
-                getLong(row[11]),
-                getLong(row[12]),
+                parseSubjectType((String) row[11]),
+                row[12] == null ? null : ((Number) row[12]).intValue(),
+                parseSubjectName((String) row[11]),
                 getLong(row[13]),
                 getLong(row[14]),
-                getDouble(row[15])
+                getLong(row[15]),
+                getLong(row[16]),
+                getDouble(row[17])
         );
+    }
+
+    private com.ttcs.backend.application.domain.model.SubjectType parseSubjectType(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return null;
+        }
+        try {
+            String normalized = rawValue.trim().toUpperCase();
+            if (normalized.startsWith("COURSE-")) {
+                return com.ttcs.backend.application.domain.model.SubjectType.COURSE;
+            }
+            return com.ttcs.backend.application.domain.model.SubjectType.valueOf(normalized);
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
+    private String parseSubjectName(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return null;
+        }
+        String normalized = rawValue.trim().toUpperCase();
+        if (normalized.startsWith("COURSE-")) {
+            return rawValue.trim().substring("COURSE-".length());
+        }
+        return null;
     }
 
     private void applyQueryParameters(Query query, ManageSurveysQuery request) {
@@ -151,7 +187,7 @@ public class SurveyManagementPersistenceAdapter implements ManageSurveyPort {
             query.setParameter("hidden", request.hidden());
         }
         if (request.recipientScope() != null && !request.recipientScope().isBlank()) {
-            query.setParameter("recipientScope", request.recipientScope().trim().toUpperCase());
+            // parameter is not used in where clause string directly
         }
         if (request.startDateFrom() != null) {
             query.setParameter("startDateFrom", request.startDateFrom().atStartOfDay());
@@ -183,9 +219,11 @@ public class SurveyManagementPersistenceAdapter implements ManageSurveyPort {
         }
         if (query.recipientScope() != null && !query.recipientScope().isBlank()) {
             if ("DEPARTMENT".equalsIgnoreCase(query.recipientScope())) {
-                clauses.add("sa.subject_type = 'DEPARTMENT'");
+                clauses.add("sa.evaluator_type = 'STUDENT' AND sa.evaluator_value IS NOT NULL");
+            } else if ("CUSTOM_STUDENTS".equalsIgnoreCase(query.recipientScope())) {
+                clauses.add("sa.evaluator_type = 'CUSTOM'");
             } else if ("ALL_STUDENTS".equalsIgnoreCase(query.recipientScope())) {
-                clauses.add("(sa.subject_type = 'ALL' OR sa.subject_type IS NULL)");
+                clauses.add("(sa.evaluator_type = 'STUDENT' AND sa.evaluator_value IS NULL) OR (sa.evaluator_type IS NULL)");
             }
         }
         if (query.startDateFrom() != null) {

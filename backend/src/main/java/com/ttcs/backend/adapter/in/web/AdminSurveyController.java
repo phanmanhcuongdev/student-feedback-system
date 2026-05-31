@@ -13,6 +13,7 @@ import com.ttcs.backend.adapter.in.web.dto.SurveyManagementRecipientResponse;
 import com.ttcs.backend.adapter.in.web.dto.SurveyManagementSummaryResponse;
 import com.ttcs.backend.adapter.in.web.dto.UpdateSurveyRequest;
 import com.ttcs.backend.application.domain.model.QuestionType;
+import com.ttcs.backend.application.domain.model.SubjectType;
 import com.ttcs.backend.application.domain.model.SurveyRecipientScope;
 import com.ttcs.backend.application.port.in.CreateSurveyUseCase;
 import com.ttcs.backend.application.port.in.admin.ArchiveSurveyUseCase;
@@ -143,6 +144,10 @@ public class AdminSurveyController {
                 questionCommands,
                 parseScope(request.recipientScope()),
                 request.recipientDepartmentId(),
+                request.recipientStudentIds(),
+                parseSubjectType(request.subjectType()),
+                request.subjectValue(),
+                request.subjectName(),
                 acceptLanguage
         );
 
@@ -177,6 +182,10 @@ public class AdminSurveyController {
                         questions,
                         parseScope(request.recipientScope()),
                         request.recipientDepartmentId(),
+                        request.recipientStudentIds(),
+                        parseSubjectType(request.subjectType()),
+                        request.subjectValue(),
+                        request.subjectName(),
                         acceptLanguage
                 )
         );
@@ -218,6 +227,13 @@ public class AdminSurveyController {
         return SurveyRecipientScope.valueOf(rawScope);
     }
 
+    private SubjectType parseSubjectType(String rawSubjectType) {
+        if (rawSubjectType == null || rawSubjectType.isBlank()) {
+            return SubjectType.ALL;
+        }
+        return SubjectType.valueOf(rawSubjectType);
+    }
+
     private SurveyManagementSummaryResponse toSummaryResponse(SurveyManagementSummaryResult result) {
         return new SurveyManagementSummaryResponse(
                 result.id(),
@@ -231,6 +247,9 @@ public class AdminSurveyController {
                 result.recipientScope(),
                 result.recipientDepartmentId(),
                 result.recipientDepartmentName(),
+                result.subjectType(),
+                result.subjectValue(),
+                result.subjectName(),
                 result.responseCount(),
                 result.targetedCount(),
                 result.openedCount(),
@@ -252,6 +271,9 @@ public class AdminSurveyController {
                 result.recipientScope(),
                 result.recipientDepartmentId(),
                 result.recipientDepartmentName(),
+                result.subjectType(),
+                result.subjectValue(),
+                result.subjectName(),
                 result.responseCount(),
                 result.targetedCount(),
                 result.openedCount(),

@@ -37,7 +37,13 @@ public class SurveyAssignmentPersistenceAdapter implements LoadSurveyAssignmentP
                     entity.setSurvey(survey);
                     entity.setEvaluatorType(item.getEvaluatorType().name());
                     entity.setEvaluatorValue(item.getEvaluatorValue());
-                    entity.setSubjectType(item.getSubjectType().name());
+                    
+                    String subjectTypeStr = item.getSubjectType().name();
+                    if (item.getSubjectType() == com.ttcs.backend.application.domain.model.SubjectType.COURSE && item.getSubjectName() != null && !item.getSubjectName().isBlank()) {
+                        subjectTypeStr = "COURSE-" + item.getSubjectName();
+                    }
+                    entity.setSubjectType(subjectTypeStr);
+                    
                     entity.setSubjectValue(item.getSubjectValue());
                     return entity;
                 })

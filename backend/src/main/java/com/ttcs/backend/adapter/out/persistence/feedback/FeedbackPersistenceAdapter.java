@@ -177,6 +177,9 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
             query.setParameter("createdDateStart", request.createdDate().atStartOfDay());
             query.setParameter("createdDateEnd", request.createdDate().plusDays(1).atStartOfDay());
         }
+        if (request.departmentId() != null) {
+            query.setParameter("departmentId", request.departmentId());
+        }
     }
 
     private String buildWhereClause(LoadFeedbackQuery query) {
@@ -202,6 +205,9 @@ public class FeedbackPersistenceAdapter implements LoadFeedbackPort, SaveFeedbac
         }
         if (query.createdDate() != null) {
             clauses.add("f.created_at >= :createdDateStart AND f.created_at < :createdDateEnd");
+        }
+        if (query.departmentId() != null) {
+            clauses.add("s.dept_id = :departmentId");
         }
 
         if (clauses.isEmpty()) {

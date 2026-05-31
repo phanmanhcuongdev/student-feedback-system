@@ -41,6 +41,10 @@ class CreateSurveyServiceTest {
                 1,
                 List.of(new CreateQuestionCommand("Rate the class", QuestionType.RATING)),
                 SurveyRecipientScope.ALL_STUDENTS,
+                null,
+                com.ttcs.backend.application.domain.model.SubjectType.ALL,
+                null,
+                null,
                 null
         ));
 
@@ -66,6 +70,10 @@ class CreateSurveyServiceTest {
                 1,
                 List.of(new CreateQuestionCommand("Rate the class", QuestionType.RATING)),
                 SurveyRecipientScope.DEPARTMENT,
+                null,
+                com.ttcs.backend.application.domain.model.SubjectType.ALL,
+                null,
+                null,
                 null
         )));
     }
@@ -87,6 +95,10 @@ class CreateSurveyServiceTest {
                 1,
                 List.of(new CreateQuestionCommand("   ", QuestionType.TEXT)),
                 SurveyRecipientScope.ALL_STUDENTS,
+                null,
+                com.ttcs.backend.application.domain.model.SubjectType.ALL,
+                null,
+                null,
                 null
         )));
     }
@@ -108,6 +120,10 @@ class CreateSurveyServiceTest {
                 1,
                 List.of(new CreateQuestionCommand("Rate the class", QuestionType.RATING, 42)),
                 SurveyRecipientScope.ALL_STUDENTS,
+                null,
+                com.ttcs.backend.application.domain.model.SubjectType.ALL,
+                null,
+                null,
                 null
         ));
 
@@ -132,6 +148,9 @@ class CreateSurveyServiceTest {
                 1,
                 List.of(new CreateQuestionCommand("Rate the class", QuestionType.RATING)),
                 SurveyRecipientScope.ALL_STUDENTS,
+                null,
+                com.ttcs.backend.application.domain.model.SubjectType.ALL,
+                null,
                 null,
                 "vi"
         ));

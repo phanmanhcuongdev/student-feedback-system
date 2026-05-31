@@ -62,7 +62,7 @@ class FeedbackPersistenceAdapterTest {
         }));
         when(countQuery.getSingleResult()).thenReturn(1);
 
-        var result = adapter.loadPage(new LoadFeedbackQuery(null, null, null, 0, 10, "createdAt", "desc"));
+        var result = adapter.loadPage(new LoadFeedbackQuery(null, null, null, null, 0, 10, "createdAt", "desc"));
 
         assertEquals(1, result.items().size());
         assertEquals(3, result.items().getFirst().studentId());

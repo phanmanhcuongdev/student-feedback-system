@@ -218,9 +218,27 @@
           "description": "Recipient configuration should describe who receives the survey without exposing backend-shaped IDs.",
           "allStudents": "All students",
           "departmentOnly": "Department only",
+          "customStudents": "Custom students",
           "selectDepartment": "Select department",
           "departmentUnavailable": "Department lookup is unavailable right now. This selection will remain empty until departments can be loaded.",
           "locked": "Recipient settings are locked after publication or once responses exist."
+        },
+        "subject": {
+          "title": "Evaluated Subject",
+          "description": "Select the entity that this survey is evaluating.",
+          "type": "Subject type",
+          "selectType": "Select subject type",
+          "types": {
+            "LECTURER": "Lecturer",
+            "DEPARTMENT": "Department",
+            "FACILITY": "Facility",
+            "COURSE": "Course",
+            "ALL": "All (General)"
+          },
+          "selectLecturer": "Select lecturer",
+          "selectDepartment": "Select department",
+          "lecturerUnavailable": "Lecturer lookup is unavailable right now.",
+          "locked": "Evaluated subject is locked after publication or once responses exist."
         },
         "questions": {
           "title": "Questions",

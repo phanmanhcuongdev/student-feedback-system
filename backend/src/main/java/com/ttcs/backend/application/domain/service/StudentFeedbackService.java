@@ -5,6 +5,7 @@ import com.ttcs.backend.application.domain.model.FeedbackResponse;
 import com.ttcs.backend.application.domain.model.Role;
 import com.ttcs.backend.application.domain.model.Student;
 import com.ttcs.backend.application.domain.model.User;
+import com.ttcs.backend.application.domain.model.Lecturer;
 import com.ttcs.backend.application.port.in.feedback.GetAllFeedbackUseCase;
 import com.ttcs.backend.application.port.in.feedback.CreateFeedbackUseCase;
 import com.ttcs.backend.application.port.in.feedback.GetAllFeedbackQuery;
@@ -32,6 +33,7 @@ import com.ttcs.backend.application.port.out.SaveFeedbackResponsePort;
 import com.ttcs.backend.application.port.out.ai.SendTranslationTaskPort;
 import com.ttcs.backend.application.port.out.ai.TranslationTaskCommand;
 import com.ttcs.backend.application.port.out.auth.LoadUserByIdPort;
+import com.ttcs.backend.application.port.out.LoadLecturerByUserIdPort;
 import com.ttcs.backend.common.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,6 +60,7 @@ public class StudentFeedbackService implements
     private final SaveFeedbackPort saveFeedbackPort;
     private final SaveFeedbackResponsePort saveFeedbackResponsePort;
     private final SendTranslationTaskPort sendTranslationTaskPort;
+    private final LoadLecturerByUserIdPort loadLecturerByUserIdPort;
 
     @Override
     @Transactional
@@ -138,10 +141,19 @@ public class StudentFeedbackService implements
     @Override
     @Transactional(readOnly = true)
     public StaffFeedbackPageResult getAllFeedback(GetAllFeedbackQuery query) {
+        Integer departmentId = null;
+        if (query != null && query.viewerRole() == Role.LECTURER && query.viewerUserId() != null) {
+            Lecturer lecturer = loadLecturerByUserIdPort.loadByUserId(query.viewerUserId()).orElse(null);
+            if (lecturer != null && lecturer.getDepartment() != null) {
+                departmentId = lecturer.getDepartment().getId();
+            }
+        }
+
         var page = loadFeedbackPort.loadPage(new LoadFeedbackQuery(
                 query == null ? null : query.keyword(),
                 query == null ? null : query.status(),
                 query == null ? null : query.createdDate(),
+                departmentId,
                 query == null ? 0 : query.page(),
                 query == null ? 10 : query.size(),
                 query == null ? "createdAt" : query.sortBy(),

@@ -36,7 +36,11 @@ public class GetSurveyDetailService implements GetSurveyDetailUseCase {
         SurveyRecipient recipient = loadSurveyRecipientPort.loadBySurveyIdAndStudentId(surveyId, studentId)
                 .orElseThrow(() -> new SurveyNotFoundException(surveyId));
 
-        if (!survey.isPublished() || survey.isHidden() || isExpired(survey) || survey.status() == SurveyStatus.CLOSED) {
+        boolean isClosedOrExpired = isExpired(survey) || survey.status() == SurveyStatus.CLOSED;
+        if (!survey.isPublished() || survey.isHidden() || (isClosedOrExpired && !recipient.hasSubmitted())) {
+            throw new SurveyNotFoundException(surveyId);
+        }
+        if (!survey.isOpen() && !isClosedOrExpired && !recipient.hasSubmitted()) {
             throw new SurveyNotFoundException(surveyId);
         }
         if (!recipient.hasOpened()) {

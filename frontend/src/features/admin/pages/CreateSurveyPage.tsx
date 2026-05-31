@@ -10,6 +10,7 @@ import {
     getQuestionBankEntries,
     getSurveyManagementDepartments,
     getSurveyTemplates,
+    getUsers,
     publishSurvey,
     setSurveyVisibility,
     updateSurvey,
@@ -24,6 +25,7 @@ import PageHeader from "../../../components/ui/PageHeader";
 import SectionCard from "../../../components/ui/SectionCard";
 import StatCard from "../../../components/ui/StatCard";
 import StatusBadge from "../../../components/ui/StatusBadge";
+import PaginationControls from "../../../components/data-view/PaginationControls";
 import { darkActionButtonClass, darkActionButtonStyle } from "../../../components/ui/buttonStyles";
 import type { DepartmentOption } from "../../../types/admin";
 import type { CreateQuestionData, CreateSurveyData, QuestionBankEntry, SurveyLifecycleState, SurveyRuntimeStatus, SurveyTemplate } from "../../../types/survey";
@@ -95,8 +97,16 @@ export default function CreateSurveyPage() {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [questions, setQuestions] = useState<CreateQuestionData[]>([]);
-    const [recipientScope, setRecipientScope] = useState<"ALL_STUDENTS" | "DEPARTMENT">("ALL_STUDENTS");
+    const [recipientScope, setRecipientScope] = useState<"ALL_STUDENTS" | "DEPARTMENT" | "CUSTOM_STUDENTS">("ALL_STUDENTS");
     const [recipientDepartmentId, setRecipientDepartmentId] = useState("");
+    const [recipientStudentIds, setRecipientStudentIds] = useState<number[]>([]);
+    const [selectedStudentsMap, setSelectedStudentsMap] = useState<Record<number, { id: number; name: string; code: string; departmentName?: string | null }>>({});
+    const [studentSearchKeyword, setStudentSearchKeyword] = useState("");
+    const [studentSearchResults, setStudentSearchResults] = useState<Array<{ id: number; name: string; code: string; departmentName?: string | null }>>([]);
+    const [searchingStudents, setSearchingStudents] = useState(false);
+    const [subjectType, setSubjectType] = useState<"LECTURER" | "DEPARTMENT" | "FACILITY" | "COURSE" | "ALL">("ALL");
+    const [subjectValue, setSubjectValue] = useState("");
+    const [subjectName, setSubjectName] = useState("");
     const [hidden, setHidden] = useState(false);
     const [lifecycleState, setLifecycleState] = useState<SurveyLifecycleState | null>(null);
     const [runtimeStatus, setRuntimeStatus] = useState<SurveyRuntimeStatus | null>(null);
@@ -114,6 +124,15 @@ export default function CreateSurveyPage() {
         submittedAt: string | null;
     }>>([]);
 
+    const [recipientPage, setRecipientPage] = useState(1);
+    const RECIPIENT_PAGE_SIZE = 10;
+    const totalRecipientPages = Math.ceil(pendingRecipients.length / RECIPIENT_PAGE_SIZE);
+
+    const paginatedRecipients = useMemo(() => {
+        const start = (recipientPage - 1) * RECIPIENT_PAGE_SIZE;
+        return pendingRecipients.slice(start, start + RECIPIENT_PAGE_SIZE);
+    }, [pendingRecipients, recipientPage]);
+
     const isDraft = lifecycleState === "DRAFT";
     const isPublished = lifecycleState === "PUBLISHED";
     const isClosed = lifecycleState === "CLOSED";
@@ -129,6 +148,9 @@ export default function CreateSurveyPage() {
         || questions.length > 0
         || recipientScope !== "ALL_STUDENTS"
         || recipientDepartmentId
+        || recipientStudentIds.length > 0
+        || subjectType !== "ALL"
+        || subjectValue
     );
 
     const lifecycleHelp = useMemo(() => {
@@ -163,6 +185,28 @@ export default function CreateSurveyPage() {
             setQuestions(survey.questions.map((question) => ({ content: question.content, type: question.type })));
             setRecipientScope(survey.recipientScope);
             setRecipientDepartmentId(survey.recipientDepartmentId != null ? String(survey.recipientDepartmentId) : "");
+
+            if (survey.pendingRecipients) {
+                const initialMap: Record<number, { id: number; name: string; code: string; departmentName?: string | null }> = {};
+                survey.pendingRecipients.forEach((r) => {
+                    initialMap[r.studentId] = {
+                        id: r.studentId,
+                        name: r.studentName,
+                        code: r.studentCode,
+                        departmentName: r.departmentName,
+                    };
+                });
+                setSelectedStudentsMap((prev) => ({ ...prev, ...initialMap }));
+                setRecipientStudentIds(survey.pendingRecipients.map((r) => r.studentId));
+            } else if (survey.recipientStudentIds) {
+                setRecipientStudentIds(survey.recipientStudentIds);
+            } else {
+                setRecipientStudentIds([]);
+            }
+
+            setSubjectType(survey.subjectType || "ALL");
+            setSubjectValue(survey.subjectValue != null ? String(survey.subjectValue) : "");
+            setSubjectName(survey.subjectName || "");
             setHidden(survey.hidden);
             setLifecycleState(survey.lifecycleState);
             setRuntimeStatus(survey.runtimeStatus);
@@ -171,6 +215,7 @@ export default function CreateSurveyPage() {
             setOpenedCount(survey.openedCount);
             setResponseRate(survey.responseRate);
             setPendingRecipients(survey.pendingRecipients);
+            setRecipientPage(1);
         } catch (requestError) {
             setError(getApiErrorMessage(requestError, t("admin:admin.surveys.form.errors.load")));
         } finally {
@@ -210,6 +255,40 @@ export default function CreateSurveyPage() {
 
         void loadAssets();
     }, []);
+
+    useEffect(() => {
+        if (!studentSearchKeyword.trim()) {
+            setStudentSearchResults([]);
+            return;
+        }
+
+        const delayDebounce = setTimeout(async () => {
+            try {
+                setSearchingStudents(true);
+                const response = await getUsers({
+                    role: "STUDENT",
+                    active: true,
+                    studentStatus: "ACTIVE",
+                    keyword: studentSearchKeyword.trim(),
+                    size: 20,
+                });
+
+                const mappedResults = response.items.map((item) => ({
+                    id: item.id,
+                    name: item.name,
+                    code: item.studentCode || "",
+                    departmentName: item.departmentName,
+                }));
+                setStudentSearchResults(mappedResults);
+            } catch (err) {
+                console.error("Failed to search students:", err);
+            } finally {
+                setSearchingStudents(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounce);
+    }, [studentSearchKeyword]);
 
     function addQuestion() {
         setQuestions((current) => [...current, { content: "", type: "RATING", questionBankEntryId: null }]);
@@ -297,6 +376,10 @@ export default function CreateSurveyPage() {
             setError(t("validation:validation.admin.surveys.departmentRequired"));
             return;
         }
+        if (recipientScope === "CUSTOM_STUDENTS" && recipientStudentIds.length === 0) {
+            setError(t("validation:validation.admin.surveys.studentRequired", "Vui lòng chọn ít nhất một sinh viên."));
+            return;
+        }
 
         const payload: CreateSurveyData = {
             title: title.trim(),
@@ -306,6 +389,10 @@ export default function CreateSurveyPage() {
             questions: questions.map((question) => ({ content: question.content.trim(), type: question.type, questionBankEntryId: question.questionBankEntryId || null })),
             recipientScope,
             recipientDepartmentId: recipientScope === "DEPARTMENT" ? Number(recipientDepartmentId) : null,
+            recipientStudentIds: recipientScope === "CUSTOM_STUDENTS" ? recipientStudentIds : null,
+            subjectType,
+            subjectValue: ["LECTURER", "DEPARTMENT"].includes(subjectType) && subjectValue ? Number(subjectValue) : null,
+            subjectName: subjectType === "COURSE" ? subjectName.trim() : null,
         };
 
         try {
@@ -459,9 +546,10 @@ export default function CreateSurveyPage() {
                             <FormSection title={t("admin:admin.surveys.form.audience.title")} description={t("admin:admin.surveys.form.audience.description")}>
                                 <div className="grid gap-5 md:grid-cols-2">
                                     <Field label={t("admin:admin.surveys.form.fields.recipientScope")}>
-                                        <select value={recipientScope} onChange={(event) => setRecipientScope(event.target.value as "ALL_STUDENTS" | "DEPARTMENT")} disabled={recipientsLocked} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100">
+                                        <select value={recipientScope} onChange={(event) => setRecipientScope(event.target.value as "ALL_STUDENTS" | "DEPARTMENT" | "CUSTOM_STUDENTS")} disabled={recipientsLocked} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100">
                                             <option value="ALL_STUDENTS">{t("admin:admin.surveys.form.audience.allStudents")}</option>
                                             <option value="DEPARTMENT">{t("admin:admin.surveys.form.audience.departmentOnly")}</option>
+                                            <option value="CUSTOM_STUDENTS">{t("admin:admin.surveys.form.audience.customStudents")}</option>
                                         </select>
                                     </Field>
                                     <Field label={t("admin:admin.surveys.form.fields.department")} description={recipientScope === "DEPARTMENT" && departments.length === 0 ? t("admin:admin.surveys.form.audience.departmentUnavailable") : undefined}>
@@ -472,8 +560,192 @@ export default function CreateSurveyPage() {
                                             ))}
                                         </select>
                                     </Field>
+
+                                    {recipientScope === "CUSTOM_STUDENTS" && (
+                                        <div className="col-span-1 md:col-span-2 mt-4 space-y-4">
+                                            <div className="relative">
+                                                <span className="block text-sm font-semibold text-slate-700 mb-2">
+                                                    {t("admin:admin.surveys.form.audience.searchStudents", "Tìm kiếm sinh viên")}
+                                                </span>
+                                                <div className="relative">
+                                                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                                        search
+                                                    </span>
+                                                    <input
+                                                        type="text"
+                                                        value={studentSearchKeyword}
+                                                        onChange={(e) => setStudentSearchKeyword(e.target.value)}
+                                                        disabled={recipientsLocked}
+                                                        placeholder={t("admin:admin.surveys.form.audience.searchPlaceholder", "Nhập tên hoặc mã sinh viên...")}
+                                                        className="w-full rounded-2xl border border-slate-300 bg-white pl-12 pr-10 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100"
+                                                    />
+                                                    {searchingStudents && (
+                                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 flex h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600"></span>
+                                                    )}
+                                                    {!searchingStudents && studentSearchKeyword && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setStudentSearchKeyword("")}
+                                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[20px]">close</span>
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {/* Floating Dropdown Search Results */}
+                                                {studentSearchResults.length > 0 && !recipientsLocked && (
+                                                    <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                                                        <div className="flex justify-between items-center px-3 py-1.5 border-b border-slate-100">
+                                                            <span className="text-xs font-semibold text-slate-500">
+                                                                {t("admin:admin.surveys.form.audience.searchResults", "Kết quả tìm kiếm ({{count}})", { count: studentSearchResults.length })}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newIds = [...recipientStudentIds];
+                                                                    const newMap = { ...selectedStudentsMap };
+                                                                    studentSearchResults.forEach(s => {
+                                                                        if (!newIds.includes(s.id)) {
+                                                                            newIds.push(s.id);
+                                                                            newMap[s.id] = s;
+                                                                        }
+                                                                    });
+                                                                    setRecipientStudentIds(newIds);
+                                                                    setSelectedStudentsMap(newMap);
+                                                                }}
+                                                                className="text-xs font-bold text-slate-900 hover:underline"
+                                                            >
+                                                                {t("admin:admin.surveys.form.audience.addAll", "Thêm tất cả")}
+                                                            </button>
+                                                        </div>
+                                                        {studentSearchResults.map((student) => {
+                                                            const isSelected = recipientStudentIds.includes(student.id);
+                                                            return (
+                                                                <button
+                                                                    key={student.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (isSelected) {
+                                                                            setRecipientStudentIds(prev => prev.filter(id => id !== student.id));
+                                                                        } else {
+                                                                            setRecipientStudentIds(prev => [...prev, student.id]);
+                                                                            setSelectedStudentsMap(prev => ({ ...prev, [student.id]: student }));
+                                                                        }
+                                                                    }}
+                                                                    className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left hover:bg-slate-50 transition"
+                                                                >
+                                                                    <div>
+                                                                        <p className="text-sm font-bold text-slate-950">{student.name}</p>
+                                                                        <p className="text-xs text-slate-500">{student.code}{student.departmentName ? ` | ${student.departmentName}` : ""}</p>
+                                                                    </div>
+                                                                    <span className={`material-symbols-outlined text-[20px] ${isSelected ? "text-emerald-600" : "text-slate-300"}`}>
+                                                                        {isSelected ? "check_circle" : "add_circle"}
+                                                                    </span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+
+                                                {studentSearchKeyword && studentSearchResults.length === 0 && !searchingStudents && (
+                                                    <div className="absolute z-10 mt-1 w-full rounded-2xl border border-slate-200 bg-white p-4 text-center text-sm text-slate-500 shadow-xl">
+                                                        {t("admin:admin.surveys.form.audience.noResults", "Không tìm thấy sinh viên nào phù hợp")}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Selected List Section */}
+                                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                                <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-3">
+                                                    <div>
+                                                        <h4 className="text-sm font-bold text-slate-900">
+                                                            {t("admin:admin.surveys.form.audience.selectedTitle", "Danh sách sinh viên đã chọn")}
+                                                        </h4>
+                                                        <p className="text-xs text-slate-500">
+                                                            {t("admin:admin.surveys.form.audience.selectedCount", "Đã chọn {{count}} sinh viên", { count: recipientStudentIds.length })}
+                                                        </p>
+                                                    </div>
+                                                    {recipientStudentIds.length > 0 && !recipientsLocked && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setRecipientStudentIds([])}
+                                                            className="text-xs font-bold text-red-600 hover:text-red-800 transition"
+                                                        >
+                                                            {t("admin:admin.surveys.form.audience.clearAll", "Xóa tất cả")}
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {recipientStudentIds.length === 0 ? (
+                                                    <p className="text-sm text-center py-4 text-slate-500">
+                                                        {t("admin:admin.surveys.form.audience.noStudentsSelected", "Chưa có sinh viên nào được chọn.")}
+                                                    </p>
+                                                ) : (
+                                                    <div className="grid gap-2 max-h-80 overflow-y-auto pr-1">
+                                                        {recipientStudentIds.map(id => {
+                                                            const student = selectedStudentsMap[id] || { id, name: `ID: ${id}`, code: "" };
+                                                            return (
+                                                                <div key={id} className="flex items-center justify-between rounded-xl bg-white border border-slate-100 p-3 hover:border-slate-200 shadow-sm transition">
+                                                                    <div>
+                                                                        <p className="text-sm font-bold text-slate-950">{student.name}</p>
+                                                                        <p className="text-xs text-slate-500">{student.code}{student.departmentName ? ` | ${student.departmentName}` : ""}</p>
+                                                                    </div>
+                                                                    {!recipientsLocked && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setRecipientStudentIds(prev => prev.filter(studentId => studentId !== id))}
+                                                                            className="text-slate-400 hover:text-red-600 transition"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-[18px]">close</span>
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                                 {recipientsLocked ? <p className="text-sm font-medium text-amber-700">{t("admin:admin.surveys.form.audience.locked")}</p> : null}
+                            </FormSection>
+
+                            <FormSection title={t("admin:admin.surveys.form.subject.title")} description={t("admin:admin.surveys.form.subject.description")}>
+                                <div className="grid gap-5 md:grid-cols-2">
+                                    <Field label={t("admin:admin.surveys.form.subject.type")}>
+                                        <select value={subjectType} onChange={(event) => { setSubjectType(event.target.value as "LECTURER" | "DEPARTMENT" | "FACILITY" | "COURSE" | "ALL"); setSubjectValue(""); setSubjectName(""); }} disabled={recipientsLocked} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100">
+                                            <option value="ALL">{t("admin:admin.surveys.form.subject.types.ALL")}</option>
+                                            <option value="LECTURER">{t("admin:admin.surveys.form.subject.types.LECTURER")}</option>
+                                            <option value="DEPARTMENT">{t("admin:admin.surveys.form.subject.types.DEPARTMENT")}</option>
+                                            <option value="FACILITY">{t("admin:admin.surveys.form.subject.types.FACILITY")}</option>
+                                            <option value="COURSE">{t("admin:admin.surveys.form.subject.types.COURSE")}</option>
+                                        </select>
+                                    </Field>
+
+                                    {subjectType === "DEPARTMENT" && (
+                                        <Field label={t("admin:admin.surveys.form.subject.types.DEPARTMENT")} description={departments.length === 0 ? t("admin:admin.surveys.form.audience.departmentUnavailable") : undefined}>
+                                            <select value={subjectValue} onChange={(event) => setSubjectValue(event.target.value)} disabled={recipientsLocked || departments.length === 0} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100">
+                                                <option value="">{t("admin:admin.surveys.form.subject.selectDepartment")}</option>
+                                                {departments.map((department) => (
+                                                    <option key={department.id} value={department.id}>{department.name}</option>
+                                                ))}
+                                            </select>
+                                        </Field>
+                                    )}
+                                    {subjectType === "LECTURER" && (
+                                        <Field label={t("admin:admin.surveys.form.subject.types.LECTURER")} description={t("admin:admin.surveys.form.subject.lecturerUnavailable")}>
+                                            <input type="number" placeholder="Lecturer ID" value={subjectValue} onChange={(event) => setSubjectValue(event.target.value)} disabled={recipientsLocked} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100" />
+                                        </Field>
+                                    )}
+                                    {subjectType === "COURSE" && (
+                                        <Field label={t("admin:admin.surveys.form.subject.types.COURSE")}>
+                                            <input type="text" placeholder="Course Name" value={subjectName} onChange={(event) => setSubjectName(event.target.value)} disabled={recipientsLocked} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-900/5 disabled:cursor-not-allowed disabled:bg-slate-100" />
+                                        </Field>
+                                    )}
+                                </div>
+                                {recipientsLocked ? <p className="text-sm font-medium text-amber-700">{t("admin:admin.surveys.form.subject.locked")}</p> : null}
                             </FormSection>
 
                             <FormSection title={t("admin:admin.surveys.form.questions.title")} description={t("admin:admin.surveys.form.questions.description")}>
@@ -525,7 +797,7 @@ export default function CreateSurveyPage() {
                                         <EmptyState title={t("admin:admin.surveys.form.recipientActivity.emptyTitle")} description={t("admin:admin.surveys.form.recipientActivity.emptyDescription")} icon="group" />
                                     ) : (
                                         <div className="grid gap-3">
-                                            {pendingRecipients.map((recipient) => (
+                                            {paginatedRecipients.map((recipient) => (
                                                 <div key={recipient.studentId} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                                         <div>
@@ -540,6 +812,15 @@ export default function CreateSurveyPage() {
                                                     </div>
                                                 </div>
                                             ))}
+                                            {totalRecipientPages > 1 ? (
+                                                <div className="mt-4 flex justify-center">
+                                                    <PaginationControls
+                                                        page={recipientPage}
+                                                        pageCount={totalRecipientPages}
+                                                        onPageChange={setRecipientPage}
+                                                    />
+                                                </div>
+                                            ) : null}
                                         </div>
                                     )}
                                 </SectionCard>

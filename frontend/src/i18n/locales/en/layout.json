@@ -6,6 +6,9 @@
     },
     "header": {
       "title": "Student Onboarding and Survey Feedback",
+      "studentTitle": "Student Portal",
+      "lecturerTitle": "Lecturer Workspace",
+      "adminTitle": "System Administration",
       "accountMenu": {
         "viewAccount": "View account",
         "logout": "Logout"

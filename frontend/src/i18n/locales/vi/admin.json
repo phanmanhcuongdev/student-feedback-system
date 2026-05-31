@@ -218,9 +218,27 @@
           "description": "Cấu hình người nhận nên mô tả ai nhận khảo sát mà không lộ ID theo cấu trúc backend.",
           "allStudents": "Tất cả sinh viên",
           "departmentOnly": "Chỉ theo khoa",
+          "customStudents": "Chọn sinh viên",
           "selectDepartment": "Chọn khoa",
           "departmentUnavailable": "Hiện chưa thể tra cứu khoa. Lựa chọn này sẽ trống cho đến khi tải được danh sách khoa.",
           "locked": "Thiết lập người nhận bị khóa sau khi phát hành hoặc khi đã có phản hồi."
+        },
+        "subject": {
+          "title": "Đối tượng đánh giá",
+          "description": "Chọn thực thể mà khảo sát này đang đánh giá.",
+          "type": "Loại đối tượng",
+          "selectType": "Chọn loại đối tượng",
+          "types": {
+            "LECTURER": "Giảng viên",
+            "DEPARTMENT": "Khoa",
+            "FACILITY": "Cơ sở vật chất",
+            "COURSE": "Môn học",
+            "ALL": "Tất cả (Chung)"
+          },
+          "selectLecturer": "Chọn giảng viên",
+          "selectDepartment": "Chọn khoa",
+          "lecturerUnavailable": "Không thể tải danh sách giảng viên",
+          "locked": "Đối tượng đánh giá bị khóa sau khi phát hành hoặc khi đã có phản hồi."
         },
         "questions": {
           "title": "Câu hỏi",

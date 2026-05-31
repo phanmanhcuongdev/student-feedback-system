@@ -88,6 +88,8 @@ public class FeedbackController {
                 keyword,
                 status,
                 createdDate,
+                currentIdentityProvider.currentUserId(),
+                currentIdentityProvider.currentRole(),
                 page,
                 size,
                 sortBy,

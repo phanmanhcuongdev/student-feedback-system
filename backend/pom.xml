@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.3</version>
+        <version>4.0.6</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.ttcs</groupId>
@@ -28,6 +28,7 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <tomcat.version>11.0.22</tomcat.version>
         <eclipse.core.runtime.version>3.34.200</eclipse.core.runtime.version>
         <eclipse.equinox.common.version>3.20.300</eclipse.equinox.common.version>
         <eclipse.equinox.registry.version>3.12.600</eclipse.equinox.registry.version>

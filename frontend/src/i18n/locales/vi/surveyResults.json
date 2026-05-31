@@ -3,6 +3,7 @@
     "common": {
       "allStudents": "Tất cả sinh viên",
       "department": "Khoa",
+      "customStudents": "Một số sinh viên",
       "noDescription": "Chưa có mô tả khảo sát."
     },
     "list": {
@@ -80,7 +81,8 @@
       "header": {
         "title": "Chi tiết kết quả khảo sát",
         "description": "Xem chỉ số tổng quan, mức độ tham gia, phân bố đánh giá và bình luận ẩn danh theo từng nhóm phân tích.",
-        "emptyDescription": "Xem phân tích khảo sát."
+        "emptyDescription": "Xem phân tích khảo sát.",
+        "eyebrowAll": "Tất cả khoa"
       },
       "buttons": {
         "exportPdf": "Xuất PDF",

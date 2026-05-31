@@ -21,13 +21,19 @@ public final class SurveyAssignmentMapper {
             return null;
         }
 
+        String subjectName = null;
+        if (entity.getSubjectType() != null && entity.getSubjectType().trim().toUpperCase().startsWith("COURSE-")) {
+            subjectName = entity.getSubjectType().trim().substring("COURSE-".length());
+        }
+
         return new SurveyAssignment(
                 entity.getId(),
                 SurveyMapper.toDomain(entity.getSurvey()),
                 evaluatorType,
                 entity.getEvaluatorValue(),
                 subjectType,
-                entity.getSubjectValue()
+                entity.getSubjectValue(),
+                subjectName
         );
     }
 
@@ -50,6 +56,9 @@ public final class SurveyAssignmentMapper {
 
         try {
             String normalized = rawValue.trim().toUpperCase();
+            if (normalized.startsWith("COURSE-")) {
+                return SubjectType.COURSE;
+            }
             return SubjectType.valueOf(normalized);
         } catch (IllegalArgumentException exception) {
             return null;

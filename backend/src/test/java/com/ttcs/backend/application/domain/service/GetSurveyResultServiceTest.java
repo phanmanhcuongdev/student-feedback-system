@@ -68,15 +68,12 @@ class GetSurveyResultServiceTest {
     }
 
     @Test
-    void shouldDenyLecturerDetailForAllStudentsSurvey() {
+    void shouldAllowLecturerDetailForAllStudentsSurvey() {
         GetSurveyResultService service = service();
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> service.getSurveyResult(3, 10, Role.LECTURER, "vi")
-        );
+        SurveyResultDetailResult result = service.getSurveyResult(3, 10, Role.LECTURER, "vi");
 
-        assertEquals(403, exception.getStatusCode().value());
+        assertEquals(3, result.id());
     }
 
     @Test
@@ -290,7 +287,8 @@ class GetSurveyResultServiceTest {
                     EvaluatorType.STUDENT,
                     null,
                     SubjectType.DEPARTMENT,
-                    departmentId
+                    departmentId,
+                    null
             );
         }
 
@@ -301,6 +299,7 @@ class GetSurveyResultServiceTest {
                     EvaluatorType.STUDENT,
                     null,
                     SubjectType.ALL,
+                    null,
                     null
             );
         }

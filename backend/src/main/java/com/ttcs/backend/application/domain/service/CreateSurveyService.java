@@ -25,22 +25,47 @@ import java.util.List;
 @UseCase
 public class CreateSurveyService implements CreateSurveyUseCase {
 
+    private static final com.ttcs.backend.application.port.out.SaveSurveyRecipientPort NO_OP_RECIPIENT_PORT = new com.ttcs.backend.application.port.out.SaveSurveyRecipientPort() {
+        @Override
+        public com.ttcs.backend.application.domain.model.SurveyRecipient save(com.ttcs.backend.application.domain.model.SurveyRecipient recipient) { return recipient; }
+        @Override
+        public List<com.ttcs.backend.application.domain.model.SurveyRecipient> saveAll(List<com.ttcs.backend.application.domain.model.SurveyRecipient> recipients) { return recipients; }
+        @Override
+        public int bulkInsertRecipients(Integer surveyId, Integer departmentId) { return 0; }
+        @Override
+        public int bulkInsertCustomRecipients(Integer surveyId, List<Integer> studentIds) { return 0; }
+        @Override
+        public void syncCustomRecipients(Integer surveyId, List<Integer> studentIds) { }
+    };
+
     private final SaveSurveyPort saveSurveyPort;
     private final SaveQuestionPort saveQuestionPort;
     private final SaveSurveyAssignmentPort saveSurveyAssignmentPort;
     private final SendTranslationTaskPort sendTranslationTaskPort;
+    private final com.ttcs.backend.application.port.out.SaveSurveyRecipientPort saveSurveyRecipientPort;
 
     @Autowired
     public CreateSurveyService(
             SaveSurveyPort saveSurveyPort,
             SaveQuestionPort saveQuestionPort,
             SaveSurveyAssignmentPort saveSurveyAssignmentPort,
-            SendTranslationTaskPort sendTranslationTaskPort
+            SendTranslationTaskPort sendTranslationTaskPort,
+            com.ttcs.backend.application.port.out.SaveSurveyRecipientPort saveSurveyRecipientPort
     ) {
         this.saveSurveyPort = saveSurveyPort;
         this.saveQuestionPort = saveQuestionPort;
         this.saveSurveyAssignmentPort = saveSurveyAssignmentPort;
         this.sendTranslationTaskPort = sendTranslationTaskPort;
+        this.saveSurveyRecipientPort = saveSurveyRecipientPort != null ? saveSurveyRecipientPort : NO_OP_RECIPIENT_PORT;
+    }
+
+    public CreateSurveyService(
+            SaveSurveyPort saveSurveyPort,
+            SaveQuestionPort saveQuestionPort,
+            SaveSurveyAssignmentPort saveSurveyAssignmentPort,
+            SendTranslationTaskPort sendTranslationTaskPort
+    ) {
+        this(saveSurveyPort, saveQuestionPort, saveSurveyAssignmentPort, sendTranslationTaskPort, NO_OP_RECIPIENT_PORT);
     }
 
     public CreateSurveyService(
@@ -48,8 +73,7 @@ public class CreateSurveyService implements CreateSurveyUseCase {
             SaveQuestionPort saveQuestionPort,
             SaveSurveyAssignmentPort saveSurveyAssignmentPort
     ) {
-        this(saveSurveyPort, saveQuestionPort, saveSurveyAssignmentPort, command -> {
-        });
+        this(saveSurveyPort, saveQuestionPort, saveSurveyAssignmentPort, command -> {}, NO_OP_RECIPIENT_PORT);
     }
 
     @Override
@@ -72,6 +96,9 @@ public class CreateSurveyService implements CreateSurveyUseCase {
         }
         if (command.recipientScope() == SurveyRecipientScope.DEPARTMENT && command.recipientDepartmentId() == null) {
             throw new IllegalArgumentException("Recipient department is required for department scope");
+        }
+        if (command.recipientScope() == SurveyRecipientScope.CUSTOM_STUDENTS && (command.recipientStudentIds() == null || command.recipientStudentIds().isEmpty())) {
+            throw new IllegalArgumentException("Recipient students list is required for custom students scope");
         }
 
         Survey savedSurvey = saveSurveyPort.save(new Survey(
@@ -99,31 +126,42 @@ public class CreateSurveyService implements CreateSurveyUseCase {
 
         saveSurveyAssignmentPort.replaceAssignments(
                 savedSurvey.getId(),
-                List.of(toAssignment(savedSurvey, command.recipientScope(), command.recipientDepartmentId()))
+                List.of(toAssignment(savedSurvey, command.recipientScope(), command.recipientDepartmentId(), command.subjectType(), command.subjectValue(), command.subjectName()))
         );
+
+        if (command.recipientScope() == SurveyRecipientScope.CUSTOM_STUDENTS) {
+            saveSurveyRecipientPort.bulkInsertCustomRecipients(savedSurvey.getId(), command.recipientStudentIds());
+        }
 
         return savedSurvey.getId();
     }
 
-    private SurveyAssignment toAssignment(Survey survey, SurveyRecipientScope scope, Integer departmentId) {
+    private SurveyAssignment toAssignment(Survey survey, SurveyRecipientScope scope, Integer departmentId, SubjectType subjectType, Integer subjectValue, String subjectName) {
+        Integer evaluatorValue = null;
+        EvaluatorType evaluatorType = EvaluatorType.STUDENT;
+
         if (scope == SurveyRecipientScope.DEPARTMENT) {
-            return new SurveyAssignment(
-                    null,
-                    survey,
-                    EvaluatorType.STUDENT,
-                    null,
-                    SubjectType.DEPARTMENT,
-                    departmentId
-            );
+            evaluatorValue = departmentId;
+        } else if (scope == SurveyRecipientScope.CUSTOM_STUDENTS) {
+            evaluatorType = EvaluatorType.CUSTOM;
+        }
+
+        SubjectType finalSubjectType = subjectType != null ? subjectType : SubjectType.ALL;
+        Integer finalSubjectValue = subjectValue;
+
+        if (scope == SurveyRecipientScope.DEPARTMENT && (finalSubjectType == SubjectType.ALL || finalSubjectType == SubjectType.DEPARTMENT) && finalSubjectValue == null) {
+            finalSubjectType = SubjectType.DEPARTMENT;
+            finalSubjectValue = departmentId;
         }
 
         return new SurveyAssignment(
                 null,
                 survey,
-                EvaluatorType.STUDENT,
-                null,
-                SubjectType.ALL,
-                null
+                evaluatorType,
+                evaluatorValue,
+                finalSubjectType,
+                finalSubjectValue,
+                subjectName
         );
     }
 
